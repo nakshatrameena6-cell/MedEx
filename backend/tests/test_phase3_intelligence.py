@@ -122,8 +122,8 @@ def test_rbac_forecast_cross_district_isolation(client):
 
 def test_determinism_identical_queries(client):
     headers = {"X-Role": "STATE"}
-    res1 = client.get("/api/v1/risk?facility_id=TN-PHC-001&drug_id=ORS", headers=headers)
-    res2 = client.get("/api/v1/risk?facility_id=TN-PHC-001&drug_id=ORS", headers=headers)
+    res1 = client.get("/api/v1/risk?facility_id=TN-PHC-001&drug_id=ORS&status=ALL", headers=headers)
+    res2 = client.get("/api/v1/risk?facility_id=TN-PHC-001&drug_id=ORS&status=ALL", headers=headers)
 
     assert res1.status_code == 200 and res2.status_code == 200
     r1 = res1.json()[0]
