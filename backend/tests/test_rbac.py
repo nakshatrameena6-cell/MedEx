@@ -52,3 +52,11 @@ def test_facility_cannot_view_audit_logs(client):
     headers = {"X-Role": "FACILITY"}
     res = client.get("/api/v1/audit", headers=headers)
     assert res.status_code == 403
+
+
+def test_alert_audio_rbac_all_roles_allowed(client):
+    for role in ["FACILITY", "BLOCK", "DISTRICT", "STATE", "AUDITOR"]:
+        headers = {"X-Role": role}
+        res = client.get("/api/v1/alerts/ALT-001/audio", headers=headers)
+        assert res.status_code == 200
+

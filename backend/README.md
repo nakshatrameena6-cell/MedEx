@@ -1,4 +1,4 @@
-# MedEx — Federated AI Health-Supply-Chain Platform (Backend)
+# AushadhiGrid — Federated AI Health-Supply-Chain Platform (Backend)
 
 Phase 1 Backend Foundation & API Contract Boundary.
 
@@ -30,7 +30,7 @@ cp .env.example .env
 Available variables:
 - `APP_ENV`: Environment mode (`development`/`production`)
 - `MOCK_MODE`: `true` to return deterministic mock responses and `X-Mock: true` header
-- `DATABASE_URL`: SQLAlchemy connection string (default: `sqlite:///./medex.db`)
+- `DATABASE_URL`: SQLAlchemy connection string (default: `sqlite:///./aushadhigrid.db`)
 - `CORS_ORIGINS`: Allowed CORS origins JSON or comma-separated list
 - `LOG_LEVEL`: Logging verbosity (`INFO`, `DEBUG`, etc.)
 - `PORT`: HTTP Server port (default `8000`)
@@ -59,10 +59,10 @@ pytest
 
 ```bash
 # Build Docker image
-docker build -t medex-backend .
+docker build -t aushadhigrid-backend ./backend
 
 # Run Docker container
-docker run -p 8000:8000 medex-backend
+docker run -p 8000:8000 aushadhigrid-backend
 ```
 
 ## Phase 1 Status

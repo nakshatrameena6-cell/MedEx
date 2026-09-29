@@ -15,3 +15,13 @@ def test_mock_header_present_on_validation_error(client):
     res = client.post("/api/v1/capture/confirm", json={})
     assert res.status_code == 422
     assert res.headers.get("X-Mock") == "true"
+
+
+def test_mock_header_present_on_alert_audio(client):
+    res = client.get("/api/v1/alerts/ALT-001/audio")
+    assert res.status_code == 200
+    assert res.headers.get("X-Mock") == "true"
+    data = res.json()
+    assert data["alert_id"] == "ALT-001"
+    assert "audio_url" in data
+

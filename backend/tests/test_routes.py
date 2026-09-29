@@ -51,5 +51,8 @@ def test_all_declared_phase1_routes_registered(client):
     # GET /api/v1/alerts
     assert client.get("/api/v1/alerts", headers=headers_facility).status_code == 200
 
+    # GET /api/v1/alerts/{alert_id}/audio
+    assert client.get("/api/v1/alerts/ALT-001/audio", headers=headers_facility).status_code == 200
+
     # GET /api/v1/audit
     assert client.get("/api/v1/audit", headers=headers_district).status_code == 200
