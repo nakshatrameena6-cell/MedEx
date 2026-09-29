@@ -16,19 +16,24 @@ class AuditService:
         resource: str,
         resource_id: Optional[str] = None,
         result: str = "SUCCESS",
-        details: Optional[Dict[str, Any]] = None
+        details: Optional[Dict[str, Any]] = None,
+        db: Optional[Session] = None
     ) -> Optional[AuditLog]:
+        target_db = db or self.db
+        d = details.copy() if details else {}
+        if "district" not in d:
+            d["district"] = ctx.district
         log_entry = {
             "user_id": ctx.user_id,
-            "role": ctx.role.value,
+            "role": ctx.role.value if hasattr(ctx.role, "value") else str(ctx.role),
             "action": action,
             "resource": resource,
             "resource_id": resource_id,
             "result": result,
-            "details": details or {"district": ctx.district}
+            "details": d
         }
-        if self.db:
-            repo = AuditRepository(self.db)
+        if target_db:
+            repo = AuditRepository(target_db)
             audit_obj = AuditLog(**log_entry)
             return repo.create(audit_obj)
         return None

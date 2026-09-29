@@ -324,7 +324,8 @@ class RedistributionOptimizer:
                 "drug": target_drug or "ALL_RED",
                 "proposals_count": len(proposals),
                 "solver_status": "OPTIMAL"
-            }
+            },
+            db=self.db
         )
 
         return OptimizeResponse(

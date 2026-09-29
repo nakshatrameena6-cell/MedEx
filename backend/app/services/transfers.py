@@ -273,11 +273,13 @@ class TransferService:
             "TRANSFER",
             transfer_id,
             details={
+                "district": ctx.district,
                 "action": action,
                 "previous_state": current_status,
                 "new_state": transfer.status,
                 "notes": notes
-            }
+            },
+            db=self.db
         )
 
         return TransferDecisionResponse(
