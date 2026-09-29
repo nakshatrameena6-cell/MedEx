@@ -68,3 +68,14 @@ class BadGatewayError(AppException):
 class FeatureNotReadyError(AppException):
     def __init__(self, message: str = "This capability is not implemented in the current backend phase.", details: Optional[Dict[str, Any]] = None):
         super().__init__(status_code=501, code="FEATURE_NOT_READY", message=message, details=details)
+
+
+class InvalidTransitionError(AppException):
+    def __init__(self, message: str = "Invalid state transition", details: Optional[Dict[str, Any]] = None):
+        super().__init__(status_code=409, code="invalid_transition", message=message, details=details)
+
+
+class ConstraintViolationError(AppException):
+    def __init__(self, message: str = "Constraint violation", details: Optional[Dict[str, Any]] = None):
+        super().__init__(status_code=422, code="constraint_violation", message=message, details=details)
+

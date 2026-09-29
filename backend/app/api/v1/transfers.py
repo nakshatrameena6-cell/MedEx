@@ -1,65 +1,46 @@
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user_context
+from app.core.config import settings
 from app.core.roles import UserContext
 from app.core.security import check_read_access, check_transfer_decision_access
 from app.db.database import get_db
-from app.db.repositories import TransferRepository
 from app.fixtures.mock_data import MOCK_TRANSFERS
 from app.schemas.transfers import (
-    TransferItem, TransferDecisionRequest, TransferDecisionResponse
+    TransferDecisionRequest, TransferDecisionResponse, TransferItem
 )
-from app.services.audit import audit_service
+from app.services.transfers import TransferService
 
 router = APIRouter(prefix="/transfers", tags=["Transfers"])
 
 
 @router.get("", response_model=List[TransferItem], summary="Get Redistribution Transfers")
 def get_transfers(
+    district_id: Optional[str] = Query(None, description="Filter by district ID"),
+    state: Optional[str] = Query(None, description="Filter by transfer state (OPEN, APPROVED, REJECTED, etc.)"),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     ctx: UserContext = Depends(get_current_user_context),
     db: Session = Depends(get_db)
 ):
     check_read_access(ctx)
-    repo = TransferRepository(db)
-    transfers = repo.get_scoped_transfers(ctx, skip=skip, limit=limit)
-    if not transfers:
+    service = TransferService(db)
+    items = service.get_scoped_transfers(ctx, skip=skip, limit=limit, state_filter=state)
+    if not items and settings.MOCK_MODE and not state:
         return [TransferItem(**t) for t in MOCK_TRANSFERS]
-
-    return [
-        TransferItem(
-            transfer_id=t.transfer_id,
-            source_facility_id=t.source_facility_id,
-            destination_facility_id=t.destination_facility_id,
-            drug_id=t.drug_code,
-            quantity=t.quantity,
-            status=t.status,
-            created_at=t.created_at.isoformat() + "Z" if t.created_at else "2026-09-29T09:00:00Z"
-        )
-        for t in transfers
-    ]
+    return items
 
 
-@router.post("/{transfer_id}/decision", response_model=TransferDecisionResponse, summary="Approve/Reject Transfer Decision")
+@router.post("/{transfer_id}/decision", response_model=TransferDecisionResponse, summary="Approve/Modify/Reject/Escalate/Close Transfer Decision")
 def transfer_decision(
     transfer_id: str,
     body: TransferDecisionRequest,
-    ctx: UserContext = Depends(get_current_user_context)
+    ctx: UserContext = Depends(get_current_user_context),
+    db: Session = Depends(get_db)
 ):
     check_transfer_decision_access(ctx)
-    audit_service.record(
-        ctx,
-        f"TRANSFER_DECISION_{body.action.upper()}",
-        "transfer",
-        transfer_id,
-        details={"notes": body.notes}
-    )
-    return TransferDecisionResponse(
-        transfer_id=transfer_id,
-        status="APPROVED" if body.action.upper() == "APPROVE" else "REJECTED",
-        decided_by=ctx.user_id,
-        timestamp="2026-09-29T10:30:00Z"
-    )
+    service = TransferService(db)
+    return service.execute_decision(transfer_id, body, ctx)
+

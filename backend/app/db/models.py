@@ -131,18 +131,32 @@ class Transfer(Base):
     __tablename__ = "transfers"
 
     transfer_id = Column(String(100), primary_key=True, index=True)
+    run_id = Column(String(100), nullable=True, index=True)
+    rank = Column(Integer, default=1)
     source_facility_id = Column(String(100), ForeignKey("facilities.facility_id"), nullable=False, index=True)
     destination_facility_id = Column(String(100), ForeignKey("facilities.facility_id"), nullable=False, index=True)
     drug_code = Column(String(50), ForeignKey("drug_master.drug_code"), nullable=False, index=True)
+    drug_name = Column(String(200), nullable=True)
+    unit = Column(String(50), nullable=True, default="unit")
     quantity = Column(Integer, nullable=False)
     status = Column(String(50), nullable=False, default="OPEN")  # OPEN, UNDER_REVIEW, ESCALATED, APPROVED, IN_TRANSIT, RECEIVED, CLOSED, REJECTED
     created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow)
     eta = Column(DateTime, nullable=True)
+    eta_hours = Column(Float, nullable=True)
+    distance_km = Column(Float, nullable=True)
     cost = Column(Float, default=0.0)
-    reason = Column(String(255), nullable=True)
+    cost_inr = Column(Float, default=0.0)
+    batch_expiry_date = Column(Date, nullable=True)
+    expiry_ok = Column(Boolean, default=True)
+    cross_state = Column(Boolean, default=False)
+    route = Column(JSON, nullable=True)
+    reason = Column(String(500), nullable=True)
     created_by = Column(String(100), nullable=True)
     approved_by = Column(String(100), nullable=True)
+    decided_by = Column(String(100), nullable=True)
+    decision_comment = Column(String(500), nullable=True)
+
 
 
 class Alert(Base):
