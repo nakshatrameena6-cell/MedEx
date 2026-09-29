@@ -13,10 +13,19 @@ class StockItemStatus(BaseModel):
 class FacilitySummary(BaseModel):
     facility_id: str = Field(..., description="Facility ID e.g. TN-PHC-014")
     name: str = Field(..., description="Facility name")
+    state_id: Optional[str] = Field("TN", description="State ID")
     district_id: str = Field(..., description="District ID e.g. TN-D01")
     block_id: str = Field(..., description="Block ID e.g. TN-B01")
     facility_type: str = Field(..., description="PHC, CHC, or DH")
     stock_status: str = Field("NORMAL", description="Status e.g. NORMAL, CRITICAL, SURPLUS")
+    latitude: Optional[float] = Field(None)
+    longitude: Optional[float] = Field(None)
+    population_served: Optional[int] = Field(None)
+    bed_capacity: Optional[int] = Field(None)
+    is_active: Optional[bool] = Field(True)
+    road_access_status: Optional[str] = Field("ACCESSIBLE")
+    dataset_type: Optional[str] = Field("synthetic_demo")
+
 
 
 class FacilityStatusResponse(BaseModel):
