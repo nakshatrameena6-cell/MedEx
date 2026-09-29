@@ -118,7 +118,7 @@ class RedistributionOptimizer:
                 if drug_master:
                     risk_item = self.risk_service.compute_risk_for_facility_drug(fac, drug_master, sn)
                     risk_level = risk_item.risk_level
-                    priority = risk_item.priority_score
+                    priority = risk_item.priority
                 else:
                     risk_level = "NORMAL"
                     priority = 50.0
