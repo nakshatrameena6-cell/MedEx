@@ -15,7 +15,7 @@ DEMO_DATA_VERSION = 1
 DISCLAIMER = """
 ================================================================================
 SYNTHETIC DEMO DATA — NOT REAL HEALTH DATA
-This environment uses synthetic demo health-supply-chain data for MedEx / AushadhiGrid.
+This environment uses synthetic demo health-supply-chain data for MedEx.
 It contains NO patient identifiers and is not operational health data.
 ================================================================================
 """
@@ -95,7 +95,7 @@ def seed_database(db: Session, reset: bool = False):
         Base.metadata.create_all(bind=engine)
 
     print(DISCLAIMER)
-    print(f"Seeding AushadhiGrid synthetic demo database (version {DEMO_DATA_VERSION})...")
+    print(f"Seeding MedEx synthetic demo database (version {DEMO_DATA_VERSION})...")
 
     # 1. Seed Drug Master
     for d in DRUG_CATALOGUE:

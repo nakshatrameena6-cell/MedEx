@@ -22,6 +22,10 @@ class Facility(Base):
     dataset_type = Column(String(50), default="synthetic_demo")
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
+    @property
+    def id(self):
+        return self.facility_id
+
 
 class DrugMaster(Base):
     __tablename__ = "drug_master"

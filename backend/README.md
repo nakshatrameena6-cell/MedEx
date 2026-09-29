@@ -1,6 +1,6 @@
-# AushadhiGrid — Federated AI Health-Supply-Chain Platform (Backend)
+# MedEx — Federated AI Health-Supply-Chain Platform (Backend)
 
-Phase 1 Backend Foundation & API Contract Boundary.
+Phase 1 & Phase 2 & Phase 3 Backend Intelligence Layer.
 
 ## Requirements
 - Python 3.11+

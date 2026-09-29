@@ -4,4 +4,4 @@ def test_health_endpoint(client):
     data = response.json()
     assert data["status"] == "ok"
     assert data["version"] == "1.1.0"
-    assert data["app"] == "AushadhiGrid API"
+    assert data["app"] == "MedEx API"

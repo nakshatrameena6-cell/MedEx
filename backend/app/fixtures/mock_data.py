@@ -1,11 +1,11 @@
 """
-Deterministic mock fixtures for AushadhiGrid API Phase 1.
+Deterministic mock fixtures for MedEx API Phase 1.
 """
 
 MOCK_HEALTH = {
     "status": "ok",
     "version": "1.1.0",
-    "app": "AushadhiGrid API"
+    "app": "MedEx API"
 }
 
 MOCK_FACILITIES = [
@@ -115,7 +115,7 @@ MOCK_FEDERATION_ROUNDS = [
 
 MOCK_ALERT_AUDIO = {
     "alert_id": "ALT-001",
-    "audio_url": "https://mock.aushadhigrid.local/audio/ALT-001.mp3",
+    "audio_url": "https://mock.medex.local/audio/ALT-001.mp3",
     "audio_format": "mp3",
     "duration_seconds": 12.5,
     "transcript": "Warning: Stock of Paracetamol 500mg at Chengalpattu CHC is below threshold."

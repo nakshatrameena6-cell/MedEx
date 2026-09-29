@@ -8,7 +8,7 @@ from starlette.responses import Response
 from app.core.config import settings
 
 # Configure root logger
-logger = logging.getLogger("aushadhigrid")
+logger = logging.getLogger("medex")
 logger.setLevel(getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO))
 
 handler = logging.StreamHandler(sys.stdout)

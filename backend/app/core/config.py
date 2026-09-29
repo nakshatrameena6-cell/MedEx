@@ -5,11 +5,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     APP_ENV: str = "development"
-    PROJECT_NAME: str = "AushadhiGrid API"
+    PROJECT_NAME: str = "MedEx API"
     VERSION: str = "1.1.0"
     API_V1_STR: str = "/api/v1"
     MOCK_MODE: bool = True
-    DATABASE_URL: str = "sqlite:///./aushadhigrid.db"
+    DATABASE_URL: str = "sqlite:///./medex.db"
     CORS_ORIGINS: Union[List[str], str] = ["*"]
     LOG_LEVEL: str = "INFO"
     PORT: int = 8000
