@@ -36,8 +36,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         <span className="font-bold text-theme-text">{item.baseline_stock} units</span>
       </div>
       <div className="flex items-center justify-between gap-4 font-mono">
-        <span className="text-red-400 font-semibold">Surge Scenario Stock:</span>
-        <span className="font-bold text-red-400">{item.scenario_stock} units</span>
+        <span className="text-theme-critical font-semibold">Surge Scenario Stock:</span>
+        <span className="font-bold text-theme-critical">{item.scenario_stock} units</span>
       </div>
     </div>
   );

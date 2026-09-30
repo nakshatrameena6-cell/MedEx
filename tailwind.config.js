@@ -7,6 +7,9 @@ export default {
   ],
   theme: {
     extend: {
+      fontSize: {
+        '2xs': ['10px', '15px'],
+      },
       colors: {
         theme: {
           bg: 'var(--color-bg)',
@@ -66,29 +69,26 @@ export default {
           },
         },
         palette: {
-          lime: '#C5D86D',
-          coffee: '#261C15',
-          'coffee-surface': '#33261D',
-          'coffee-card': '#3D2F24',
-          porcelain: '#F7F7F2',
-          beige: '#E4E6C3',
-          'beige-muted': '#D3D6AC',
-          flame: '#F05D23',
-          'flame-hover': '#D94C15',
-          'flame-tint': 'rgba(240, 93, 35, 0.15)',
-          'lime-tint': 'rgba(197, 216, 109, 0.15)',
+          lime: '#8CBFFF',
+          coffee: '#080F1C',
+          'coffee-surface': '#101C2D',
+          'coffee-card': '#16243A',
+          porcelain: '#F0F5FC',
+          beige: '#A5B6CD',
+          'beige-muted': '#7F94B1',
+          flame: '#FF807B',
+          'flame-hover': '#FF9A91',
+          'flame-tint': 'rgba(255, 128, 123, 0.15)',
+          'lime-tint': 'rgba(140, 191, 255, 0.15)',
         },
       },
       fontFamily: {
         sans: [
-          'Plus Jakarta Sans',
-          'Inter',
-          '-apple-system',
-          'BlinkMacSystemFont',
-          'Segoe UI',
+          'DM Sans',
           'sans-serif',
         ],
-        mono: ['JetBrains Mono', 'SF Mono', 'Menlo', 'monospace'],
+        display: ['Space Grotesk', 'sans-serif'],
+        mono: ['IBM Plex Mono', 'monospace'],
       },
     },
   },

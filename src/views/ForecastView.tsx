@@ -255,22 +255,22 @@ export const ForecastView: React.FC = () => {
             <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] text-cyan-400 font-bold tracking-wider">[01]</span>
+                  <span className="font-mono text-[10px] text-theme-primary font-bold tracking-wider">[01]</span>
                   <span className="text-[13px] font-medium text-theme-muted">P50 Median Projection</span>
                 </div>
                 <StatusBadge status="CYAN" label="Active" size="sm" />
               </div>
               <div className="flex items-baseline gap-2 pt-1">
-                <span className="text-[38px] font-bold text-cyan-400 leading-none tracking-tight font-mono">
+                <span className="metric-value text-[40px] font-medium text-theme-primary leading-none tracking-tight font-mono">
                   {p50Latest}
                 </span>
                 <span className="text-[13px] font-mono text-theme-muted">
                   {forecastData?.unit || 'sachets'}
                 </span>
               </div>
-              <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-theme-muted">
+              <div className="pt-2 border-t border-theme-border flex items-center justify-between text-[11px] text-theme-muted">
                 <span>Model median trajectory</span>
-                <span className="font-mono text-[9px] text-cyan-400 font-bold uppercase tracking-wider">
+                <span className="font-mono text-[9px] text-theme-primary font-bold uppercase tracking-wider">
                   CONFIDENCE: 92%
                 </span>
               </div>
@@ -282,19 +282,19 @@ export const ForecastView: React.FC = () => {
             <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] text-emerald-400 font-bold tracking-wider">[02]</span>
+                  <span className="font-mono text-[10px] text-theme-healthy-text font-bold tracking-wider">[02]</span>
                   <span className="text-[13px] font-medium text-theme-muted">Active Model Version</span>
                 </div>
                 <StatusBadge status="GREEN" label="Validated" size="sm" />
               </div>
               <div className="pt-1">
-                <span className="text-[38px] font-bold text-theme-text leading-none tracking-tight font-mono">
+                <span className="metric-value text-[40px] font-medium text-theme-text leading-none tracking-tight font-mono">
                   {forecastData?.model_version || 'fed-v7'}
                 </span>
               </div>
-              <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-theme-muted">
+              <div className="pt-2 border-t border-theme-border flex items-center justify-between text-[11px] text-theme-muted">
                 <span>Scope: {forecastData?.model_scope || 'federated'}</span>
-                <span className="font-mono text-[9px] text-emerald-400 font-bold uppercase tracking-wider">
+                <span className="font-mono text-[9px] text-theme-healthy-text font-bold uppercase tracking-wider">
                   VERIFIED
                 </span>
               </div>
@@ -306,21 +306,21 @@ export const ForecastView: React.FC = () => {
             <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] text-sky-400 font-bold tracking-wider">[03]</span>
+                  <span className="font-mono text-[10px] text-theme-primary font-bold tracking-wider">[03]</span>
                   <span className="text-[13px] font-medium text-theme-muted">Forecast Horizon</span>
                 </div>
-                <span className="font-mono text-[10px] text-slate-400 bg-white/[0.05] px-2 py-0.5 rounded border border-white/[0.08]">
+                <span className="font-mono text-[10px] text-theme-muted bg-white/[0.05] px-2 py-0.5 rounded border border-theme-border">
                   LOOKAHEAD
                 </span>
               </div>
               <div className="pt-1">
-                <span className="text-[38px] font-bold text-theme-text leading-none tracking-tight font-mono">
+                <span className="metric-value text-[40px] font-medium text-theme-text leading-none tracking-tight font-mono">
                   {horizonWeeks} wks
                 </span>
               </div>
-              <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-theme-muted">
+              <div className="pt-2 border-t border-theme-border flex items-center justify-between text-[11px] text-theme-muted">
                 <span>Multi-horizon uncertainty corridor</span>
-                <span className="font-mono text-[9px] text-sky-400 font-bold uppercase tracking-wider">
+                <span className="font-mono text-[9px] text-theme-primary font-bold uppercase tracking-wider">
                   P10-P90
                 </span>
               </div>
@@ -341,7 +341,7 @@ export const ForecastView: React.FC = () => {
               <span>Historical Actuals</span>
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-teal-400" />
+              <span className="h-2.5 w-2.5 rounded-full bg-theme-primary" />
               <span>P50 Projection</span>
             </span>
           </div>

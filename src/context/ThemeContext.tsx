@@ -20,11 +20,7 @@ function getInitialTheme(): Theme {
     console.warn('Unable to access localStorage for theme preference:', err);
   }
 
-  if (typeof window !== 'undefined' && window.matchMedia) {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
-
-  return 'light'; // Light is default per spec
+  return 'dark';
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { motion, useMotionValue, useMotionTemplate, useSpring, useTransform } from 'framer-motion';
 
 export interface Card3DProps {
   children: React.ReactNode;
@@ -17,8 +17,8 @@ export const Card3D: React.FC<Card3DProps> = ({
   className = '',
   glowColor,
   specularColor,
-  depth = 18,
-  maxTilt = 7,
+  depth = 8,
+  maxTilt = 2,
   interactive = true,
   onClick,
 }) => {
@@ -39,8 +39,10 @@ export const Card3D: React.FC<Card3DProps> = ({
   const rotateY = useTransform(smoothX, [-0.5, 0.5], [-maxTilt, maxTilt]);
 
 
-  // Glare position in percentages
-  const [glarePos, setGlarePos] = useState({ x: 50, y: 50 });
+  const glareX = useTransform(smoothX, [-0.5, 0.5], [0, 100]);
+  const glareY = useTransform(smoothY, [-0.5, 0.5], [0, 100]);
+  const sheenColor = specularColor || glowColor || 'rgba(140, 191, 255, 0.08)';
+  const sheen = useMotionTemplate`radial-gradient(420px circle at ${glareX}% ${glareY}%, ${sheenColor}, transparent 65%)`;
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!interactive || !cardRef.current) return;
@@ -58,10 +60,6 @@ export const Card3D: React.FC<Card3DProps> = ({
     mouseX.set(normalizedX);
     mouseY.set(normalizedY);
 
-    setGlarePos({
-      x: (clientX / width) * 100,
-      y: (clientY / height) * 100,
-    });
   };
 
   const handleMouseEnter = () => {
@@ -97,17 +95,17 @@ export const Card3D: React.FC<Card3DProps> = ({
           rotateY: prefersReduced ? 0 : rotateY,
           transformStyle: prefersReduced ? 'flat' : 'preserve-3d',
         }}
-        whileHover={prefersReduced ? undefined : { scale: 1.015 }}
+        whileHover={prefersReduced || !interactive ? undefined : { scale: 1.01 }}
         whileTap={interactive ? { scale: 0.99 } : undefined}
         transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-        className="w-full h-full relative rounded-2xl border border-theme-border/80 dark:border-white/[0.12] bg-theme-surface/95 dark:bg-[#2c2017]/95 backdrop-blur-xl overflow-hidden shadow-lg transition-colors duration-200 group-hover:border-[#C5D86D]/50 text-theme-text"
+        className="surface-card w-full h-full relative transition-colors duration-300 group-hover:border-theme-border-control text-theme-text"
       >
         {/* Dynamic Specular Sheen (follows cursor spotlight) */}
-        {!prefersReduced && isHovered && (
-          <div
+        {!prefersReduced && interactive && isHovered && (
+          <motion.div
             className="pointer-events-none absolute -inset-px transition-opacity duration-300 opacity-100 z-10"
             style={{
-              background: `radial-gradient(420px circle at ${glarePos.x}% ${glarePos.y}%, ${specularColor || glowColor || 'rgba(197, 216, 109, 0.22)'}, transparent 65%)`,
+              background: sheen,
             }}
           />
         )}

@@ -166,9 +166,9 @@ export const AlertsPage: React.FC = () => {
         {isFilterPopoverOpen && (
           <div
             ref={popoverRef}
-            className="absolute right-0 top-12 z-30 w-80 bg-theme-surface/95 border border-white/10 rounded-2xl shadow-2xl p-5 space-y-4 font-sans backdrop-blur-xl animate-slide-up text-theme-text"
+            className="absolute right-0 top-12 z-30 w-80 bg-theme-surface/95 border border-theme-border rounded-2xl shadow-2xl p-5 space-y-4 font-sans backdrop-blur-xl animate-slide-up text-theme-text"
           >
-            <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+            <div className="flex items-center justify-between border-b border-theme-border pb-2.5">
               <h3 className="text-[14px] font-semibold text-theme-text">Filter Alerts</h3>
               <button
                 type="button"
@@ -203,7 +203,7 @@ export const AlertsPage: React.FC = () => {
               />
             </div>
 
-            <div className="pt-2.5 border-t border-white/10 flex items-center justify-between">
+            <div className="pt-2.5 border-t border-theme-border flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => {
@@ -257,10 +257,10 @@ export const AlertsPage: React.FC = () => {
           {/* Card 2: Active Unacknowledged */}
           <Card3D 
             specularColor="rgba(245, 158, 11, 0.22)" 
-            className="p-6 rounded-2xl border border-white/10 bg-theme-surface/90 backdrop-blur-xl relative overflow-hidden shadow-xl"
+            className="p-6 rounded-2xl border border-theme-border bg-theme-surface/90 backdrop-blur-xl relative overflow-hidden shadow-xl"
           >
             <div className="flex items-center justify-between text-[13px] text-theme-muted">
-              <span className="font-mono text-[10px] tracking-wider text-amber-400 uppercase font-bold">[02] PENDING REVIEW</span>
+              <span className="font-mono text-[10px] tracking-wider text-theme-warning-text uppercase font-bold">[02] PENDING REVIEW</span>
               <StatusBadge status="AMBER" label="Watch" size="sm" />
             </div>
             <div className="mt-4">
@@ -276,10 +276,10 @@ export const AlertsPage: React.FC = () => {
           {/* Card 3: Total Alerts */}
           <Card3D 
             specularColor="rgba(56, 189, 248, 0.22)" 
-            className="p-6 rounded-2xl border border-white/10 bg-theme-surface/90 backdrop-blur-xl relative overflow-hidden shadow-xl"
+            className="p-6 rounded-2xl border border-theme-border bg-theme-surface/90 backdrop-blur-xl relative overflow-hidden shadow-xl"
           >
             <div className="flex items-center justify-between text-[13px] text-theme-muted">
-              <span className="font-mono text-[10px] tracking-wider text-sky-400 uppercase font-bold">[03] TOTAL LOGGED</span>
+              <span className="font-mono text-[10px] tracking-wider text-theme-primary uppercase font-bold">[03] TOTAL LOGGED</span>
               <Bell className="w-4 h-4 text-theme-muted" strokeWidth={1.8} />
             </div>
             <div className="mt-4">
@@ -295,7 +295,7 @@ export const AlertsPage: React.FC = () => {
       )}
 
       {/* ReactBits JellyRadio Interactive Filter Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-white/10 bg-theme-surface/70 backdrop-blur-xl">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-theme-border bg-theme-surface/70 backdrop-blur-xl">
         <div className="flex items-center gap-2 text-xs font-mono text-theme-muted">
           <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
           <span>SWIPE ROW ACTIVE: SWIPE ALERT LEFT OR RIGHT TO ACTION / ACKNOWLEDGE</span>
@@ -372,12 +372,12 @@ export const AlertsPage: React.FC = () => {
                     {
                       id: 'ack',
                       label: alert.acknowledged ? 'Acknowledged' : 'Acknowledge',
-                      color: '#C5D86D',
+                      color: '#8CBFFF',
                     },
                     {
                       id: 'dismiss',
                       label: 'Dismiss',
-                      color: '#F05D23',
+                      color: '#FF807B',
                     },
                   ]}
                   onAction={(actionId: string) => {
@@ -396,15 +396,15 @@ export const AlertsPage: React.FC = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.98 }}
                     transition={{ delay: idx * 0.03, duration: 0.25 }}
-                    className={`p-6 rounded-2xl border border-white/10 shadow-xl backdrop-blur-xl space-y-4 transition-all ${railClass} ${
+                    className={`p-6 rounded-2xl border border-theme-border shadow-xl backdrop-blur-xl space-y-4 transition-all ${railClass} ${
                       !alert.acknowledged ? 'ring-1 ring-white/15' : 'opacity-85'
                     }`}
                   >
                     {/* Header */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/10">
+                    <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-theme-border">
                       <div className="flex items-center gap-2.5 text-[13px]">
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          isHigh ? 'bg-red-500/10 text-theme-critical' : isMedium ? 'bg-amber-500/10 text-amber-400' : 'bg-emerald-500/10 text-emerald-400'
+                          isHigh ? 'bg-red-500/10 text-theme-critical' : isMedium ? 'bg-amber-500/10 text-theme-warning-text' : 'bg-emerald-500/10 text-theme-healthy-text'
                         }`}>
                           <SeverityIcon className="w-4 h-4" strokeWidth={2} />
                         </div>
@@ -415,7 +415,7 @@ export const AlertsPage: React.FC = () => {
                           status={isHigh ? 'RED' : isMedium ? 'AMBER' : 'GREEN'}
                           size="sm"
                         />
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-theme-muted uppercase">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/5 border border-theme-border text-theme-muted uppercase">
                           Escalation: Level {alert.escalation_level}
                         </span>
                       </div>
@@ -449,14 +449,14 @@ export const AlertsPage: React.FC = () => {
                           </span>
                         )}
                       </div>
-                      <p className="text-theme-text/90 font-normal leading-relaxed bg-white/[0.02] p-3 rounded-xl border border-white/5">
+                      <p className="text-theme-text/90 font-normal leading-relaxed bg-white/[0.02] p-3 rounded-xl border border-theme-border">
                         "{alert.message}"
                       </p>
                     </div>
 
                     {/* Voice Note Secondary Action */}
                     {alert.audio_url && (
-                      <div className="pt-2 flex items-center justify-between border-t border-white/5">
+                      <div className="pt-2 flex items-center justify-between border-t border-theme-border">
                         <div className="flex items-center gap-3">
                           <Button
                             variant="secondary"

@@ -46,9 +46,9 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
   }, []);
 
   return (
-    <header className="h-14 bg-theme-surface border-b border-theme-border px-4 flex items-center justify-between gap-4 sticky top-0 z-30 font-sans">
+    <header className="workspace-header border-b border-theme-border px-3 md:px-8 flex items-center justify-between gap-1.5 sticky top-0 z-30 font-sans">
       {/* Left: Mobile Sidebar Hamburger */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1 sm:gap-3">
         <button
           type="button"
           onClick={onToggleSidebar}
@@ -62,11 +62,12 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
         <button
           type="button"
           onClick={onOpenCommandPalette}
-          className="flex items-center justify-between w-48 sm:w-64 md:w-80 px-3 py-1.5 rounded-lg border border-theme-border-control bg-theme-bg text-[13px] text-theme-muted hover:border-theme-primary transition-colors focus-visible:outline-2 focus-visible:outline-theme-primary"
+          aria-label="Search pages, drugs and facilities"
+          className="flex items-center justify-between w-9 sm:w-44 xl:w-72 h-9 sm:px-3 rounded-lg text-[12px] text-theme-muted hover:text-theme-primary transition-colors focus-visible:outline-2 focus-visible:outline-theme-primary"
         >
           <div className="flex items-center gap-2 truncate">
             <Search className="w-4 h-4 shrink-0 text-theme-muted" strokeWidth={1.8} />
-            <span className="truncate">Search pages, drugs, facilities...</span>
+            <span className="hidden sm:inline truncate">Search your workspace...</span>
           </div>
           <span className="hidden sm:inline-flex text-[11px] font-mono px-1.5 py-0.5 rounded bg-theme-surface border border-theme-border text-theme-muted shrink-0">
             ⌘K
@@ -75,27 +76,24 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
       </div>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5 lg:gap-3">
         {/* District Selector with Chevron */}
-        <div className="relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-theme-border-control bg-theme-bg text-[13px] text-theme-text font-medium">
+        <div className="relative inline-flex items-center gap-1.5 px-2 lg:px-3 py-2 rounded-lg border border-theme-border bg-theme-bg text-[11px] lg:text-[12px] text-theme-text font-medium">
           <select
             value={district}
             onChange={(e) => setDistrict(e.target.value)}
             className="bg-transparent font-medium text-theme-text focus:outline-none cursor-pointer pr-4 appearance-none"
             aria-label="Select Active District Scope"
           >
-            <option value="TN-D01" className="bg-theme-surface">District TN-D01</option>
-            <option value="TN-D02" className="bg-theme-surface">District TN-D02</option>
-            <option value="TN-D03" className="bg-theme-surface">District TN-D03</option>
-            <option value="ALL" className="bg-theme-surface">All Districts</option>
+            <option value="TN-D01" className="bg-theme-surface">TN-D01</option>
+            <option value="TN-D02" className="bg-theme-surface">TN-D02</option>
+            <option value="TN-D03" className="bg-theme-surface">TN-D03</option>
+            <option value="ALL" className="bg-theme-surface">All districts</option>
           </select>
           <ChevronDown className="w-4 h-4 text-theme-muted pointer-events-none absolute right-2" strokeWidth={1.8} />
         </div>
 
         {/* Active Scope Chip */}
-        <span className="hidden sm:inline-flex items-center h-7 px-2.5 rounded-md bg-theme-primary-tint text-theme-primary text-[12px] font-mono font-semibold">
-          SCOPE: {district}
-        </span>
 
         {/* Dev-Only Badges */}
         <DevOnly>
@@ -117,7 +115,7 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
         </button>
 
         {/* ReactBits Physics BellToggle */}
-        <div className="flex items-center">
+        <div className="hidden sm:flex items-center">
           <BellToggle
             size="sm"
             count={unreadAlertsCount}
@@ -125,10 +123,10 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
             defaultPressed={true}
             offLabel="Muted"
             onLabel="Alerts"
-            color="var(--theme-text)"
-            background="var(--theme-bg)"
-            onColor="#C5D86D"
-            onBackground="rgba(197, 216, 109, 0.18)"
+            color="var(--color-text)"
+            background="var(--color-bg)"
+            onColor="var(--color-primary)"
+            onBackground="var(--color-primary-tint)"
           />
         </div>
 
@@ -150,7 +148,7 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
             <span className="hidden lg:inline text-[13px] font-medium max-w-[90px] truncate">
               {user}
             </span>
-            <ChevronDown className="w-3.5 h-3.5 text-theme-muted" strokeWidth={1.8} />
+            <ChevronDown className="hidden sm:block w-3.5 h-3.5 text-theme-muted" strokeWidth={1.8} />
           </button>
 
           {/* Avatar Dropdown Menu */}

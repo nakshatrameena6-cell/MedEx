@@ -133,7 +133,7 @@ export const AuditPage: React.FC = () => {
     const html = jsonString.replace(
       /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
       (match) => {
-        let cls = 'text-amber-400';
+        let cls = 'text-theme-warning-text';
         if (/^"/.test(match)) {
           if (/:$/.test(match)) {
             cls = 'text-teal-400 font-semibold';
@@ -143,7 +143,7 @@ export const AuditPage: React.FC = () => {
         } else if (/true|false/.test(match)) {
           cls = 'text-purple-400 font-bold';
         } else if (/null/.test(match)) {
-          cls = 'text-red-400 italic';
+          cls = 'text-theme-critical italic';
         }
         return `<span class="${cls}">${match}</span>`;
       }
@@ -277,10 +277,10 @@ export const AuditPage: React.FC = () => {
       </div>
 
       {/* Table Container */}
-      <div className="bg-theme-surface/85 backdrop-blur-xl border border-white/10 rounded-2xl p-6 space-y-4 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+      <div className="bg-theme-surface/85 backdrop-blur-xl border border-theme-border rounded-2xl p-6 space-y-4 shadow-2xl">
+        <div className="flex items-center justify-between border-b border-theme-border pb-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-theme-primary">
+            <div className="w-8 h-8 rounded-lg bg-white/5 border border-theme-border flex items-center justify-center text-theme-primary">
               <Terminal className="w-4 h-4" />
             </div>
             <div>
@@ -306,10 +306,10 @@ export const AuditPage: React.FC = () => {
         ) : auditEntries.length === 0 ? (
           <EmptyState title="No Audit Records" description="No governance events match the selected filters." />
         ) : (
-          <div className="overflow-x-auto border border-white/10 rounded-xl">
+          <div className="overflow-x-auto border border-theme-border rounded-xl">
             <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
-                <tr className="border-b border-white/10 bg-white/[0.02] text-theme-muted text-[11px] font-mono uppercase tracking-wider">
+                <tr className="border-b border-theme-border bg-white/[0.02] text-theme-muted text-[11px] font-mono uppercase tracking-wider">
                   <th scope="col" className="py-3 px-4">Audit ID</th>
                   <th scope="col" className="py-3 px-4">Timestamp (UTC)</th>
                   <th scope="col" className="py-3 px-4">Actor & Role</th>
@@ -395,7 +395,7 @@ export const AuditPage: React.FC = () => {
 
                       {/* Expandable JSON Detail Row */}
                       {isExpanded && (
-                        <tr className="bg-black/40 border-b border-white/10">
+                        <tr className="bg-black/40 border-b border-theme-border">
                           <td colSpan={7} className="p-4">
                             <motion.div 
                               initial={{ opacity: 0, height: 0 }}
@@ -417,7 +417,7 @@ export const AuditPage: React.FC = () => {
                                   <span>{isCopied ? 'Copied!' : 'Copy Payload'}</span>
                                 </Button>
                               </div>
-                              <pre className="text-2xs font-mono bg-[#090D14] p-4 rounded-xl border border-white/10 text-slate-100 overflow-x-auto max-h-72 scrollbar-thin shadow-inner leading-relaxed">
+                              <pre className="text-2xs font-mono bg-[#090D14] p-4 rounded-xl border border-theme-border text-slate-100 overflow-x-auto max-h-72 scrollbar-thin shadow-inner leading-relaxed">
                                 {renderJsonSyntax(entry)}
                               </pre>
                             </motion.div>

@@ -14,6 +14,8 @@ import {
   Palette,
   ChevronLeft,
   ChevronRight,
+  X,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuthRole } from '../../context/AuthRoleContext';
 import { Role } from '../../types/api';
@@ -34,6 +36,7 @@ interface NavGroup {
 
 const NAV_GROUPS: NavGroup[] = [
   {
+    overline: 'WORKSPACE',
     items: [
       { path: '/capture', label: COPY.nav.phcCapture, icon: Camera },
       { path: '/map', label: COPY.nav.districtMap, icon: MapPin },
@@ -104,35 +107,32 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
 
   return (
     <aside
-      className={`bg-theme-surface border-r border-theme-border flex flex-col justify-between h-full font-sans transition-all duration-200 ${
-        isCollapsed ? 'w-16' : 'w-60'
+      className={`workspace-sidebar flex flex-col justify-between h-full font-sans transition-all duration-300 ${
+        isCollapsed ? 'w-20' : 'w-60'
       }`}
       aria-label="Main Navigation Sidebar"
     >
       {/* Top Header: Logo & Brand */}
-      <div className="p-4 border-b border-theme-border flex items-center justify-between">
+      <div className="px-5 h-[92px] shrink-0 flex items-center justify-between">
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-8 h-8 rounded-lg bg-theme-primary-tint text-theme-primary flex items-center justify-center shrink-0">
+          <div className="brand-mark flex items-center justify-center shrink-0">
             <Activity className="w-5 h-5" strokeWidth={1.8} />
           </div>
           {!isCollapsed && (
             <div className="truncate">
               <div className="flex items-center gap-1.5">
-                <span className="text-[14px] font-semibold text-theme-text leading-none">
-                  MEDEx
-                </span>
-                <span className="text-[10px] font-mono px-1 py-0.5 rounded bg-theme-primary-tint text-theme-primary font-bold">
-                  v1.1
+                <span className="text-[23px] font-display font-semibold tracking-[-0.06em] text-theme-text leading-none">
+                  medex<span className="text-theme-primary">.</span>
                 </span>
               </div>
-              <span className="text-[11px] text-theme-muted truncate block mt-0.5">
-                Health Supply Chain
+              <span className="text-[9px] tracking-[.12em] uppercase text-theme-muted truncate block mt-1">
+                Connected care
               </span>
             </div>
           )}
         </div>
 
-        {/* Collapse Toggle Button */}
+        {onCloseMobile && <button type="button" onClick={onCloseMobile} aria-label="Close navigation" className="md:hidden p-1 text-theme-muted"><X size={18} /></button>}
         <button
           type="button"
           onClick={toggleCollapse}
@@ -149,11 +149,11 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
       </div>
 
       {/* Navigation Links List */}
-      <div className="flex-1 p-2 space-y-4 overflow-y-auto">
+      <div className="flex-1 px-3 py-3 space-y-7 overflow-y-auto">
         {NAV_GROUPS.map((group, gIdx) => (
           <div key={gIdx} className="space-y-1">
             {group.overline && !isCollapsed && (
-              <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-theme-muted">
+              <div className="px-3 mb-3 text-[9px] font-mono tracking-[0.16em] text-theme-muted">
                 {group.overline}
               </div>
             )}
@@ -175,10 +175,10 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
                     onClick={onCloseMobile}
                     title={isCollapsed ? item.label : undefined}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all ${
+                      `nav-link flex items-center gap-3 px-3 py-2 rounded-xl text-[12px] font-medium transition-all ${
                         isActive
-                          ? 'bg-theme-primary-tint text-theme-primary font-semibold border-l-[3px] border-theme-primary shadow-none'
-                          : 'text-theme-muted hover:text-theme-text hover:bg-theme-border/40 border-l-[3px] border-transparent'
+                          ? 'bg-theme-primary-tint text-theme-primary'
+                          : 'text-theme-muted hover:text-theme-text hover:bg-theme-surface'
                       }`
                     }
                   >
@@ -191,6 +191,12 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
           </div>
         ))}
       </div>
+      {!isCollapsed && <div className="sidebar-footer m-4 p-4 rounded-xl">
+        <ShieldCheck className="text-theme-primary mb-3" size={19} />
+        <p className="font-display text-[13px] font-medium">Care without interruption.</p>
+        <p className="text-theme-muted text-[11px] leading-relaxed mt-1.5">A connected view of every facility, every essential supply.</p>
+        <div className="eyebrow mt-4 !text-[8px]">MEDEX / OPERATIONS</div>
+      </div>}
     </aside>
   );
 };

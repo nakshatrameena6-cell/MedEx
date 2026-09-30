@@ -1,20 +1,20 @@
-import React from 'react';
+import React, { lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthRoleProvider } from './context/AuthRoleContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { DevModeProvider } from './context/DevModeContext';
 import { ToastProvider } from './context/ToastContext';
 import { AppLayout } from './components/layout/AppLayout';
-import { CaptureView } from './views/CaptureView';
-import { MapView } from './views/MapView';
-import { RiskView } from './views/RiskView';
-import { ForecastView } from './views/ForecastView';
-import { TransferView } from './views/TransferView';
-import { FederationView } from './views/FederationView';
-import { ScenarioView } from './views/ScenarioView';
-import { AlertsView } from './views/AlertsView';
-import { AuditView } from './views/AuditView';
-import { StyleGuideView } from './views/StyleGuideView';
+const CaptureView = lazy(() => import('./views/CaptureView').then((m) => ({ default: m.CaptureView })));
+const MapView = lazy(() => import('./views/MapView').then((m) => ({ default: m.MapView })));
+const RiskView = lazy(() => import('./views/RiskView').then((m) => ({ default: m.RiskView })));
+const ForecastView = lazy(() => import('./views/ForecastView').then((m) => ({ default: m.ForecastView })));
+const TransferView = lazy(() => import('./views/TransferView').then((m) => ({ default: m.TransferView })));
+const FederationView = lazy(() => import('./views/FederationView').then((m) => ({ default: m.FederationView })));
+const ScenarioView = lazy(() => import('./views/ScenarioView').then((m) => ({ default: m.ScenarioView })));
+const AlertsView = lazy(() => import('./views/AlertsView').then((m) => ({ default: m.AlertsView })));
+const AuditView = lazy(() => import('./views/AuditView').then((m) => ({ default: m.AuditView })));
+const StyleGuideView = lazy(() => import('./views/StyleGuideView').then((m) => ({ default: m.StyleGuideView })));
 
 export const App: React.FC = () => {
   return (

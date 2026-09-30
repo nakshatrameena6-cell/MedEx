@@ -340,7 +340,7 @@ export const SupplyLattice3D: React.FC<SupplyLattice3DProps> = ({
   }, [activeNodeCount, transferCount, isRotating]);
 
   return (
-    <div className={`relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#070b10]/90 backdrop-blur-xl shadow-2xl ${className}`}>
+    <div className={`relative overflow-hidden rounded-2xl border border-theme-border bg-[#070b10]/90 backdrop-blur-xl shadow-2xl ${className}`}>
       {/* 3D WebGL Canvas Viewport */}
       <div ref={containerRef} className="w-full h-full min-h-[360px] cursor-grab active:cursor-grabbing" />
 
@@ -351,24 +351,24 @@ export const SupplyLattice3D: React.FC<SupplyLattice3DProps> = ({
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500" />
           </span>
-          <span className="font-mono text-[11px] font-bold tracking-widest text-cyan-400 uppercase">
+          <span className="font-mono text-[11px] font-bold tracking-widest text-theme-primary uppercase">
             ORBITAL SUPPLY LATTICE V4.2
           </span>
         </div>
-        <div className="font-mono text-[10px] text-slate-400 flex items-center gap-3">
+        <div className="font-mono text-[10px] text-theme-muted flex items-center gap-3">
           <span>LAT/LON: 13.0827°N 80.2707°E</span>
           <span>NODES: {activeNodeCount}</span>
-          <span className="text-emerald-400">SYNC: 99.8%</span>
+          <span className="text-theme-healthy-text">SYNC: 99.8%</span>
         </div>
       </div>
 
       {/* Top-Right Tactical HUD Metrics */}
       <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-        <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-lg border border-white/[0.08] bg-[#0c131a]/80 backdrop-blur-md font-mono text-[10px] text-slate-300">
-          <Activity className="w-3 h-3 text-cyan-400 animate-pulse" />
+        <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-lg border border-theme-border bg-[#0c131a]/80 backdrop-blur-md font-mono text-[10px] text-theme-text">
+          <Activity className="w-3 h-3 text-theme-primary animate-pulse" />
           <span>FPS: {fps}</span>
           <span className="text-white/20">|</span>
-          <span className="text-cyan-400">{transferCount} ACTIVE TRANSFERS</span>
+          <span className="text-theme-primary">{transferCount} ACTIVE TRANSFERS</span>
         </div>
 
         <button
@@ -376,8 +376,8 @@ export const SupplyLattice3D: React.FC<SupplyLattice3DProps> = ({
           onClick={() => setIsRotating(!isRotating)}
           className={`p-2 rounded-lg border transition-all ${
             isRotating
-              ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-400'
-              : 'border-white/[0.08] bg-[#0c131a]/80 text-slate-400 hover:text-white'
+              ? 'border-cyan-500/40 bg-cyan-500/10 text-theme-primary'
+              : 'border-theme-border bg-[#0c131a]/80 text-theme-muted hover:text-white'
           }`}
           title={isRotating ? 'Pause rotation' : 'Resume auto-rotation'}
           aria-label="Toggle 3D Rotation"
@@ -387,24 +387,24 @@ export const SupplyLattice3D: React.FC<SupplyLattice3DProps> = ({
       </div>
 
       {/* Bottom Telemetry Ticker Ribbon */}
-      <div className="absolute bottom-3 left-4 right-4 z-10 flex items-center justify-between font-mono text-[10px] text-slate-400 border-t border-white/[0.06] pt-2 pointer-events-none">
+      <div className="absolute bottom-3 left-4 right-4 z-10 flex items-center justify-between font-mono text-[10px] text-theme-muted border-t border-white/[0.06] pt-2 pointer-events-none">
         <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1.5 text-cyan-300">
+          <span className="flex items-center gap-1.5 text-theme-primary">
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
             PRIMARY DEPOTS
           </span>
-          <span className="flex items-center gap-1.5 text-sky-400">
+          <span className="flex items-center gap-1.5 text-theme-primary">
             <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
             CHC SPOKES
           </span>
-          <span className="flex items-center gap-1.5 text-amber-400">
+          <span className="flex items-center gap-1.5 text-theme-warning-text">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
             AT RISK ({transferCount > 0 ? 3 : 0})
           </span>
         </div>
 
-        <div className="hidden md:flex items-center gap-2 text-slate-500">
-          <Compass className="w-3 h-3 text-slate-400" />
+        <div className="hidden md:flex items-center gap-2 text-theme-muted">
+          <Compass className="w-3 h-3 text-theme-muted" />
           <span>INTERACTIVE PERSPECTIVE: DRAG TO ROTATE · SCROLL TO ZOOM</span>
         </div>
       </div>

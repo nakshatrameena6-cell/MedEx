@@ -228,20 +228,20 @@ export const TransferReviewPage: React.FC = () => {
             <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] text-cyan-400 font-bold tracking-wider">[01]</span>
+                  <span className="font-mono text-[10px] text-theme-primary font-bold tracking-wider">[01]</span>
                   <span className="text-[13px] font-medium text-theme-muted">Open Proposals</span>
                 </div>
                 <StatusBadge status="CYAN" label="Active" size="sm" />
               </div>
               <div className="flex items-baseline gap-2 pt-1">
-                <span className="text-[38px] font-bold text-cyan-400 leading-none tracking-tight font-mono">
+                <span className="metric-value text-[40px] font-medium text-theme-primary leading-none tracking-tight font-mono">
                   {openCount}
                 </span>
                 <span className="text-[12px] font-mono text-theme-muted">proposals</span>
               </div>
-              <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-theme-muted">
+              <div className="pt-2 border-t border-theme-border flex items-center justify-between text-[11px] text-theme-muted">
                 <span>OR-Tools solver solutions</span>
-                <span className="font-mono text-[9px] text-cyan-400 font-bold uppercase tracking-wider">
+                <span className="font-mono text-[9px] text-theme-primary font-bold uppercase tracking-wider">
                   SOLVER READY
                 </span>
               </div>
@@ -253,22 +253,22 @@ export const TransferReviewPage: React.FC = () => {
             <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] text-sky-400 font-bold tracking-wider">[02]</span>
+                  <span className="font-mono text-[10px] text-theme-primary font-bold tracking-wider">[02]</span>
                   <span className="text-[13px] font-medium text-theme-muted">Average Transit ETA</span>
                 </div>
-                <span className="font-mono text-[10px] text-slate-400 bg-white/[0.05] px-2 py-0.5 rounded border border-white/[0.08]">
+                <span className="font-mono text-[10px] text-theme-muted bg-white/[0.05] px-2 py-0.5 rounded border border-theme-border">
                   P50 TRANSIT
                 </span>
               </div>
               <div className="flex items-baseline gap-1.5 pt-1">
-                <span className="text-[38px] font-bold text-theme-text leading-none tracking-tight font-mono">
+                <span className="metric-value text-[40px] font-medium text-theme-text leading-none tracking-tight font-mono">
                   {avgEta}
                 </span>
                 <span className="text-[13px] font-mono text-theme-muted">hours</span>
               </div>
-              <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-theme-muted">
+              <div className="pt-2 border-t border-theme-border flex items-center justify-between text-[11px] text-theme-muted">
                 <span>Fleet dispatch window</span>
-                <span className="font-mono text-[9px] text-sky-400 font-bold uppercase tracking-wider">
+                <span className="font-mono text-[9px] text-theme-primary font-bold uppercase tracking-wider">
                   IN NETWORK
                 </span>
               </div>
@@ -280,22 +280,22 @@ export const TransferReviewPage: React.FC = () => {
             <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] text-emerald-400 font-bold tracking-wider">[03]</span>
+                  <span className="font-mono text-[10px] text-theme-healthy-text font-bold tracking-wider">[03]</span>
                   <span className="text-[13px] font-medium text-theme-muted">Total Reallocated Qty</span>
                 </div>
-                <span className="font-mono text-[10px] text-slate-400 bg-white/[0.05] px-2 py-0.5 rounded border border-white/[0.08]">
+                <span className="font-mono text-[10px] text-theme-muted bg-white/[0.05] px-2 py-0.5 rounded border border-theme-border">
                   TOTAL BUFFER
                 </span>
               </div>
               <div className="flex items-baseline gap-1.5 pt-1">
-                <span className="text-[38px] font-bold text-theme-text leading-none tracking-tight font-mono">
+                <span className="metric-value text-[40px] font-medium text-theme-text leading-none tracking-tight font-mono">
                   {totalQty.toLocaleString()}
                 </span>
                 <span className="text-[13px] font-mono text-theme-muted">units</span>
               </div>
-              <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-theme-muted">
+              <div className="pt-2 border-t border-theme-border flex items-center justify-between text-[11px] text-theme-muted">
                 <span>Balancing stock across depots</span>
-                <span className="font-mono text-[9px] text-emerald-400 font-bold uppercase tracking-wider">
+                <span className="font-mono text-[9px] text-theme-healthy-text font-bold uppercase tracking-wider">
                   OPTIMIZED
                 </span>
               </div>

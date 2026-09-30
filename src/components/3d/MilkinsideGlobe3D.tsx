@@ -515,7 +515,7 @@ export const MilkinsideGlobe3D: React.FC<MilkinsideGlobe3DProps> = ({
 
   return (
     <div
-      className={`relative w-full rounded-2xl overflow-hidden border border-theme-border/80 dark:border-white/10 bg-[#040810] shadow-2xl select-none font-sans ${className}`}
+      className={`relative w-full rounded-2xl overflow-hidden border border-theme-border/80 dark:border-theme-border bg-[#040810] shadow-2xl select-none font-sans ${className}`}
       style={{ height }}
     >
       <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
@@ -524,7 +524,7 @@ export const MilkinsideGlobe3D: React.FC<MilkinsideGlobe3DProps> = ({
       {showHUD && (
         <div className="absolute top-4 left-5 right-5 flex flex-wrap items-center justify-between pointer-events-none z-20">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-lg shadow-cyan-500/20">
+            <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-theme-primary shadow-lg shadow-cyan-500/20">
               <Globe className="w-4 h-4 animate-spin-slow" />
             </div>
             <div>
@@ -532,14 +532,14 @@ export const MilkinsideGlobe3D: React.FC<MilkinsideGlobe3DProps> = ({
                 <span className="text-[13px] font-bold tracking-tight text-white font-mono">
                   MILKINSIDE // SPATIAL SUPPLY TWIN
                 </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-semibold uppercase">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/15 text-theme-primary border border-cyan-500/30 font-semibold uppercase">
                   LIVE TELEMETRY
                 </span>
               </div>
-              <p className="text-[11px] text-slate-300 font-mono flex items-center gap-2 mt-0.5">
-                <span>GEO-POINTS: <strong className="text-cyan-400">{nodeCount.toLocaleString()}</strong></span>
+              <p className="text-[11px] text-theme-text font-mono flex items-center gap-2 mt-0.5">
+                <span>GEO-POINTS: <strong className="text-theme-primary">{nodeCount.toLocaleString()}</strong></span>
                 <span>·</span>
-                <span>ACTIVE: <strong className="text-emerald-400">{activeNodeName}</strong></span>
+                <span>ACTIVE: <strong className="text-theme-healthy-text">{activeNodeName}</strong></span>
               </p>
             </div>
           </div>
@@ -551,8 +551,8 @@ export const MilkinsideGlobe3D: React.FC<MilkinsideGlobe3DProps> = ({
               onClick={() => setShowArcs(!showArcs)}
               className={`px-3 py-1.5 rounded-xl border text-[11px] font-mono transition-all flex items-center gap-1.5 ${
                 showArcs
-                  ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300 shadow-lg shadow-cyan-500/15'
-                  : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                  ? 'bg-cyan-500/15 border-cyan-500/40 text-theme-primary shadow-lg shadow-cyan-500/15'
+                  : 'bg-white/5 border-theme-border text-theme-muted hover:text-white'
               }`}
               title="Toggle Flight Transfer Arcs"
             >
@@ -565,8 +565,8 @@ export const MilkinsideGlobe3D: React.FC<MilkinsideGlobe3DProps> = ({
               onClick={() => setIsRotating(!isRotating)}
               className={`px-3 py-1.5 rounded-xl border text-[11px] font-mono transition-all flex items-center gap-1.5 ${
                 isRotating
-                  ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300 shadow-lg shadow-cyan-500/15'
-                  : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                  ? 'bg-cyan-500/15 border-cyan-500/40 text-theme-primary shadow-lg shadow-cyan-500/15'
+                  : 'bg-white/5 border-theme-border text-theme-muted hover:text-white'
               }`}
               title="Toggle Orbit Rotation"
             >
@@ -579,9 +579,9 @@ export const MilkinsideGlobe3D: React.FC<MilkinsideGlobe3DProps> = ({
 
       {/* Bottom Telemetry Ticker */}
       {showHUD && (
-        <div className="absolute bottom-4 left-5 right-5 flex flex-wrap items-center justify-between text-[11px] font-mono text-slate-300 pointer-events-none z-20 border-t border-white/10 pt-2.5">
+        <div className="absolute bottom-4 left-5 right-5 flex flex-wrap items-center justify-between text-[11px] font-mono text-theme-text pointer-events-none z-20 border-t border-theme-border pt-2.5">
           <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5 text-emerald-400">
+            <span className="flex items-center gap-1.5 text-theme-healthy-text">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               LATENCY: 14ms
             </span>
@@ -590,10 +590,10 @@ export const MilkinsideGlobe3D: React.FC<MilkinsideGlobe3DProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-cyan-400">
+            <span className="px-2 py-0.5 rounded bg-white/5 border border-theme-border text-theme-primary">
               {activeCoords.lat} · {activeCoords.lon}
             </span>
-            <span className="text-[10px] text-slate-400">DRAG TO ORBIT</span>
+            <span className="text-[10px] text-theme-muted">DRAG TO ORBIT</span>
           </div>
         </div>
       )}

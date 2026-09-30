@@ -23,13 +23,13 @@ export const SectionCard: React.FC<SectionCardProps> = ({
     <section className={`medex-panel overflow-hidden ${className}`}>
       {(title || actionSlot) && (
         <div
-          className={`px-4 py-3.5 flex items-center justify-between gap-4 ${
+          className={`px-5 py-5 flex flex-wrap items-center justify-between gap-4 ${
             headerBorder ? 'border-b border-medex-border' : ''
           }`}
         >
           <div>
             {title && (
-              <h3 className="text-sm font-semibold text-medex-primary tracking-wide">
+              <h3 className="text-[16px] font-medium text-medex-primary tracking-tight">
                 {title}
               </h3>
             )}
@@ -40,7 +40,7 @@ export const SectionCard: React.FC<SectionCardProps> = ({
           {actionSlot && <div className="flex items-center gap-2">{actionSlot}</div>}
         </div>
       )}
-      <div className={`p-4 ${contentClassName}`}>{children}</div>
+      <div className={`p-5 ${contentClassName}`}>{children}</div>
     </section>
   );
 };

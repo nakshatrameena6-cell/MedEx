@@ -46,6 +46,7 @@ export const KpiCard: React.FC<KpiCardProps> = ({
     const decimals = isFloat ? (strVal.split('.')[1]?.length || 1) : 0;
     const duration = 400;
     const startTime = performance.now();
+    let frame = 0;
 
     const animate = (now: number) => {
       const elapsed = now - startTime;
@@ -55,13 +56,14 @@ export const KpiCard: React.FC<KpiCardProps> = ({
       setDisplayValue(decimals > 0 ? current.toFixed(decimals) : Math.round(current));
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        frame = requestAnimationFrame(animate);
       } else {
         setDisplayValue(value);
       }
     };
 
-    requestAnimationFrame(animate);
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
   }, [value]);
 
   const glowColorMap: Record<string, string> = {
@@ -80,7 +82,7 @@ export const KpiCard: React.FC<KpiCardProps> = ({
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             {telemetryIndex && (
-              <span className="font-mono text-[10px] text-cyan-400 font-bold tracking-wider">
+              <span className="font-mono text-[10px] text-theme-primary font-bold tracking-wider">
                 {telemetryIndex}
               </span>
             )}
@@ -100,7 +102,7 @@ export const KpiCard: React.FC<KpiCardProps> = ({
 
         {/* Main KPI Value */}
         <div className="flex items-baseline gap-2 flex-wrap pt-1">
-          <span className="text-[36px] font-bold text-theme-text leading-none tracking-tight font-mono">
+          <span className="metric-value text-[40px] font-medium text-theme-text leading-none">
             {displayValue}
           </span>
           {unit && (
@@ -116,22 +118,18 @@ export const KpiCard: React.FC<KpiCardProps> = ({
         </div>
 
         {/* Optional Subtext / Telemetry Bar */}
-        <div className="pt-1 border-t border-white/[0.05] flex items-center justify-between">
+        <div className="pt-3 border-t border-theme-border flex items-center justify-between">
           {subtext ? (
             <p className="text-[11px] text-theme-muted leading-tight truncate">
               {subtext}
             </p>
           ) : (
-            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">
-              TELEMETRY VALIDATED
+            <span className="text-[10px] font-mono text-theme-muted uppercase tracking-widest">
+              CURRENT OVERVIEW
             </span>
           )}
 
           {/* Micro Status Pulse Dot */}
-          <div className="flex items-center gap-1.5 shrink-0 ml-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/80 animate-pulse" />
-            <span className="font-mono text-[9px] text-cyan-400/70 tracking-wider">LIVE</span>
-          </div>
         </div>
       </div>
     </Card3D>

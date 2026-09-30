@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { Filter } from 'lucide-react';
 import { Button } from './Button';
 import { DevOnly } from './DevOnly';
@@ -22,9 +23,16 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   onToggleFilters,
   breadcrumbs,
 }) => {
+  const { pathname } = useLocation();
+  const section = ['forecast', 'transfers', 'scenario'].some((path) => pathname.includes(path))
+    ? 'Planning & intelligence'
+    : ['alerts', 'federation', 'audit', 'design-system'].some((path) => pathname.includes(path))
+    ? 'Network operations'
+    : 'Supply intelligence';
   return (
-    <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-theme-border pb-4 font-sans">
-      <div>
+    <div className="page-heading flex flex-col xl:flex-row xl:items-center justify-between gap-4 font-sans">
+      <div className="min-w-0">
+        <div className="eyebrow mb-3 flex items-center gap-2"><span className="w-4 h-px bg-theme-primary" />{section}</div>
         {breadcrumbs && breadcrumbs.length > 0 && (
           <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[12px] font-mono text-theme-muted mb-1.5">
             {breadcrumbs.map((crumb, idx) => (
@@ -39,7 +47,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         )}
 
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-[28px] font-semibold tracking-tight text-theme-text leading-tight">
+          <h1 className="text-theme-text leading-tight">
             {title}
           </h1>
           {badge && <DevOnly>{badge}</DevOnly>}

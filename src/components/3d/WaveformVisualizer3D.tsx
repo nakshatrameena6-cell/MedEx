@@ -109,9 +109,9 @@ export const WaveformVisualizer3D: React.FC<WaveformVisualizer3DProps> = ({
   return (
     <div className={`relative overflow-hidden rounded-xl bg-[#080d12]/80 border border-white/[0.06] ${className}`}>
       <div ref={containerRef} className="w-full h-[180px]" />
-      <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between font-mono text-[9px] text-slate-500 pointer-events-none">
+      <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between font-mono text-[9px] text-theme-muted pointer-events-none">
         <span>3D AUDIO SPECTRUM ANALYZER</span>
-        <span className={isRecording ? 'text-red-400 font-bold animate-pulse' : (isProcessing ? 'text-cyan-400 font-bold' : 'text-slate-400')}>
+        <span className={isRecording ? 'text-theme-critical font-bold animate-pulse' : (isProcessing ? 'text-theme-primary font-bold' : 'text-theme-muted')}>
           {isRecording ? 'STREAMING REAL-TIME AUDIO BUFFER' : isProcessing ? 'GEMINI MULTIMODAL INFERENCE' : 'AUDIO ENGINE READY'}
         </span>
       </div>

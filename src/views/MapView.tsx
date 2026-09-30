@@ -224,20 +224,20 @@ export const MapView: React.FC = () => {
             <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] text-red-400 font-bold tracking-wider">[01]</span>
+                  <span className="font-mono text-[10px] text-theme-critical font-bold tracking-wider">[01]</span>
                   <span className="text-[13px] font-medium text-theme-muted">Critical Stockouts</span>
                 </div>
                 <StatusBadge status="RED" label="Critical" size="sm" />
               </div>
               <div className="flex items-baseline gap-2 pt-1">
-                <span className="text-[38px] font-bold text-red-400 leading-none tracking-tight font-mono">
+                <span className="metric-value text-[40px] font-medium text-theme-critical leading-none tracking-tight font-mono">
                   {redCount}
                 </span>
                 <span className="text-[12px] font-mono text-theme-muted">facilities</span>
               </div>
-              <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-theme-muted">
+              <div className="pt-2 border-t border-theme-border flex items-center justify-between text-[11px] text-theme-muted">
                 <span>Under emergency replenishment</span>
-                <span className="font-mono text-[9px] text-red-400 font-bold uppercase tracking-wider">
+                <span className="font-mono text-[9px] text-theme-critical font-bold uppercase tracking-wider">
                   HIGH ALERT
                 </span>
               </div>
@@ -249,16 +249,16 @@ export const MapView: React.FC = () => {
             <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] text-cyan-400 font-bold tracking-wider">[02]</span>
+                  <span className="font-mono text-[10px] text-theme-primary font-bold tracking-wider">[02]</span>
                   <span className="text-[13px] font-medium text-theme-muted">District Resilience</span>
                 </div>
-                <span className="font-mono text-[10px] text-slate-400 bg-white/[0.05] px-2 py-0.5 rounded border border-white/[0.08]">
+                <span className="font-mono text-[10px] text-theme-muted bg-white/[0.05] px-2 py-0.5 rounded border border-theme-border">
                   AI INDEX
                 </span>
               </div>
               <div className="flex items-baseline justify-between gap-2 pt-1">
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-[38px] font-bold text-theme-text leading-none tracking-tight font-mono">
+                  <span className="metric-value text-[40px] font-medium text-theme-text leading-none tracking-tight font-mono">
                     {riskData?.resilience.score ?? 71}
                   </span>
                   <span className="text-[14px] font-mono text-theme-muted">/ 100</span>
@@ -267,9 +267,9 @@ export const MapView: React.FC = () => {
                   <DeltaChip value={riskData.resilience.delta} unit="pts" />
                 )}
               </div>
-              <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-theme-muted">
+              <div className="pt-2 border-t border-theme-border flex items-center justify-between text-[11px] text-theme-muted">
                 <span>District supply resilience score</span>
-                <span className="font-mono text-[9px] text-emerald-400 font-bold uppercase tracking-wider">
+                <span className="font-mono text-[9px] text-theme-healthy-text font-bold uppercase tracking-wider">
                   STABLE
                 </span>
               </div>
@@ -281,20 +281,20 @@ export const MapView: React.FC = () => {
             <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] text-emerald-400 font-bold tracking-wider">[03]</span>
+                  <span className="font-mono text-[10px] text-theme-healthy-text font-bold tracking-wider">[03]</span>
                   <span className="text-[13px] font-medium text-theme-muted">Sufficient Cover</span>
                 </div>
                 <StatusBadge status="GREEN" label="Stable" size="sm" />
               </div>
               <div className="flex items-baseline gap-1.5 pt-1">
-                <span className="text-[38px] font-bold text-theme-text leading-none tracking-tight font-mono">
+                <span className="metric-value text-[40px] font-medium text-theme-text leading-none tracking-tight font-mono">
                   {greenCount}
                 </span>
                 <span className="text-[13px] font-mono text-theme-muted">facilities</span>
               </div>
-              <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-theme-muted">
+              <div className="pt-2 border-t border-theme-border flex items-center justify-between text-[11px] text-theme-muted">
                 <span>Stock levels above safety thresholds</span>
-                <span className="font-mono text-[9px] text-emerald-400 font-bold uppercase tracking-wider">
+                <span className="font-mono text-[9px] text-theme-healthy-text font-bold uppercase tracking-wider">
                   OPTIMAL
                 </span>
               </div>

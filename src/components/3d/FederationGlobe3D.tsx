@@ -207,7 +207,7 @@ export const FederationGlobe3D: React.FC<FederationGlobe3DProps> = ({
   }, [isRotating, isTraining]);
 
   return (
-    <div className={`relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#070d12]/90 backdrop-blur-xl shadow-2xl ${className}`}>
+    <div className={`relative overflow-hidden rounded-2xl border border-theme-border bg-[#070d12]/90 backdrop-blur-xl shadow-2xl ${className}`}>
       <div ref={containerRef} className="w-full h-full min-h-[320px] cursor-grab active:cursor-grabbing" />
 
       {/* Top Left HUD */}
@@ -217,21 +217,21 @@ export const FederationGlobe3D: React.FC<FederationGlobe3DProps> = ({
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
           </span>
-          <span className="text-[11px] font-bold tracking-widest text-emerald-400 uppercase">
+          <span className="text-[11px] font-bold tracking-widest text-theme-healthy-text uppercase">
             FEDERATED TENSOR AGGREGATION CORE
           </span>
         </div>
-        <div className="text-[10px] text-slate-400 flex items-center gap-3">
+        <div className="text-[10px] text-theme-muted flex items-center gap-3">
           <span>MODEL: fed-v7</span>
           <span>ROUND: #{roundNumber}</span>
-          <span className="text-emerald-400 font-bold">ACCURACY: {globalAccuracy}%</span>
+          <span className="text-theme-healthy-text font-bold">ACCURACY: {globalAccuracy}%</span>
         </div>
       </div>
 
       {/* Top Right Controls */}
       <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-        <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg border border-white/[0.08] bg-[#0c131a]/80 backdrop-blur-md font-mono text-[10px] text-slate-300">
-          <Cpu className="w-3 h-3 text-emerald-400" />
+        <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg border border-theme-border bg-[#0c131a]/80 backdrop-blur-md font-mono text-[10px] text-theme-text">
+          <Cpu className="w-3 h-3 text-theme-healthy-text" />
           <span>DIFFERENTIAL PRIVACY: EPSILON=0.5</span>
         </div>
 
@@ -240,8 +240,8 @@ export const FederationGlobe3D: React.FC<FederationGlobe3DProps> = ({
           onClick={() => setIsRotating(!isRotating)}
           className={`p-2 rounded-lg border transition-all ${
             isRotating
-              ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400'
-              : 'border-white/[0.08] bg-[#0c131a]/80 text-slate-400 hover:text-white'
+              ? 'border-emerald-500/40 bg-emerald-500/10 text-theme-healthy-text'
+              : 'border-theme-border bg-[#0c131a]/80 text-theme-muted hover:text-white'
           }`}
           title="Toggle rotation"
           aria-label="Toggle 3D Rotation"
@@ -251,17 +251,17 @@ export const FederationGlobe3D: React.FC<FederationGlobe3DProps> = ({
       </div>
 
       {/* Bottom Node Legend */}
-      <div className="absolute bottom-3 left-4 right-4 z-10 flex items-center justify-between font-mono text-[10px] text-slate-400 border-t border-white/[0.06] pt-2 pointer-events-none">
+      <div className="absolute bottom-3 left-4 right-4 z-10 flex items-center justify-between font-mono text-[10px] text-theme-muted border-t border-white/[0.06] pt-2 pointer-events-none">
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1.5 text-teal-300">
             <span className="w-2 h-2 rounded-full bg-teal-400" />
             TN (Tamil Nadu) 1.2M samples
           </span>
-          <span className="flex items-center gap-1.5 text-amber-400 font-bold">
+          <span className="flex items-center gap-1.5 text-theme-warning-text font-bold">
             <span className="w-2 h-2 rounded-full bg-amber-400" />
             BR (Bihar Sparse) +17.1% gain
           </span>
-          <span className="flex items-center gap-1.5 text-sky-400">
+          <span className="flex items-center gap-1.5 text-theme-primary">
             <span className="w-2 h-2 rounded-full bg-sky-400" />
             MH (Maharashtra) 890K samples
           </span>

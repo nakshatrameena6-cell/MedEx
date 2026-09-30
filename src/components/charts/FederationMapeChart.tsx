@@ -59,7 +59,7 @@ const CustomTooltip = ({ active, payload }: any) => {
 
       <div className="pt-1 border-t border-theme-border flex items-center justify-between font-mono text-2xs">
         <span className="text-theme-muted font-sans">Error Reduction:</span>
-        <span className="font-bold text-emerald-400 font-mono">-{gain}% boost</span>
+        <span className="font-bold text-theme-healthy-text font-mono">-{gain}% boost</span>
       </div>
     </div>
   );

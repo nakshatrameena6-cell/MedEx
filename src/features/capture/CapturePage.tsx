@@ -99,7 +99,7 @@ export const CapturePage: React.FC = () => {
       <Card3D 
         maxTilt={2}
         specularColor="rgba(56, 189, 248, 0.12)"
-        className="p-5 bg-theme-surface/85 backdrop-blur-xl border border-white/10 rounded-2xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-xl"
+        className="p-5 bg-theme-surface/85 backdrop-blur-xl border border-theme-border rounded-2xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-xl"
       >
         <div className="flex items-center gap-3">
           <div className="p-3 rounded-xl bg-theme-primary/10 text-theme-primary border border-theme-primary/25 shrink-0">
@@ -117,7 +117,7 @@ export const CapturePage: React.FC = () => {
                   handleReset();
                 }}
                 disabled={isAuditor}
-                className="min-h-[44px] bg-theme-bg/90 border border-white/15 rounded-xl px-3.5 py-2 text-xs font-mono font-bold text-theme-text focus:outline-none focus:border-theme-primary transition-all"
+                className="min-h-[44px] bg-theme-bg/90 border border-theme-border-control rounded-xl px-3.5 py-2 text-xs font-mono font-bold text-theme-text focus:outline-none focus:border-theme-primary transition-all"
               >
                 <option value="TN-PHC-014">TN-PHC-014 (PHC Sample-014 · Block-A)</option>
                 <option value="TN-PHC-021">TN-PHC-021 (PHC Sample-021 · Block-B)</option>
@@ -125,7 +125,7 @@ export const CapturePage: React.FC = () => {
                 <option value="TN-CHC-003">TN-CHC-003 (CHC Sample-003 · Block-A)</option>
               </select>
 
-              <span className="text-[11px] font-mono text-theme-muted bg-white/5 px-3 py-2 rounded-xl border border-white/10">
+              <span className="text-[11px] font-mono text-theme-muted bg-white/5 px-3 py-2 rounded-xl border border-theme-border">
                 DISTRICT: {district}
               </span>
             </div>
@@ -137,7 +137,7 @@ export const CapturePage: React.FC = () => {
           <div
             role="tablist"
             aria-label="Capture Mode"
-            className="flex items-center justify-center rounded-xl bg-black/30 border border-white/10 p-1.5 gap-1.5 w-full md:w-auto backdrop-blur-md"
+            className="flex items-center justify-center rounded-xl bg-black/30 border border-theme-border p-1.5 gap-1.5 w-full md:w-auto backdrop-blur-md"
           >
             <button
               type="button"
@@ -190,9 +190,9 @@ export const CapturePage: React.FC = () => {
       <Card3D 
         maxTilt={1.5}
         specularColor="rgba(56, 189, 248, 0.08)"
-        className="bg-theme-surface/85 backdrop-blur-xl border border-white/10 rounded-2xl p-6 space-y-5 shadow-2xl"
+        className="bg-theme-surface/85 backdrop-blur-xl border border-theme-border rounded-2xl p-6 space-y-5 shadow-2xl"
       >
-        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+        <div className="flex items-center justify-between border-b border-theme-border pb-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-theme-primary/10 border border-theme-primary/25 flex items-center justify-center text-theme-primary">
               <Radio className="w-4 h-4" />

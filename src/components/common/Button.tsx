@@ -21,19 +21,19 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseClasses =
-    'inline-flex items-center justify-center font-medium font-sans rounded-lg transition-all focus-visible:outline-2 focus-visible:outline-theme-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none active:scale-[0.98]';
+    'action-button inline-flex items-center justify-center font-medium font-sans transition-all focus-visible:outline-2 focus-visible:outline-theme-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none active:scale-[0.98]';
 
   const variantClasses = {
     primary:
       'bg-theme-primary text-theme-on-primary hover:bg-theme-primary-hover shadow-sm',
     secondary:
-      'border border-theme-border-control text-theme-primary hover:bg-theme-primary-tint/20 bg-theme-surface',
+      'border border-theme-border text-theme-text hover:border-theme-border-control hover:bg-theme-primary-tint bg-theme-surface',
     ghost:
       'text-theme-text hover:bg-theme-border/50 bg-transparent',
   };
 
   const sizeClasses = {
-    sm: 'h-8 px-3 text-[13px] gap-1.5',
+    sm: 'h-9 px-3 text-[12px] gap-1.5',
     md: 'h-10 px-4 text-[14px] gap-2',
     lg: 'h-12 px-5 text-[14px] gap-2',
   };

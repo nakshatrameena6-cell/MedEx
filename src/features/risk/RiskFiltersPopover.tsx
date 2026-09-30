@@ -45,7 +45,7 @@ export const RiskFiltersPopover: React.FC<RiskFiltersPopoverProps> = ({
   return (
     <div
       ref={popoverRef}
-      className="absolute right-0 top-12 z-30 w-80 bg-theme-surface border border-theme-border rounded-xl shadow-xl p-4 space-y-4 font-sans animate-fade-in text-theme-text"
+      className="absolute right-0 top-full z-30 w-80 max-w-full bg-theme-surface border border-theme-border rounded-xl shadow-xl p-4 space-y-4 font-sans animate-slide-up text-theme-text"
       role="dialog"
       aria-label="Filter Options"
     >
@@ -54,6 +54,7 @@ export const RiskFiltersPopover: React.FC<RiskFiltersPopoverProps> = ({
         <button
           type="button"
           onClick={onClose}
+          aria-label="Close risk filters"
           className="p-1 rounded text-theme-muted hover:text-theme-text"
         >
           <X className="w-4 h-4" />

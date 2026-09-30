@@ -93,9 +93,9 @@ export const ScenarioPage: React.FC = () => {
       <Card3D 
         maxTilt={3} 
         specularColor="rgba(56, 189, 248, 0.12)"
-        className="p-6 rounded-2xl border border-white/10 bg-theme-surface/85 backdrop-blur-xl shadow-2xl relative overflow-hidden"
+        className="p-6 rounded-2xl border border-theme-border bg-theme-surface/85 backdrop-blur-xl shadow-2xl relative overflow-hidden"
       >
-        <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-5">
+        <div className="flex items-center justify-between border-b border-theme-border pb-3 mb-5">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-theme-primary/10 border border-theme-primary/30 flex items-center justify-center text-theme-primary">
               <Sliders className="w-4 h-4" />
@@ -109,7 +109,7 @@ export const ScenarioPage: React.FC = () => {
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-mono tracking-wider px-2 py-0.5 rounded bg-white/5 border border-white/10 text-theme-muted">
+          <span className="text-[10px] font-mono tracking-wider px-2 py-0.5 rounded bg-white/5 border border-theme-border text-theme-muted">
             SYS_ENV: READY
           </span>
         </div>
@@ -127,7 +127,7 @@ export const ScenarioPage: React.FC = () => {
                 onChange={(e) => setPrompt(e.target.value)}
                 disabled={!isPermitted || isLoading}
                 placeholder="e.g. Dengue surge in 3 blocks with 45% uplift..."
-                className="w-full bg-theme-bg/80 border border-white/15 rounded-xl px-4 py-2.5 text-[14px] text-theme-text focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary/30 transition-all font-mono"
+                className="w-full bg-theme-bg/80 border border-theme-border-control rounded-xl px-4 py-2.5 text-[14px] text-theme-text focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary/30 transition-all font-mono"
               />
             </div>
 
@@ -139,7 +139,7 @@ export const ScenarioPage: React.FC = () => {
                 value={districtId}
                 onChange={(e) => setDistrictId(e.target.value)}
                 disabled={!isPermitted || isLoading}
-                className="w-full bg-theme-bg/80 border border-white/15 rounded-xl px-3.5 py-2.5 text-[14px] text-theme-text focus:outline-none focus:border-theme-primary font-mono transition-all"
+                className="w-full bg-theme-bg/80 border border-theme-border-control rounded-xl px-3.5 py-2.5 text-[14px] text-theme-text focus:outline-none focus:border-theme-primary font-mono transition-all"
               >
                 <option value="TN-D01" className="bg-theme-surface">TN-D01 (Tamil Nadu D01)</option>
                 <option value="BR-D02" className="bg-theme-surface">BR-D02 (Bihar D02)</option>
@@ -199,9 +199,9 @@ export const ScenarioPage: React.FC = () => {
 
       {/* Results View */}
       {isLoading ? (
-        <div className="p-8 rounded-2xl border border-white/10 bg-theme-surface/70 backdrop-blur-xl shadow-2xl space-y-6">
-          <div className="flex items-center gap-3 border-b border-white/10 pb-4">
-            <div className="p-2 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20">
+        <div className="p-8 rounded-2xl border border-theme-border bg-theme-surface/70 backdrop-blur-xl shadow-2xl space-y-6">
+          <div className="flex items-center gap-3 border-b border-theme-border pb-4">
+            <div className="p-2 rounded-lg bg-sky-500/10 text-theme-primary border border-sky-500/20">
               <Cpu className="w-5 h-5 animate-pulse" />
             </div>
             <div>
@@ -217,8 +217,8 @@ export const ScenarioPage: React.FC = () => {
             label="Analyzing scenario dynamics…"
             glyph="sparkle"
             collapsible={false}
-            glyphColor="#C5D86D"
-            color="var(--theme-text)"
+            glyphColor="#8CBFFF"
+            color="var(--color-text)"
             fontSize={15}
             steps={[
               { text: 'Ingesting federated consumption vectors and block parameters…', status: 'done' },
@@ -268,11 +268,11 @@ export const ScenarioPage: React.FC = () => {
             {/* Card 2: Surge Uplift */}
             <Card3D 
               specularColor="rgba(16, 185, 129, 0.22)" 
-              className="p-6 rounded-2xl border border-white/10 bg-theme-surface/90 backdrop-blur-xl relative overflow-hidden shadow-xl"
+              className="p-6 rounded-2xl border border-theme-border bg-theme-surface/90 backdrop-blur-xl relative overflow-hidden shadow-xl"
             >
               <div className="flex items-center justify-between text-[13px] text-theme-muted">
-                <span className="font-mono text-[10px] tracking-wider text-emerald-400 uppercase font-bold">[02] DEMAND SPIKE</span>
-                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold uppercase">
+                <span className="font-mono text-[10px] tracking-wider text-theme-healthy-text uppercase font-bold">[02] DEMAND SPIKE</span>
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-theme-healthy-text border border-emerald-500/20 font-semibold uppercase">
                   {scenarioResult.parsed.disease}
                 </span>
               </div>
@@ -289,11 +289,11 @@ export const ScenarioPage: React.FC = () => {
             {/* Card 3: Duration */}
             <Card3D 
               specularColor="rgba(56, 189, 248, 0.22)" 
-              className="p-6 rounded-2xl border border-white/10 bg-theme-surface/90 backdrop-blur-xl relative overflow-hidden shadow-xl"
+              className="p-6 rounded-2xl border border-theme-border bg-theme-surface/90 backdrop-blur-xl relative overflow-hidden shadow-xl"
             >
               <div className="flex items-center justify-between text-[13px] text-theme-muted">
-                <span className="font-mono text-[10px] tracking-wider text-sky-400 uppercase font-bold">[03] TEMPORAL HORIZON</span>
-                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20 font-semibold">
+                <span className="font-mono text-[10px] tracking-wider text-theme-primary uppercase font-bold">[03] TEMPORAL HORIZON</span>
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-sky-500/10 text-theme-primary border border-sky-500/20 font-semibold">
                   ACTIVE
                 </span>
               </div>
@@ -313,9 +313,9 @@ export const ScenarioPage: React.FC = () => {
             <Card3D 
               maxTilt={2}
               specularColor="rgba(56, 189, 248, 0.12)"
-              className="p-6 rounded-2xl border border-white/10 bg-theme-surface/85 backdrop-blur-xl shadow-2xl space-y-4"
+              className="p-6 rounded-2xl border border-theme-border bg-theme-surface/85 backdrop-blur-xl shadow-2xl space-y-4"
             >
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center justify-between border-b border-theme-border pb-3">
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-theme-primary" />
                   <h3 className="text-[16px] font-semibold text-theme-text">
@@ -333,8 +333,8 @@ export const ScenarioPage: React.FC = () => {
           )}
 
           {/* At-Risk Facilities Table with Framer Motion transitions */}
-          <div className="rounded-2xl border border-white/10 bg-theme-surface/85 backdrop-blur-xl overflow-hidden shadow-2xl">
-            <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+          <div className="rounded-2xl border border-theme-border bg-theme-surface/85 backdrop-blur-xl overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 border-b border-theme-border flex items-center justify-between bg-white/[0.02]">
               <div className="flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-theme-primary" />
                 <h3 className="text-[16px] font-semibold text-theme-text">
@@ -349,7 +349,7 @@ export const ScenarioPage: React.FC = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse font-sans">
                 <thead>
-                  <tr className="bg-white/[0.03] border-b border-white/10 text-theme-muted text-[12px] font-semibold uppercase tracking-wider font-mono">
+                  <tr className="bg-white/[0.03] border-b border-theme-border text-theme-muted text-[12px] font-semibold uppercase tracking-wider font-mono">
                     <th scope="col" className="px-6 py-3.5">Facility ID</th>
                     <th scope="col" className="px-6 py-3.5">Drug Code</th>
                     <th scope="col" className="px-6 py-3.5 text-center">Baseline Cover</th>
@@ -369,7 +369,7 @@ export const ScenarioPage: React.FC = () => {
                       >
                         <td className="px-6 py-3.5 font-semibold text-theme-text font-mono text-[13px]">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-md bg-white/5 border border-white/10 flex items-center justify-center">
+                            <div className="w-7 h-7 rounded-md bg-white/5 border border-theme-border flex items-center justify-center">
                               <Building2 className="w-3.5 h-3.5 text-theme-muted" strokeWidth={1.8} />
                             </div>
                             <span>{item.facility_id}</span>
@@ -395,7 +395,7 @@ export const ScenarioPage: React.FC = () => {
             </div>
 
             {scenarioResult.suggested_optimize_request && (
-              <div className="p-4 border-t border-white/10 bg-white/[0.02] flex justify-end">
+              <div className="p-4 border-t border-theme-border bg-white/[0.02] flex justify-end">
                 <Button
                   variant="secondary"
                   icon={ArrowRight}

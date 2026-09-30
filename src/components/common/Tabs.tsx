@@ -30,6 +30,8 @@ export const Tabs: React.FC<TabsProps> = ({
           return (
             <button
               key={tab.id}
+              type="button"
+              aria-pressed={isActive}
               onClick={() => !tab.disabled && onChange(tab.id)}
               disabled={tab.disabled}
               className={`pb-2 text-xs font-semibold tracking-wide transition-all relative ${
@@ -58,16 +60,18 @@ export const Tabs: React.FC<TabsProps> = ({
   // Segmented Variant (default)
   return (
     <div
-      className={`inline-flex items-center p-1 bg-medex-surface border border-medex-border rounded-md ${className}`}
+      className={`inline-flex flex-wrap items-center gap-1 p-1 bg-medex-bg border border-medex-border rounded-xl ${className}`}
     >
       {tabs.map((tab) => {
         const isActive = tab.id === activeTab;
         return (
           <button
             key={tab.id}
+            type="button"
+            aria-pressed={isActive}
             onClick={() => !tab.disabled && onChange(tab.id)}
             disabled={tab.disabled}
-            className={`px-3 py-1 rounded text-2xs font-semibold tracking-wider uppercase font-mono transition-all ${
+            className={`px-4 py-2 rounded-lg text-[12px] font-medium transition-all ${
               isActive
                 ? 'bg-medex-elevated text-medex-cyan border border-medex-cyan/30 shadow-sm'
                 : 'text-medex-secondary hover:text-medex-primary hover:bg-medex-hover'

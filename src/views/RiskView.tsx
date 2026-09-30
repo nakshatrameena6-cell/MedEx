@@ -1,626 +1,203 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  AlertTriangle,
-  Building2,
-  ChevronRight,
-  RefreshCw,
-  Activity,
-  Layers,
-} from 'lucide-react';
+import { AlertTriangle, ArrowUpRight, Building2, ChevronRight, RefreshCw, Globe2, ShieldCheck, Clock3 } from 'lucide-react';
 import { PageHeader } from '../components/common/PageHeader';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { DeltaChip } from '../components/common/DeltaChip';
 import { Button } from '../components/common/Button';
 import { EmptyState } from '../components/common/EmptyState';
 import { ErrorState } from '../components/common/ErrorState';
-import { TableSkeleton, Skeleton } from '../components/common/Skeleton';
+import { TableSkeleton } from '../components/common/Skeleton';
 import { RiskDrawer } from '../features/risk/RiskDrawer';
 import { RiskFiltersPopover } from '../features/risk/RiskFiltersPopover';
 import { RiskSparkline } from '../features/risk/RiskSparkline';
-import { EarthPinGlobe3D } from '../components/3d/EarthPinGlobe3D';
-import { Card3D } from '../components/3d/Card3D';
-import { JellyRadio, StatusMark } from '../components/reactbits';
+import { EarthPinGlobe3D, PinLocation } from '../components/3d/EarthPinGlobe3D';
 import { useAuthRole } from '../context/AuthRoleContext';
 import { RiskItem, RiskResponse, RiskStatus } from '../types/api';
 import { getRisk } from '../services/riskService';
-import { COPY } from '../constants/copy';
+
+const FILTERS = [
+  { value: 'ALL', label: 'All priorities' }, { value: 'RED', label: 'Critical' },
+  { value: 'AMBER', label: 'Watch' }, { value: 'GREEN', label: 'Healthy' },
+];
 
 export const RiskView: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { role, district, user, isMockMode } = useAuthRole();
-
-  // Filters state reflected in URL params
   const statusFilter = searchParams.get('status') || 'ALL';
   const drugFilter = searchParams.get('drug_code') || 'ALL';
   const limitFilter = searchParams.get('limit') || '50';
-
   const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
-  const [show3DLattice, setShow3DLattice] = useState(true);
-
-  // Selected item for "Why this is flagged" drawer
+  const [showGlobe, setShowGlobe] = useState(true);
   const [selectedItem, setSelectedItem] = useState<RiskItem | null>(null);
   const selectedRowRef = useRef<HTMLElement | null>(null);
-
-  // API Data State
   const [riskResponse, setRiskResponse] = useState<RiskResponse | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isError, setIsError] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string>('');
-
-  // Count-up animation state for hero KPI
-  const [animatedCount, setAnimatedCount] = useState<number>(0);
-
-  const loadRiskData = async () => {
-    setIsLoading(true);
-    setIsError(false);
-    setErrorMessage('');
-
-    const headers: Record<string, string> = {
-      'X-Role': role,
-      'X-District': district,
-      'X-User': user,
-    };
-    if (isMockMode) {
-      headers['X-Mock'] = 'true';
-    }
-
-    try {
-      const data = await getRisk(
-        {
-          district_id: district,
-          drug_code: drugFilter !== 'ALL' ? drugFilter : undefined,
-          status: statusFilter !== 'ALL' ? (statusFilter as RiskStatus) : undefined,
-          limit: parseInt(limitFilter, 10),
-        },
-        headers
-      );
-      setRiskResponse(data);
-    } catch (err: any) {
-      setIsError(true);
-      setErrorMessage(err.message || 'Failed to load risk data.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    loadRiskData();
-  }, [role, district, user, isMockMode, statusFilter, drugFilter, limitFilter]);
+    let cancelled = false;
+    setIsLoading(true);
+    setErrorMessage('');
+    setSelectedItem(null);
+    const headers: Record<string, string> = { 'X-Role': role, 'X-District': district, 'X-User': user };
+    if (isMockMode) headers['X-Mock'] = 'true';
+    getRisk({
+      district_id: district,
+      drug_code: drugFilter !== 'ALL' ? drugFilter : undefined,
+      status: statusFilter !== 'ALL' ? statusFilter as RiskStatus : undefined,
+      limit: Math.max(1, Math.min(500, parseInt(limitFilter, 10) || 50)),
+    }, headers).then((data) => {
+      if (!cancelled) setRiskResponse(data);
+    }).catch((error: unknown) => {
+      if (!cancelled) {
+        setRiskResponse(null);
+        setErrorMessage(error instanceof Error ? error.message : 'Unable to load risk data.');
+      }
+    }).finally(() => { if (!cancelled) setIsLoading(false); });
+    return () => { cancelled = true; };
+  }, [role, district, user, isMockMode, statusFilter, drugFilter, limitFilter, refreshKey]);
 
   const items = riskResponse?.items || [];
   const resilience = riskResponse?.resilience;
-
-  // Red count (running out soon)
-  const redCount = items.filter((i) => i.status === 'RED' || i.cover_days <= 7).length;
-  const amberCount = items.filter((i) => i.status === 'AMBER').length;
-  const greenCount = items.filter((i) => i.status === 'GREEN').length;
-
-  // Animated count-up simulation on load (~500ms)
-  useEffect(() => {
-    if (isLoading) return;
-
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) {
-      setAnimatedCount(redCount);
-      return;
-    }
-
-    setAnimatedCount(0);
-    const duration = 500;
-    const steps = 15;
-    const increment = redCount / steps;
-    let step = 0;
-
-    const timer = setInterval(() => {
-      step += 1;
-      setAnimatedCount(Math.min(Math.round(increment * step), redCount));
-      if (step >= steps) clearInterval(timer);
-    }, duration / steps);
-
-    return () => clearInterval(timer);
-  }, [redCount, isLoading]);
-
-  // Average lead time
-  const avgLeadTime = items.length > 0
-    ? (items.reduce((acc, curr) => acc + curr.lead_time_days, 0) / items.length).toFixed(1)
-    : '6.0';
-
-  // Active filter count
-  let activeFilterCount = 0;
-  if (statusFilter !== 'ALL') activeFilterCount += 1;
-  if (drugFilter !== 'ALL') activeFilterCount += 1;
-  if (limitFilter !== '50') activeFilterCount += 1;
-
-  const updateFilters = (newStatus: string, newDrug: string, newLimit: string) => {
+  const redCount = items.filter((item) => item.status === 'RED' || item.cover_days <= 7).length;
+  const avgLeadTime = items.length ? (items.reduce((sum, item) => sum + item.lead_time_days, 0) / items.length).toFixed(1) : '--';
+  const activeFilterCount = Number(statusFilter !== 'ALL') + Number(drugFilter !== 'ALL') + Number(limitFilter !== '50');
+  // Multiple medicines can belong to one facility; display its most urgent status.
+  const facilityMap = new Map<string, RiskItem>();
+  const severity = { RED: 3, AMBER: 2, GREEN: 1 };
+  items.forEach((item) => {
+    const previous = facilityMap.get(item.facility_id);
+    if (!previous || severity[item.status] > severity[previous.status]) facilityMap.set(item.facility_id, item);
+  });
+  const pins: PinLocation[] = [...facilityMap.values()]
+    .filter((item) => Number.isFinite(item.lat) && Number.isFinite(item.lng))
+    .map((item) => ({ name: item.facility_name, lat: item.lat!, lon: item.lng!, status: item.status === 'RED' ? 'critical' : item.status === 'AMBER' ? 'warning' : 'healthy' }));
+  const updateFilters = (status: string, drug: string, limit: string) => {
     const params: Record<string, string> = {};
-    if (newStatus !== 'ALL') params.status = newStatus;
-    if (newDrug !== 'ALL') params.drug_code = newDrug;
-    if (newLimit !== '50') params.limit = newLimit;
+    if (status !== 'ALL') params.status = status;
+    if (drug !== 'ALL') params.drug_code = drug;
+    if (limit !== '50') params.limit = limit;
     setSearchParams(params);
   };
-
-  const handleResetFilters = () => {
-    setSearchParams({});
-  };
+  const openItem = (item: RiskItem, element: HTMLElement) => { selectedRowRef.current = element; setSelectedItem(item); };
+  const unavailable = isLoading || !!errorMessage;
 
   return (
-    <div className="space-y-6 font-sans text-theme-text pb-12">
-      {/* Page Header */}
+    <div className="space-y-6 pb-4">
       <div className="relative">
-        <PageHeader
-          title={COPY.headers.riskQueueTitle}
-          subtitle={
-            items.length > 0
-              ? `${items.length} health facilities tracked under active federated neural telemetry`
-              : 'All facility stock levels are within normal bounds'
-          }
-          activeFilterCount={activeFilterCount}
-          onToggleFilters={() => setIsFilterPopoverOpen(!isFilterPopoverOpen)}
-          actionSlot={
-            <div className="flex items-center gap-2.5">
-              <button
-                type="button"
-                onClick={() => setShow3DLattice(!show3DLattice)}
-                className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-medium flex items-center gap-1.5 transition-all ${
-                  show3DLattice
-                    ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-300 shadow-[0_0_15px_rgba(45,212,191,0.15)]'
-                    : 'border-white/[0.08] bg-[#0c131a] text-slate-400 hover:text-white'
-                }`}
-              >
-                <Layers className="w-3.5 h-3.5" />
-                <span>{show3DLattice ? '3D LATTICE: ACTIVE' : '3D LATTICE: HIDDEN'}</span>
-              </button>
-
-              <Button
-                variant="secondary"
-                size="sm"
-                icon={RefreshCw}
-                onClick={loadRiskData}
-                isLoading={isLoading}
-              >
-                {COPY.actions.refresh}
-              </Button>
-            </div>
-          }
+        <PageHeader title="Risk intelligence" subtitle="A clearer view of supply risk. Prioritize today to protect tomorrow."
+          activeFilterCount={activeFilterCount} onToggleFilters={() => setIsFilterPopoverOpen((open) => !open)}
+          actionSlot={<>
+            <Button variant="secondary" size="sm" icon={Globe2} aria-pressed={showGlobe} onClick={() => setShowGlobe((show) => !show)}>{showGlobe ? 'Hide globe' : 'Show globe'}</Button>
+            <Button variant="primary" size="sm" icon={RefreshCw} onClick={() => setRefreshKey((key) => key + 1)} isLoading={isLoading}>Refresh data</Button>
+          </>}
         />
-
-        {/* Filters Popover */}
-        <RiskFiltersPopover
-          isOpen={isFilterPopoverOpen}
-          onClose={() => setIsFilterPopoverOpen(false)}
-          statusFilter={statusFilter}
-          onStatusChange={(val) => updateFilters(val, drugFilter, limitFilter)}
-          drugFilter={drugFilter}
-          onDrugChange={(val) => updateFilters(statusFilter, val, limitFilter)}
-          limitFilter={limitFilter}
-          onLimitChange={(val) => updateFilters(statusFilter, drugFilter, val)}
-          onReset={handleResetFilters}
-        />
+        <RiskFiltersPopover isOpen={isFilterPopoverOpen} onClose={() => setIsFilterPopoverOpen(false)}
+          statusFilter={statusFilter} onStatusChange={(value) => updateFilters(value, drugFilter, limitFilter)}
+          drugFilter={drugFilter} onDrugChange={(value) => updateFilters(statusFilter, value, limitFilter)}
+          limitFilter={limitFilter} onLimitChange={(value) => updateFilters(statusFilter, drugFilter, value)}
+          onReset={() => setSearchParams({})} />
       </div>
 
-      {/* V4 3D Tactical Neural Supply Lattice Module */}
-      <AnimatePresence>
-        {show3DLattice && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.35, ease: 'easeInOut' }}
-            className="overflow-hidden"
-          >
-            <EarthPinGlobe3D
-              height="440px"
-              interactive={true}
-              showHUD={true}
-              activeNodeName={selectedItem?.facility_name || 'GLOBAL SUPPLY NETWORK'}
+      <div className={showGlobe ? 'risk-overview' : ''}>
+        <AnimatePresence>
+          {showGlobe && <motion.div key="earth" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-w-0">
+            <EarthPinGlobe3D height="100%" pins={unavailable ? [] : pins} isDemo={isMockMode}
+              activeNodeName={selectedItem?.facility_name}
+              onPinSelect={(name) => {
+                const item = [...facilityMap.values()].find((facility) => facility.facility_name === name);
+                if (item) {
+                  selectedRowRef.current = document.activeElement as HTMLElement;
+                  setSelectedItem(item);
+                }
+              }}
             />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Drift Alert Banner */}
-      {resilience?.drift_alert && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[13px] text-amber-300 flex items-center justify-between gap-4 font-sans backdrop-blur-md shadow-lg"
-        >
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 shrink-0 text-amber-400" strokeWidth={1.8} />
-            <div>
-              <span className="font-semibold block font-mono text-xs uppercase tracking-wider text-amber-200">
-                Resilience Drift Anomaly Detected
-              </span>
-              <span className="text-[12px] opacity-90 leading-tight block">
-                District resilience score dropped by{' '}
-                <strong className="underline text-amber-300">{Math.abs(resilience.delta)} points</strong> vs previous week (Previous: {resilience.previous_week_score} → Current: {resilience.score}).
-              </span>
+          </motion.div>}
+        </AnimatePresence>
+        <div className={`risk-metrics ${!showGlobe ? '!grid-cols-1 sm:!grid-cols-3' : ''}`}>
+          <div className="surface-card risk-metric animate-page-enter stagger-1">
+            <div className="flex items-center justify-between gap-2 text-xs text-theme-muted"><span>Needs attention</span><AlertTriangle size={16} className="text-theme-critical" /></div>
+            <div className="flex items-end justify-between">
+              <div><span className="metric-value text-theme-critical">{unavailable ? '--' : redCount.toString().padStart(2, '0')}</span><span className="ml-2 text-xs text-theme-muted">items</span></div>
+              <span className="text-[10px] rounded-full px-2 py-1 bg-theme-critical-bg text-theme-critical-text">Critical</span>
             </div>
+            <div className="risk-metric-footer">Critical risk or under 7 days of stock</div>
           </div>
-          <span className="px-2.5 py-1 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono text-[10px] font-bold uppercase tracking-widest shrink-0">
-            DRIFT ACTIVE
-          </span>
-        </motion.div>
-      )}
-
-      {/* 3 KPI Cards: 3D Interactive Telemetry Cards */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Skeleton className="h-32 rounded-xl" />
-          <Skeleton className="h-32 rounded-xl" />
-          <Skeleton className="h-32 rounded-xl" />
+          <div className="surface-card risk-metric animate-page-enter stagger-2">
+            <div className="flex items-center justify-between text-xs text-theme-muted"><span>Network resilience</span><ShieldCheck size={16} className="text-theme-primary" /></div>
+            <div className="flex items-end justify-between gap-2">
+              <div><span className="metric-value">{unavailable ? '--' : resilience?.score ?? '--'}</span><span className="ml-2 text-xs text-theme-muted">/ 100</span></div>
+              {!unavailable && resilience && <RiskSparkline data={[resilience.previous_week_score, resilience.score]} />}
+            </div>
+            <div className="risk-metric-footer flex items-center justify-between"><span>Against previous week</span>{!unavailable && resilience && <DeltaChip value={resilience.delta} unit="pts" />}</div>
+          </div>
+          <div className="surface-card risk-metric animate-page-enter stagger-3">
+            <div className="flex items-center justify-between text-xs text-theme-muted"><span>Average lead time</span><Clock3 size={16} className="text-theme-healthy-text" /></div>
+            <div><span className="metric-value">{unavailable ? '--' : avgLeadTime}</span><span className="ml-2 text-xs text-theme-muted">days</span></div>
+            <div className="risk-metric-footer">Delivery time across the current queue</div>
+          </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* Card 1: "Running out soon" (Hero Card with 3D crimson sheen) */}
-          <Card3D glowColor="rgba(239, 68, 68, 0.28)">
-            <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] text-red-400 font-bold tracking-wider">[01]</span>
-                  <span className="text-[13px] font-medium text-theme-muted">Running out soon</span>
-                </div>
-                <StatusBadge status="RED" label="Critical" size="sm" />
-              </div>
+      </div>
 
-              <div className="flex items-baseline gap-2 pt-1">
-                <span className="text-[38px] font-bold text-red-400 leading-none tracking-tight font-mono">
-                  {animatedCount}
-                </span>
-                <span className="text-[12px] font-mono text-theme-muted">
-                  within 7 days
-                </span>
-              </div>
-
-              <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-theme-muted">
-                <span>Stock below 7-day safety buffer</span>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-ping" />
-                  <span className="font-mono text-[9px] text-red-400 font-bold">URGENT</span>
-                </div>
-              </div>
-            </div>
-          </Card3D>
-
-          {/* Card 2: "Resilience" (3D emerald/teal glow with micro-sparkline) */}
-          <Card3D glowColor="rgba(45, 212, 191, 0.28)">
-            <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] text-cyan-400 font-bold tracking-wider">[02]</span>
-                  <span className="text-[13px] font-medium text-theme-muted">Resilience Index</span>
-                </div>
-                {resilience && (
-                  <RiskSparkline data={[resilience.previous_week_score, resilience.score]} />
-                )}
-              </div>
-
-              <div className="flex items-baseline justify-between gap-2 pt-1">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-[38px] font-bold text-theme-text leading-none tracking-tight font-mono">
-                    {resilience?.score ?? 71}
-                  </span>
-                  <span className="text-[14px] font-mono text-theme-muted">/ 100</span>
-                </div>
-                {resilience && (
-                  <DeltaChip value={resilience.delta} unit="pts" />
-                )}
-              </div>
-
-              <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-theme-muted">
-                <span>District supply network health</span>
-                <span className="font-mono text-[9px] text-emerald-400 font-bold uppercase tracking-wider">
-                  OPTIMAL BUFFER
-                </span>
-              </div>
-            </div>
-          </Card3D>
-
-          {/* Card 3: "Delivery time" (3D sky blue sheen) */}
-          <Card3D glowColor="rgba(56, 189, 248, 0.25)">
-            <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] text-sky-400 font-bold tracking-wider">[03]</span>
-                  <span className="text-[13px] font-medium text-theme-muted">Average Lead Time</span>
-                </div>
-                <span className="font-mono text-[10px] text-slate-400 bg-white/[0.05] px-2 py-0.5 rounded border border-white/[0.08]">
-                  P50 METRIC
-                </span>
-              </div>
-
-              <div className="flex items-baseline gap-2 pt-1">
-                <span className="text-[38px] font-bold text-theme-text leading-none tracking-tight font-mono">
-                  {avgLeadTime}
-                </span>
-                <span className="text-[13px] font-mono text-theme-muted">days</span>
-              </div>
-
-              <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-theme-muted">
-                <span>Dispatch transit from regional depot</span>
-                <span className="font-mono text-[9px] text-sky-400 font-bold uppercase tracking-wider">
-                  DISPATCH ACTIVE
-                </span>
-              </div>
-            </div>
-          </Card3D>
+      {!unavailable && resilience?.drift_alert && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-theme-border bg-theme-warning-bg px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="p-2 rounded-lg text-theme-warning-text bg-theme-surface"><AlertTriangle size={17} /></span>
+            <div><p className="text-[12px] font-medium text-theme-text">A shift in network resilience</p>
+              <p className="text-[11px] text-theme-muted mt-1">Down {Math.abs(resilience.delta)} points this week. Review critical supplies before the next delivery cycle.</p></div>
+          </div>
+          <a href="#risk-queue" className="inline-flex items-center gap-2 text-xs text-theme-warning-text">Review queue <ArrowUpRight size={15} /></a>
         </div>
       )}
 
-      {/* Main Risk Table Section (V4 Tactical HUD Centerpiece) */}
-      <div className="rounded-2xl border border-white/[0.08] bg-[#0c131a]/95 backdrop-blur-xl overflow-hidden shadow-2xl space-y-0">
-        {/* Table Toolbar Header with Tactile Status Tabs */}
-        <div className="p-4 border-b border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[#080d12]/60">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-              <Activity className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 className="text-[15px] font-bold text-theme-text font-mono flex items-center gap-2">
-                <span>PRIORITIZED STOCK EXHAUSTION QUEUE</span>
-                <span className="text-[11px] px-2 py-0.5 rounded bg-white/[0.06] text-slate-400 font-normal">
-                  {items.length} records
-                </span>
-              </h2>
-              <p className="text-[11px] text-theme-muted">
-                Real-time stock cover telemetry sorted by critical depletion threshold
-              </p>
-            </div>
+      <section id="risk-queue" className="surface-card risk-queue scroll-mt-4">
+        <div className="p-5 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3"><h2 className="text-[18px] font-medium tracking-tight">Priority queue</h2>
+            {!unavailable && <span className="text-[10px] font-mono text-theme-muted bg-theme-bg px-2 py-1 rounded-md">{items.length} ITEMS</span>}
           </div>
-
-          {/* ReactBits JellyRadio Interactive Filter */}
-          <div className="flex items-center">
-            <JellyRadio
-              items={[
-                { value: 'ALL', label: `All (${items.length})` },
-                { value: 'RED', label: `Critical (${redCount})` },
-                { value: 'AMBER', label: `Watch (${amberCount})` },
-                { value: 'GREEN', label: `Stable (${greenCount})` },
-              ]}
-              value={statusFilter}
-              onChange={(val: string) => updateFilters(val, drugFilter, limitFilter)}
-              chipColor="var(--color-surface)"
-              activeColor="var(--palette-lime)"
-              textColor="var(--color-text)"
-              activeTextColor="var(--palette-coffee)"
-              size="sm"
-              radius={12}
-            />
+          <div className="flex flex-wrap items-center gap-1" aria-label="Filter priorities">
+            {FILTERS.map((filter) => <button key={filter.value} type="button" className="filter-pill" aria-pressed={statusFilter === filter.value} onClick={() => updateFilters(filter.value, drugFilter, limitFilter)}>{filter.label}</button>)}
           </div>
         </div>
-
-        {/* Content State Handling */}
-        {isLoading ? (
-          <div className="p-6">
-            <TableSkeleton rows={6} columns={5} />
-          </div>
-        ) : isError ? (
-          <div className="p-6">
-            <ErrorState
-              title="Couldn't load risk data"
-              message={errorMessage || 'Failed to communicate with risk intelligence engine.'}
-              onRetry={loadRiskData}
-            />
-          </div>
-        ) : items.length === 0 ? (
-          <div className="p-8">
-            <EmptyState
-              title="No active risks detected"
-              description="No health facilities meet the current risk status or drug filter criteria."
-              action={
-                activeFilterCount > 0 ? (
-                  <Button variant="secondary" size="sm" onClick={handleResetFilters}>
-                    Clear filters
-                  </Button>
-                ) : undefined
-              }
-            />
-          </div>
-        ) : (
-          <div>
-            {/* Desktop & Tablet Table View (≥768px) */}
+        {isLoading ? <div className="p-5" role="status" aria-label="Loading risk queue"><TableSkeleton rows={4} columns={5} /></div>
+          : errorMessage ? <ErrorState message={errorMessage} onRetry={() => setRefreshKey((key) => key + 1)} />
+          : !items.length ? <EmptyState title="No matching risks" description="No supply risks match the current filters." action={activeFilterCount > 0 ? <Button variant="secondary" size="sm" onClick={() => setSearchParams({})}>Clear filters</Button> : undefined} />
+          : <>
             <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-left border-collapse font-sans">
-                <thead>
-                  <tr className="bg-[#070b0f] border-b border-white/[0.08] text-slate-400 text-[11px] font-mono uppercase tracking-wider sticky top-0 z-10">
-                    <th scope="col" className="px-5 py-3 w-5/12">Item & Facility Location</th>
-                    <th scope="col" className="px-5 py-3 w-2/12">Stock Left & Cover</th>
-                    <th scope="col" className="px-5 py-3 w-2/12">Operational Status</th>
-                    <th scope="col" className="px-5 py-3 w-2/12">Telemetry Recommendation</th>
-                    <th scope="col" className="px-3 py-3 w-10 text-right"><span className="sr-only">Actions</span></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.05] text-xs">
-                  {items.map((item, idx) => {
-                    const isSelected =
-                      selectedItem?.facility_id === item.facility_id &&
-                      selectedItem?.drug_code === item.drug_code;
-
-                    const isRed = item.status === 'RED';
-                    const isAmber = item.status === 'AMBER';
-
-                    // Rail indicator color
-                    const railBorder = isRed
-                      ? 'border-l-[4px] border-l-red-500 bg-red-500/[0.03]'
-                      : isAmber
-                      ? 'border-l-[4px] border-l-amber-500 bg-amber-500/[0.03]'
-                      : 'border-l-[4px] border-l-emerald-500 bg-transparent';
-
-                    return (
-                      <motion.tr
-                        key={`${item.facility_id}:${item.drug_code}`}
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: Math.min(idx * 0.025, 0.25) }}
-                        tabIndex={0}
-                        role="button"
-                        aria-expanded={isSelected}
-                        aria-controls="risk-drawer-panel"
-                        aria-label={`${item.drug_name} at ${item.facility_name}, ${
-                          isRed ? 'critical' : isAmber ? 'watch' : 'stable'
-                        }, ${item.cover_days} days left`}
-                        onClick={(e) => {
-                          selectedRowRef.current = e.currentTarget as HTMLElement;
-                          setSelectedItem(item);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            selectedRowRef.current = e.currentTarget as HTMLElement;
-                            setSelectedItem(item);
-                          }
-                        }}
-                        className={`group transition-all duration-150 h-[68px] cursor-pointer focus-visible:outline-2 focus-visible:outline-cyan-400 ${railBorder} ${
-                          isSelected
-                            ? 'bg-cyan-500/10 ring-1 ring-cyan-500/40'
-                            : 'hover:bg-white/[0.03]'
-                        }`}
-                      >
-                        {/* Item & Location */}
-                        <td className="px-5 py-3.5 align-middle">
-                          <div className="space-y-0.5">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-[14px] text-theme-text font-mono tracking-tight">
-                                {item.drug_name}
-                              </span>
-                              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/[0.06] text-slate-300">
-                                {item.drug_code}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-[12px] text-theme-muted">
-                              <Building2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" strokeWidth={1.8} />
-                              <span className="font-medium text-slate-300">{item.facility_name}</span>
-                              <span className="font-mono text-[10px] text-slate-500">({item.facility_id})</span>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Stock Left & Cover */}
-                        <td className="px-5 py-3.5 align-middle font-mono">
-                          <div className="flex items-baseline gap-1.5">
-                            <span
-                              className={`text-[16px] font-bold ${
-                                isRed
-                                  ? 'text-red-400'
-                                  : isAmber
-                                  ? 'text-amber-400'
-                                  : 'text-emerald-400'
-                              }`}
-                            >
-                              {item.cover_days} days
-                            </span>
-                            <span className="text-[11px] text-slate-400">
-                              ({item.stock_qty.toLocaleString()} {item.unit})
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-slate-500 block">
-                            Lead time: {item.lead_time_days} days
-                          </span>
-                        </td>
-
-                        {/* Operational Status */}
-                        <td className="px-5 py-3.5 align-middle">
-                          <div className="flex items-center gap-2">
-                            <StatusMark
-                              status={isRed ? 'failed' : isAmber ? 'running' : 'done'}
-                              size={16}
-                              doneColor="#C5D86D"
-                              errorColor="#F05D23"
-                              color="#FFA578"
-                            />
-                            <StatusBadge status={item.status} size="sm" />
-                          </div>
-                        </td>
-
-                        {/* Telemetry Recommendation / Action */}
-                        <td className="px-5 py-3.5 align-middle">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[12px] text-slate-300 truncate max-w-[200px]" title={item.reason}>
-                              {item.reason || 'Monitor telemetry'}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* Action Chevron */}
-                        <td className="px-3 py-3.5 align-middle text-right">
-                          <div className="p-1 rounded-md text-slate-500 group-hover:text-cyan-400 group-hover:bg-cyan-500/10 transition-all inline-flex items-center justify-center">
-                            <ChevronRight className="w-4 h-4" />
-                          </div>
-                        </td>
-                      </motion.tr>
-                    );
-                  })}
-                </tbody>
+              <table className="risk-table">
+                <thead><tr><th scope="col">Medicine / facility</th><th scope="col">Stock coverage</th><th scope="col">Priority</th><th scope="col">Recommended focus</th><th scope="col"><span className="sr-only">Details</span></th></tr></thead>
+                <tbody>{items.map((item, index) => {
+                  const color = item.status === 'RED' ? 'var(--color-critical)' : item.status === 'AMBER' ? 'var(--color-warning-text)' : 'var(--color-healthy-text)';
+                  return <tr key={`${item.facility_id}:${item.drug_code}`} className="animate-page-enter" style={{ animationDelay: `${Math.min(index, 8) * 35}ms` }}
+                    tabIndex={0} aria-label={`View ${item.drug_name} at ${item.facility_name}`}
+                    onClick={(event) => openItem(item, event.currentTarget)}
+                    onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openItem(item, event.currentTarget); } }}>
+                    <td><div className="font-medium text-theme-text">{item.drug_name}</div><div className="flex items-center gap-1.5 mt-2 text-[11px] text-theme-muted"><Building2 size={12} />{item.facility_name}<span className="font-mono text-[9px] ml-1">{item.drug_code}</span></div></td>
+                    <td><span className="font-display text-[16px] font-medium" style={{ color }}>{item.cover_days} <span className="text-[11px] font-sans">days</span></span><div className="cover-track"><span style={{ width: `${Math.max(0, Math.min(100, item.cover_days / 30 * 100))}%`, background: color }} /></div><div className="text-[10px] text-theme-muted mt-2">{item.stock_qty.toLocaleString()} {item.unit}</div></td>
+                    <td><StatusBadge status={item.status} size="sm" /></td>
+                    <td><p className="text-theme-muted text-[11px] leading-relaxed max-w-[270px] line-clamp-2" title={item.reason}>{item.reason || 'Continue monitoring supply levels.'}</p></td>
+                    <td><ChevronRight size={16} className="text-theme-muted" /></td>
+                  </tr>;
+                })}</tbody>
               </table>
             </div>
-
-            {/* Mobile Card List View (<768px) */}
-            <div className="block md:hidden divide-y divide-white/[0.08]">
-              {items.map((item) => {
-                const isSelected =
-                  selectedItem?.facility_id === item.facility_id &&
-                  selectedItem?.drug_code === item.drug_code;
-                const isRed = item.status === 'RED';
-                const isAmber = item.status === 'AMBER';
-
-                return (
-                  <div
-                    key={`${item.facility_id}:${item.drug_code}`}
-                    onClick={() => setSelectedItem(item)}
-                    className={`p-4 transition-colors cursor-pointer border-l-4 ${
-                      isRed
-                        ? 'border-l-red-500 bg-red-500/[0.04]'
-                        : isAmber
-                        ? 'border-l-amber-500 bg-amber-500/[0.04]'
-                        : 'border-l-emerald-500 bg-transparent'
-                    } ${isSelected ? 'bg-cyan-500/10' : ''}`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-sm text-theme-text font-mono">
-                            {item.drug_name}
-                          </span>
-                          <span className="text-[10px] font-mono px-1 rounded bg-white/[0.08] text-slate-300">
-                            {item.drug_code}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-xs text-theme-muted mt-1">
-                          <Building2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                          <span>{item.facility_name}</span>
-                        </div>
-                      </div>
-                      <StatusBadge status={item.status} size="sm" />
-                    </div>
-
-                    <div className="mt-3 flex items-center justify-between text-xs font-mono border-t border-white/[0.05] pt-2">
-                      <span className={isRed ? 'text-red-400 font-bold' : 'text-slate-300'}>
-                        {item.cover_days} days cover left
-                      </span>
-                      <span className="text-cyan-400 text-2xs flex items-center gap-1 font-sans">
-                        <span>Details</span>
-                        <ChevronRight className="w-3 h-3" />
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="md:hidden divide-y divide-theme-border">
+              {items.map((item) => <button key={`${item.facility_id}:${item.drug_code}`} type="button" onClick={(event) => openItem(item, event.currentTarget)} className="w-full p-5 text-left hover:bg-theme-primary-tint">
+                <div className="flex justify-between gap-3"><span className="text-sm font-medium">{item.drug_name}</span><StatusBadge status={item.status} size="sm" /></div>
+                <div className="text-xs text-theme-muted mt-2">{item.facility_name}</div>
+                <div className="mt-4 flex justify-between items-center text-xs"><span>{item.cover_days} days of stock</span><span className="text-theme-primary flex items-center gap-1">View details <ChevronRight size={14} /></span></div>
+              </button>)}
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* "Why This Is Flagged" Slide-Over Drawer */}
-      <RiskDrawer
-        item={selectedItem}
-        onClose={() => {
-          setSelectedItem(null);
-          selectedRowRef.current?.focus();
-        }}
-        triggerRef={selectedRowRef}
-      />
+          </>}
+        <div className="px-5 py-3 border-t border-theme-border flex flex-wrap justify-between gap-2 text-[10px] text-theme-muted">
+          <span>{isMockMode ? 'Demonstration data' : 'District supply intelligence'} / {district}</span>
+          {riskResponse?.as_of && <span>Updated {new Date(riskResponse.as_of).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</span>}
+        </div>
+      </section>
+      <RiskDrawer item={selectedItem} onClose={() => { setSelectedItem(null); selectedRowRef.current?.focus(); }} triggerRef={selectedRowRef} />
     </div>
   );
 };
