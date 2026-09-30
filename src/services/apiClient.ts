@@ -75,8 +75,8 @@ export async function fetchApi<T>(
 
     return (await response.json()) as T;
   } catch (err) {
-    if (mockFallbackHandler) {
-      console.warn(`[MEDEx Client] Live request failed, falling back to OpenAPI contract fixtures.`, err);
+    if (isMock && mockFallbackHandler) {
+      console.warn(`[MEDEx Client] Mock request failed, returning mock fallback.`, err);
       return mockFallbackHandler();
     }
     throw err;
@@ -133,8 +133,8 @@ export async function postApi<T>(
 
     return (await response.json()) as T;
   } catch (err) {
-    if (mockFallbackHandler) {
-      console.warn(`[MEDEx Client] Live request failed, falling back to mock handler.`, err);
+    if (isMock && mockFallbackHandler) {
+      console.warn(`[MEDEx Client] Mock request failed, returning mock handler.`, err);
       return await mockFallbackHandler();
     }
     throw err;
@@ -178,8 +178,8 @@ export async function postMultipartApi<T>(
 
     return (await response.json()) as T;
   } catch (err) {
-    if (mockFallbackHandler) {
-      console.warn(`[MEDEx Client] Live request failed, falling back to mock handler.`, err);
+    if (isMock && mockFallbackHandler) {
+      console.warn(`[MEDEx Client] Mock request failed, returning mock handler.`, err);
       return await mockFallbackHandler();
     }
     throw err;
