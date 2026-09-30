@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.db.database import Base, SessionLocal, engine
 from app.db.models import (
     Alert, AuditLog, BedStatus, DiseaseSignals, DrugMaster, DrugNameMap,
-    Facility, FederationRoundRecord, IssuesReceipts, OPDFootfall, StaffAttendance, StockSnapshot,
+    Facility, FederationRoundRecord, IssuesReceipts, OPDFootfall, ScenarioRecord, StaffAttendance, StockSnapshot,
     Transfer, WeatherDaily
 )
 
