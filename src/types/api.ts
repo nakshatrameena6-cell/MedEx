@@ -214,11 +214,37 @@ export interface Transfer {
   decision_comment?: string | null;
 }
 
+export interface OptimizeRequest {
+  district_id: string;
+  drug_code?: string | null;
+  emergency_mode?: boolean;
+  allow_cross_state?: boolean;
+  blocked_facility_ids?: string[];
+  max_proposals?: number;
+}
+
 export interface OptimizeResponse {
   run_id: string;
   generated_at: string;
   solver: { status: 'OPTIMAL' | 'FEASIBLE' | 'INFEASIBLE'; objective_value?: number | null };
   proposals: Transfer[];
+}
+
+export interface TransferList {
+  items: Transfer[];
+}
+
+export interface TransferDecisionRequest {
+  decision: Decision;
+  comment?: string;
+  modified_qty?: number;
+  modified_source_facility_id?: string;
+}
+
+
+export interface CopilotAskRequest {
+  question: string;
+  language?: Language;
 }
 
 export interface CopilotAskResponse {
@@ -230,6 +256,13 @@ export interface CopilotAskResponse {
   sources: Array<{ view: string; as_of: string }>;
   table?: { columns: string[]; rows: any[][] } | null;
 }
+
+export interface ScenarioRequest {
+  prompt: string;
+  district_id: string;
+  horizon_weeks?: number;
+}
+
 
 export interface ScenarioResponse {
   scenario_id: string;
@@ -287,6 +320,11 @@ export interface Alert {
   acknowledged: boolean;
   created_at: string;
 }
+
+export interface AlertList {
+  items: Alert[];
+}
+
 
 export interface AuditEntry {
   audit_id: string;
