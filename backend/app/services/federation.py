@@ -59,7 +59,8 @@ class FederationService:
             previous_model_version=prev_version,
             aggregation_method=agg_method,
             metrics={
-                "participating_states": ["TN", "BR", "MH"],
+                "mode": "simulated",
+                "participating_states": body.state_codes or ["TN", "BR", "MH"],
                 "aggregation": agg_method,
                 "accuracy": accuracy,
                 "loss": loss
@@ -81,7 +82,8 @@ class FederationService:
                 "round_number": r_num,
                 "model_version": new_version,
                 "nodes": nodes_count,
-                "accuracy": accuracy
+                "accuracy": accuracy,
+                "mode": "simulated"
             },
             db=self.db
         )
@@ -95,10 +97,12 @@ class FederationService:
             loss=loss,
             model_version=new_version,
             aggregation_method=agg_method,
+            mode="simulated",
             timestamp=now.isoformat() + "Z",
             completed_at=completed_time.isoformat() + "Z",
-            metrics={"participating_states": ["TN", "BR", "MH"], "accuracy": accuracy, "loss": loss}
+            metrics={"mode": "simulated", "participating_states": body.state_codes or ["TN", "BR", "MH"], "accuracy": accuracy, "loss": loss}
         )
+
 
     def get_rounds(self, ctx: UserContext) -> FederationRoundsResponse:
         # RBAC Check: STATE, AUDITOR, DISTRICT allowed

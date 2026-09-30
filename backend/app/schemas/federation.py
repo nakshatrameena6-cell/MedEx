@@ -24,6 +24,7 @@ class FederationRoundItem(BaseModel):
     loss: Optional[float] = Field(0.12)
     model_version: Optional[str] = Field("v1.1.0")
     aggregation_method: Optional[str] = Field("FedAvg")
+    mode: Optional[str] = Field("simulated", description="Execution mode disclosure")
     timestamp: str = Field(...)
     completed_at: Optional[str] = Field(None)
     metrics: Optional[Dict[str, Any]] = Field(default_factory=dict)
@@ -32,6 +33,7 @@ class FederationRoundItem(BaseModel):
 class FederationRoundsResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
+    mode: str = Field("simulated", description="Explicit simulation disclosure per PRD requirements")
     rounds: List[FederationRoundItem] = Field(default_factory=list)
 
 

@@ -1,8 +1,10 @@
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 
 class AuditLogItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     id: int = Field(...)
     user_id: str = Field(...)
     role: str = Field(...)
@@ -15,4 +17,7 @@ class AuditLogItem(BaseModel):
 
 
 class AuditLogsResponse(BaseModel):
-    logs: List[AuditLogItem] = Field(default_factory=list)
+    model_config = ConfigDict(populate_by_name=True)
+
+    items: List[AuditLogItem] = Field(default_factory=list, validation_alias=AliasChoices("items", "logs"))
+    logs: Optional[List[AuditLogItem]] = Field(None)
