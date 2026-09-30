@@ -145,7 +145,7 @@ class ScenarioService:
             blocked_facility_ids=blocked_facs,
             max_proposals=3
         )
-        opt_res = self.optimizer.optimize(opt_req, ctx)
+        opt_res = self.optimizer.optimize(opt_req, ctx, simulation_mode=True)
         
         simulated_proposals = []
         for prop in opt_res.proposals:
