@@ -61,12 +61,12 @@ def test_capture_flow_voice_photo_and_persistence():
     # 1. Voice Capture
     voice_res = client.post(
         "/api/v1/capture/voice",
-        json={"facility_id": "TN-PHC-001", "language": "en-IN"},
+        json={"facility_id": "TN-PHC-002", "language": "en-IN"},
         headers=FACILITY_HEADERS
     )
     assert voice_res.status_code == 200
     v_data = voice_res.json()
-    assert v_data["facility_id"] == "TN-PHC-001"
+    assert v_data["facility_id"] == "TN-PHC-002"
     assert len(v_data["rows"]) > 0
 
     # 2. Confirm Capture (PERSISTENCE TEST)
@@ -74,7 +74,7 @@ def test_capture_flow_voice_photo_and_persistence():
         "/api/v1/capture/confirm",
         json={
             "capture_id": v_data["capture_id"],
-            "facility_id": "TN-PHC-001",
+            "facility_id": "TN-PHC-002",
             "rows": [
                 {
                     "drug_code": "ORS",
@@ -92,8 +92,9 @@ def test_capture_flow_voice_photo_and_persistence():
     assert c_data["updated_status"][0]["drug_code"] == "ORS"
 
     # 3. Verify status live refresh
-    fac_res = client.get("/api/v1/facilities/TN-PHC-001/status", headers=FACILITY_HEADERS)
+    fac_res = client.get("/api/v1/facilities/TN-PHC-002/status", headers=FACILITY_HEADERS)
     assert fac_res.status_code == 200
+
 
 
 def test_transfer_decision_alias_compatibility():
