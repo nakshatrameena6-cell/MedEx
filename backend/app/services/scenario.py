@@ -11,7 +11,8 @@ from app.schemas.scenario import ScenarioRunRequest, ScenarioRunResponse, Scenar
 from app.services.audit import audit_service
 from app.services.copilot import GeminiAdapter
 from app.services.forecast import ForecastService
-from app.services.optimizer import RedistributionOptimizer, OptimizationRequest
+from app.schemas.optimize import OptimizeRequest
+from app.services.optimizer import RedistributionOptimizer
 from app.services.risk import RiskService
 
 
@@ -138,7 +139,7 @@ class ScenarioService:
                     })
 
         # 3. Simulated Redistribution Optimization (READ-ONLY)
-        opt_req = OptimizationRequest(
+        opt_req = OptimizeRequest(
             district_id=target_district,
             drug_code="ORS",
             blocked_facility_ids=blocked_facs,
@@ -150,12 +151,11 @@ class ScenarioService:
         for prop in opt_res.proposals:
             simulated_proposals.append({
                 "simulated_transfer_id": f"SIM-{prop.transfer_id}",
-                "source_facility_id": prop.from_facility_id,
-                "destination_facility_id": prop.to_facility_id,
+                "source_facility_id": prop.source_facility_id,
+                "destination_facility_id": prop.destination_facility_id,
                 "drug_code": prop.drug_code,
-                "quantity": prop.proposed_qty,
+                "quantity": prop.quantity,
                 "status": "SIMULATED_PROPOSAL",
-                "risk_reduction": prop.risk_reduction,
                 "is_simulated": True
             })
 
