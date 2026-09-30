@@ -1,4 +1,5 @@
 import datetime
+import uuid
 from typing import Any, Dict, List, Optional
 from sqlalchemy.orm import Session
 
@@ -175,7 +176,8 @@ class ScenarioService:
         )
 
         now = datetime.datetime.utcnow()
-        sc_id = f"SCN-{now.strftime('%Y%m%d%H%M%S')}-{target_district}"
+        sc_id = f"SCN-{now.strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6]}-{target_district}"
+
 
         summary_text = (
             f"Simulated '{scenario_type}' scenario for district {target_district}. "
