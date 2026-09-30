@@ -197,8 +197,21 @@ export const RiskView: React.FC = () => {
             <TrendingUp className="w-3.5 h-3.5 text-medex-cyan" />
             <span className="hidden xl:inline">Forecast</span>
           </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/transfers?district_id=${r.district_id}&drug_code=${r.drug_code}`);
+            }}
+            title="Open Transfer Optimizer"
+            className="p-1.5 rounded bg-medex-surface border border-medex-border text-medex-amber-light hover:bg-medex-amber/15 hover:border-medex-amber/40 transition-colors text-2xs font-mono font-semibold inline-flex items-center gap-1"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span className="hidden xl:inline">Transfer</span>
+          </button>
         </div>
       ),
+
       align: 'center',
     },
   ];
