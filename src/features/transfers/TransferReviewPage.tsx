@@ -14,10 +14,11 @@ import { FacilityMap } from '../../components/map/FacilityMap';
 import { OptimizerForm } from './OptimizerForm';
 import { ProposalCard } from './ProposalCard';
 import { TransferDecisionPanel } from './TransferDecisionPanel';
-import { COPY } from '../../constants/copy';
 import { Select } from '../../components/common/Select';
-import { RefreshCw, X, RotateCcw } from 'lucide-react';
-import { Card3D } from '../../components/3d/Card3D';
+import {
+  Activity, Boxes, Clock3, Command, MapPin, RefreshCw,
+  Route, ShieldCheck, SlidersHorizontal, Sparkles, Truck, X,
+} from 'lucide-react';
 
 import { useToast } from '../../context/ToastContext';
 
@@ -31,6 +32,7 @@ export const TransferReviewPage: React.FC = () => {
 
   const [filterState, setFilterState] = useState<TransferState | 'ALL'>('ALL');
   const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
+  const [isOptimizerOpen, setIsOptimizerOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
 
   const [facilities, setFacilities] = useState<any[]>([]);
@@ -141,258 +143,104 @@ export const TransferReviewPage: React.FC = () => {
   let activeFilterCount = 0;
   if (filterState !== 'ALL') activeFilterCount += 1;
 
+  const route = selectedTransfer ? {
+    from: { ...selectedTransfer.from },
+    to: { ...selectedTransfer.to },
+    polyline: selectedTransfer.route?.polyline || null,
+  } : null;
+
   return (
     <div className="space-y-6 font-sans text-theme-text">
-      {/* Page Header */}
       <div className="relative">
         <PageHeader
-          title={COPY.headers.transfersTitle}
-          subtitle={`${transfers.length} stock reallocation proposals active in District ${district}`}
+          title="Transfer command"
+          subtitle="Direct critical stock where it creates the greatest protection."
           activeFilterCount={activeFilterCount}
-          onToggleFilters={() => setIsFilterPopoverOpen(!isFilterPopoverOpen)}
-          actionSlot={
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={RefreshCw}
-              onClick={() => fetchTransfersData(true)}
-              isLoading={isLoadingTransfers}
-            >
-              {COPY.actions.refresh}
-            </Button>
-          }
+          onToggleFilters={() => setIsFilterPopoverOpen((open) => !open)}
+          actionSlot={<>
+            <Button variant="secondary" size="sm" icon={RefreshCw} onClick={() => fetchTransfersData(true)} isLoading={isLoadingTransfers}>Sync network</Button>
+            <Button size="sm" icon={SlidersHorizontal} onClick={() => setIsOptimizerOpen(true)}>New optimization</Button>
+          </>}
         />
-
-        {/* Filters Popover */}
         {isFilterPopoverOpen && (
-          <div
-            ref={popoverRef}
-            className="absolute right-0 top-12 z-30 w-80 bg-theme-surface border border-theme-border rounded-xl shadow-xl p-4 space-y-4 font-sans animate-fade-in text-theme-text"
-          >
-            <div className="flex items-center justify-between border-b border-theme-border pb-2">
-              <h3 className="text-[14px] font-semibold text-theme-text">Filter Proposals</h3>
-              <button
-                type="button"
-                onClick={() => setIsFilterPopoverOpen(false)}
-                className="p-1 rounded text-theme-muted hover:text-theme-text"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              <Select
-                label="Transfer State"
-                value={filterState}
-                onChange={(val) => setFilterState(val as any)}
-                options={[
-                  { value: 'ALL', label: 'All States' },
-                  { value: 'OPEN', label: 'OPEN' },
-                  { value: 'APPROVED', label: 'APPROVED' },
-                  { value: 'REJECTED', label: 'REJECTED' },
-                  { value: 'ESCALATED', label: 'ESCALATED' },
-                  { value: 'CLOSED', label: 'CLOSED' },
-                ]}
-              />
-            </div>
-
-            <div className="pt-2 border-t border-theme-border flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setFilterState('ALL')}
-                className="inline-flex items-center gap-1.5 text-[12px] font-medium text-theme-muted hover:text-theme-primary transition-colors"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset</span>
-              </button>
-
-              <Button variant="primary" size="sm" onClick={() => setIsFilterPopoverOpen(false)}>
-                Apply
-              </Button>
-            </div>
+          <div ref={popoverRef} className="absolute right-0 top-full z-30 w-80 max-w-full surface-card p-4 space-y-4 animate-slide-up">
+            <div className="flex items-center justify-between"><h3 className="text-sm font-medium">Mission filter</h3><button aria-label="Close transfer filters" onClick={() => setIsFilterPopoverOpen(false)}><X size={16} /></button></div>
+            <Select label="Transfer state" value={filterState} onChange={(value) => setFilterState(value as TransferState | 'ALL')} options={[
+              { value: 'ALL', label: 'All missions' }, { value: 'OPEN', label: 'Open' },
+              { value: 'APPROVED', label: 'Approved' }, { value: 'REJECTED', label: 'Rejected' },
+              { value: 'ESCALATED', label: 'Escalated' }, { value: 'CLOSED', label: 'Closed' },
+            ]} />
+            <div className="flex justify-between"><Button variant="ghost" size="sm" onClick={() => setFilterState('ALL')}>Reset</Button><Button size="sm" onClick={() => setIsFilterPopoverOpen(false)}>Apply</Button></div>
           </div>
         )}
       </div>
 
-      {/* Max 3 KPI Cards */}
-      {isLoadingTransfers ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Skeleton className="h-28 rounded-lg" />
-          <Skeleton className="h-28 rounded-lg" />
-          <Skeleton className="h-28 rounded-lg" />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* Card 1: Open Proposals (Hero Card) */}
-          <Card3D glowColor="rgba(45, 212, 191, 0.28)">
-            <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] text-theme-primary font-bold tracking-wider">[01]</span>
-                  <span className="text-[13px] font-medium text-theme-muted">Open Proposals</span>
-                </div>
-                <StatusBadge status="CYAN" label="Active" size="sm" />
-              </div>
-              <div className="flex items-baseline gap-2 pt-1">
-                <span className="metric-value text-[40px] font-medium text-theme-primary leading-none tracking-tight font-mono">
-                  {openCount}
-                </span>
-                <span className="text-[12px] font-mono text-theme-muted">proposals</span>
-              </div>
-              <div className="pt-2 border-t border-theme-border flex items-center justify-between text-[11px] text-theme-muted">
-                <span>OR-Tools solver solutions</span>
-                <span className="font-mono text-[9px] text-theme-primary font-bold uppercase tracking-wider">
-                  SOLVER READY
-                </span>
-              </div>
-            </div>
-          </Card3D>
-
-          {/* Card 2: Average ETA */}
-          <Card3D glowColor="rgba(56, 189, 248, 0.25)">
-            <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] text-theme-primary font-bold tracking-wider">[02]</span>
-                  <span className="text-[13px] font-medium text-theme-muted">Average Transit ETA</span>
-                </div>
-                <span className="font-mono text-[10px] text-theme-muted bg-white/[0.05] px-2 py-0.5 rounded border border-theme-border">
-                  P50 TRANSIT
-                </span>
-              </div>
-              <div className="flex items-baseline gap-1.5 pt-1">
-                <span className="metric-value text-[40px] font-medium text-theme-text leading-none tracking-tight font-mono">
-                  {avgEta}
-                </span>
-                <span className="text-[13px] font-mono text-theme-muted">hours</span>
-              </div>
-              <div className="pt-2 border-t border-theme-border flex items-center justify-between text-[11px] text-theme-muted">
-                <span>Fleet dispatch window</span>
-                <span className="font-mono text-[9px] text-theme-primary font-bold uppercase tracking-wider">
-                  IN NETWORK
-                </span>
-              </div>
-            </div>
-          </Card3D>
-
-          {/* Card 3: Reallocation Qty */}
-          <Card3D glowColor="rgba(16, 185, 129, 0.25)">
-            <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] text-theme-healthy-text font-bold tracking-wider">[03]</span>
-                  <span className="text-[13px] font-medium text-theme-muted">Total Reallocated Qty</span>
-                </div>
-                <span className="font-mono text-[10px] text-theme-muted bg-white/[0.05] px-2 py-0.5 rounded border border-theme-border">
-                  TOTAL BUFFER
-                </span>
-              </div>
-              <div className="flex items-baseline gap-1.5 pt-1">
-                <span className="metric-value text-[40px] font-medium text-theme-text leading-none tracking-tight font-mono">
-                  {totalQty.toLocaleString()}
-                </span>
-                <span className="text-[13px] font-mono text-theme-muted">units</span>
-              </div>
-              <div className="pt-2 border-t border-theme-border flex items-center justify-between text-[11px] text-theme-muted">
-                <span>Balancing stock across depots</span>
-                <span className="font-mono text-[9px] text-theme-healthy-text font-bold uppercase tracking-wider">
-                  OPTIMIZED
-                </span>
-              </div>
-            </div>
-          </Card3D>
-        </div>
-      )}
-
-      {/* Split Layout: Left Form & Proposals List | Right Map Visual */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column (5/12) */}
-        <div className="lg:col-span-5 space-y-6">
-          <OptimizerForm
-            currentDistrict={queryDistrict || district}
-            onRunOptimizer={handleRunOptimizer}
-            isLoading={isOptimizing}
-            disabled={isReadOnly}
-          />
-
-          {errorMsg && (
-            <ErrorState
-              title="Optimizer Error"
-              message={errorMsg}
-              onRetry={fetchTransfersData}
-            />
-          )}
-
-          {isLoadingTransfers ? (
-            <div className="space-y-3">
-              <Skeleton className="w-full h-32 rounded-lg" />
-              <Skeleton className="w-full h-32 rounded-lg" />
-            </div>
-          ) : transfers.length === 0 ? (
-            <EmptyState
-              title={solverStatus === 'INFEASIBLE' ? 'No Feasible Proposals' : 'No Transfers Found'}
-              description={
-                solverStatus === 'INFEASIBLE'
-                  ? 'No route met floor cover constraints (≥14d) and vehicle limits.'
-                  : 'No transfer proposals match the selected filter parameters.'
-              }
-            />
-          ) : (
-            <div className="space-y-4">
-              {transfers.map((t) => (
-                <ProposalCard
-                  key={t.transfer_id}
-                  transfer={t}
-                  isSelected={selectedTransfer?.transfer_id === t.transfer_id}
-                  onSelect={(selected) => setSelectedTransfer(selected)}
-                />
-              ))}
-            </div>
-          )}
-
-          {selectedTransfer && (
-            <TransferDecisionPanel
-              transfer={selectedTransfer}
-              onDecisionSuccess={() => fetchTransfersData()}
-              userRole={role}
-              headers={getAuthHeaders()}
-            />
-          )}
-        </div>
-
-        {/* Right Column (7/12): Main Map Visual */}
-        <div className="lg:col-span-7 sticky top-20 space-y-4">
-          <div className="rounded-lg border border-theme-border bg-theme-surface overflow-hidden h-[600px] relative">
-            <FacilityMap
-              facilities={facilities}
-              selectedFacilityId={selectedTransfer?.to.facility_id || null}
-              onSelectFacility={() => {}}
-              activePolyline={selectedTransfer?.route?.polyline || null}
-              transferRoute={
-                selectedTransfer
-                  ? {
-                      from: {
-                        lat: selectedTransfer.from.lat,
-                        lng: selectedTransfer.from.lng,
-                        name: selectedTransfer.from.name,
-                        facility_id: selectedTransfer.from.facility_id,
-                      },
-                      to: {
-                        lat: selectedTransfer.to.lat,
-                        lng: selectedTransfer.to.lng,
-                        name: selectedTransfer.to.name,
-                        facility_id: selectedTransfer.to.facility_id,
-                      },
-                      polyline: selectedTransfer.route?.polyline || null,
-                    }
-                  : null
-              }
-              showControls={true}
-              showLegend={true}
-            />
+      <section className="transfer-theater">
+        <div className="transfer-map">
+          <FacilityMap facilities={facilities} selectedFacilityId={selectedTransfer?.to.facility_id || null}
+            onSelectFacility={() => {}} activePolyline={selectedTransfer?.route?.polyline || null}
+            transferRoute={route} showControls showLegend={false} />
+          <div className="transfer-theater-top">
+            <div><span className="eyebrow !text-[#a9bdd8]">Live network theater</span><p className="text-xs text-white mt-2">District {district} / synchronized now</p></div>
+            <span className="transfer-live"><i /> Command online</span>
           </div>
+          {selectedTransfer && <div className="transfer-route-card">
+            <div className="flex items-center justify-between gap-3"><span className="eyebrow !text-[#a9bdd8]">Active mission / {selectedTransfer.transfer_id}</span><StatusBadge status={selectedTransfer.state === 'OPEN' ? 'CYAN' : selectedTransfer.state === 'APPROVED' ? 'GREEN' : 'AMBER'} label={selectedTransfer.state} size="sm" /></div>
+            <div className="transfer-route-nodes">
+              <div><span>ORIGIN</span><strong>{selectedTransfer.from.name}</strong><small>{selectedTransfer.from.cover_days_before}d cover</small></div>
+              <div className="transfer-route-line"><Truck size={16} /><i /></div>
+              <div className="text-right"><span>DESTINATION</span><strong>{selectedTransfer.to.name}</strong><small>{selectedTransfer.to.cover_days_before}d → {selectedTransfer.to.cover_days_after}d</small></div>
+            </div>
+            <div className="grid grid-cols-3 gap-3 pt-4 border-t border-white/10">
+              <div><span>ETA</span><strong>{selectedTransfer.eta_hours} hr</strong></div>
+              <div><span>DISTANCE</span><strong>{selectedTransfer.distance_km} km</strong></div>
+              <div><span>LOAD</span><strong>{selectedTransfer.qty} {selectedTransfer.unit}</strong></div>
+            </div>
+          </div>}
         </div>
+        <div className="transfer-telemetry">
+          {isLoadingTransfers ? <><Skeleton className="h-32" /><Skeleton className="h-32" /><Skeleton className="h-32" /></> : <>
+            <div className="transfer-stat"><span>Open missions</span><Command /><strong>{String(openCount).padStart(2, '0')}</strong><small>Awaiting command decision</small></div>
+            <div className="transfer-stat"><span>Mean arrival</span><Clock3 /><strong>{avgEta}<em> hr</em></strong><small>Across the active route set</small></div>
+            <div className="transfer-stat"><span>Stock mobilized</span><Boxes /><strong>{totalQty.toLocaleString()}</strong><small>Essential units in proposed moves</small></div>
+          </>}
+        </div>
+      </section>
+
+      <div className="transfer-signal-strip">
+        <div><Activity size={16} /><span>Solver status</span><strong>{solverStatus || 'READY'}</strong></div>
+        <div><ShieldCheck size={16} /><span>Donor floor</span><strong>14 DAYS</strong></div>
+        <div><Route size={16} /><span>Routes monitored</span><strong>{transfers.length}</strong></div>
+        <div><MapPin size={16} /><span>Facilities online</span><strong>{facilities.length}</strong></div>
       </div>
+
+      {errorMsg && <ErrorState title="Command link interrupted" message={errorMsg} onRetry={fetchTransfersData} />}
+
+      <section className="surface-card overflow-hidden">
+        <div className="p-5 md:p-6 flex flex-wrap items-end justify-between gap-4 border-b border-theme-border">
+          <div><span className="eyebrow">Ranked operations</span><h2 className="text-xl mt-2">Recommended missions</h2><p className="text-xs text-theme-muted mt-1">Select a route to inspect its operational impact and authorize movement.</p></div>
+          <span className="font-mono text-[10px] text-theme-muted">{transfers.length} ACTIVE RECOMMENDATIONS</span>
+        </div>
+        <div className="p-4 md:p-6">
+          {isLoadingTransfers ? <div className="space-y-3"><Skeleton className="h-36" /><Skeleton className="h-36" /></div>
+          : transfers.length === 0 ? <EmptyState title={solverStatus === 'INFEASIBLE' ? 'No feasible missions' : 'No transfer missions'} description={solverStatus === 'INFEASIBLE' ? 'No route meets donor cover and fleet constraints.' : 'No proposals match this command filter.'} />
+          : <div className="grid xl:grid-cols-[minmax(0,1.2fr)_minmax(350px,.8fr)] gap-6 items-start">
+              <div className="space-y-3">{transfers.map((transfer) => <ProposalCard key={transfer.transfer_id} transfer={transfer} isSelected={selectedTransfer?.transfer_id === transfer.transfer_id} onSelect={setSelectedTransfer} />)}</div>
+              <div className="xl:sticky xl:top-24">
+                {selectedTransfer ? <TransferDecisionPanel transfer={selectedTransfer} onDecisionSuccess={() => fetchTransfersData()} userRole={role} headers={getAuthHeaders()} /> : <EmptyState title="Select a mission" description="Choose a transfer route to review command actions." />}
+              </div>
+            </div>}
+        </div>
+      </section>
+
+      {isOptimizerOpen && <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label="Optimization command panel">
+        <button className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-label="Close optimization panel" onClick={() => setIsOptimizerOpen(false)} />
+        <div className="relative w-full max-w-xl h-full bg-theme-bg border-l border-theme-border p-5 md:p-7 overflow-y-auto animate-slide-up">
+          <div className="flex items-start justify-between mb-7"><div><span className="eyebrow">Optimization command</span><h2 className="text-2xl mt-2">Build a mission set</h2><p className="text-xs text-theme-muted mt-2">Define operational limits, then let the solver rank safe stock movements.</p></div><button className="p-2 rounded-lg border border-theme-border" aria-label="Close optimizer" onClick={() => setIsOptimizerOpen(false)}><X size={17} /></button></div>
+          <OptimizerForm currentDistrict={queryDistrict || district} onRunOptimizer={(request) => { handleRunOptimizer(request); setIsOptimizerOpen(false); }} isLoading={isOptimizing} disabled={isReadOnly} />
+          <div className="mt-5 p-4 rounded-xl border border-theme-border bg-theme-surface text-xs text-theme-muted flex gap-3"><Sparkles size={17} className="text-theme-primary shrink-0" /><p>Every mission preserves the configured donor safety floor before ranking recipient impact, time, and cost.</p></div>
+        </div>
+      </div>}
     </div>
   );
 };

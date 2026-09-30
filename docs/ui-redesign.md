@@ -4,6 +4,8 @@ The `temp` branch uses a navy, ice-blue and coral visual system, with a matching
 
 Shared navigation, page headers, cards, inputs, tabs, status colors and chart labels apply across all ten screens. The risk screen includes a new priority queue with mobile cards, URL-backed filters, and the existing detail drawer.
 
+The transfer screen uses a mission-control layout: a live network theater and active route occupy the primary viewport, operational telemetry provides immediate context, and ranked missions lead into the existing decision workflow. Optimization parameters live in a dedicated command drawer so they remain accessible without competing with active operations.
+
 ## Earth
 
 The locally served Earth textures support terrain normals, ocean reflections, night-side city lights, cloud shading, an independently drifting cloud layer and an atmospheric rim. Facility markers use the risk response's coordinates and most severe status per facility. Demo data is explicitly labeled.

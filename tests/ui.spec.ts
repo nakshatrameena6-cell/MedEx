@@ -105,3 +105,23 @@ test('the mobile toolbar fits a narrow phone', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Open user profile menu' })).toBeInViewport();
   await page.screenshot({ path: 'test-results/risk-narrow-phone.png' });
 });
+
+test('transfer command supports mission selection and optimization controls', async ({ page }) => {
+  await page.goto('/transfers');
+  await expect(page.getByRole('heading', { name: 'Transfer command' })).toBeVisible();
+  await expect(page.getByText('Live network theater')).toBeVisible();
+  await expect(page.getByText('Recommended missions')).toBeVisible();
+  const missions = page.locator('.transfer-mission-card');
+  await expect(missions).toHaveCount(2);
+  await missions.nth(1).click();
+  await expect(missions.nth(1)).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByText('T-002').first()).toBeVisible();
+  await page.getByRole('button', { name: 'New optimization' }).click();
+  await expect(page.getByRole('dialog', { name: 'Optimization command panel' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Build a mission set' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close optimizer' }).click();
+  await expect(page.getByRole('dialog', { name: 'Optimization command panel' })).not.toBeVisible();
+  await page.getByRole('button', { name: 'Filters', exact: true }).click();
+  await page.getByLabel('Transfer state').selectOption('APPROVED');
+  await expect(page.locator('.transfer-mission-card')).toHaveCount(0);
+});
