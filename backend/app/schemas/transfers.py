@@ -17,6 +17,8 @@ class TransferItem(BaseModel):
     rank: Optional[int] = Field(1)
     source_facility_id: str = Field(...)
     destination_facility_id: str = Field(...)
+    from_party: Optional[Dict[str, Any]] = Field(None, validation_alias=AliasChoices("from_party", "from"))
+    to_party: Optional[Dict[str, Any]] = Field(None, validation_alias=AliasChoices("to_party", "to"))
     drug_id: str = Field(...)
     drug_code: Optional[str] = Field(None)
     drug_name: Optional[str] = Field(None)
@@ -42,8 +44,8 @@ class TransferItem(BaseModel):
 class TransfersResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    transfers: List[TransferItem] = Field(default_factory=list)
-    items: Optional[List[TransferItem]] = Field(None)
+    items: List[TransferItem] = Field(default_factory=list, validation_alias=AliasChoices("items", "transfers"))
+    transfers: Optional[List[TransferItem]] = Field(None)
 
 
 class TransferDecisionRequest(BaseModel):

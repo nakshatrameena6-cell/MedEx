@@ -6,8 +6,16 @@ class RiskItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     facility_id: str = Field(..., description="Facility ID")
+    facility_name: Optional[str] = Field("Facility", description="Facility Name")
+    district_id: Optional[str] = Field("TN-D01")
+    block: Optional[str] = Field(None)
+    lat: Optional[float] = Field(None)
+    lng: Optional[float] = Field(None)
     drug_id: str = Field(..., validation_alias=AliasChoices("drug_id", "drug_code"), description="Drug code e.g. ORS")
     drug_code: Optional[str] = Field(None)
+    drug_name: Optional[str] = Field(None)
+    unit: Optional[str] = Field("unit")
+    stock_qty: Optional[int] = Field(150)
     risk_level: str = Field(..., description="RED, AMBER, GREEN or HIGH, MEDIUM, LOW")
     status: str = Field("AMBER", description="RED, AMBER, GREEN")
     stockout_days: int = Field(..., description="Estimated days until stockout")
@@ -23,18 +31,19 @@ class RiskItem(BaseModel):
     confidence: float = Field(0.90, ge=0.0, le=1.0, description="Assessment confidence score")
     reason: str = Field(..., description="Deterministic human-readable explanation")
     flags: List[str] = Field(default_factory=list, description="Deterministic risk condition flags")
+    as_of: Optional[str] = Field(None)
 
 
 class RiskResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    district_id: Optional[str] = Field("TN-D01")
-    as_of: Optional[str] = Field(None)
-    resilience: Optional[Dict[str, Any]] = Field(
+    district_id: str = Field("TN-D01")
+    as_of: str = Field(..., description="ISO-8601 UTC timestamp")
+    resilience: Dict[str, Any] = Field(
         default_factory=lambda: {
-            "score": 92.0,
-            "previous_week_score": 90.0,
-            "delta": 2.0,
+            "score": 92,
+            "previous_week_score": 90,
+            "delta": 2,
             "drift_alert": False
         }
     )
