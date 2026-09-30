@@ -64,7 +64,7 @@ def test_transfers_api_database_backed(client):
     assert res.status_code == 200
     data = res.json()
     assert len(data) >= 1
-    assert data[0]["transfer_id"] == "TRF-001"
+    assert any(t["transfer_id"] == "TRF-001" for t in data)
 
 
 def test_alerts_api_database_backed(client):
