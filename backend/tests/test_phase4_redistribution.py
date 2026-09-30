@@ -180,7 +180,8 @@ def test_audit_logging_and_stock_ledger_update(client):
     # Verify audit log via API
     audit_res = client.get("/api/v1/audit", headers=headers)
     assert audit_res.status_code == 200
-    actions = [item["action"] for item in audit_res.json()]
+    logs = audit_res.json()["logs"]
+    actions = [item["action"] for item in logs]
     assert any("OPTIMIZE" in a for a in actions)
     assert any("TRANSFER" in a for a in actions)
 
