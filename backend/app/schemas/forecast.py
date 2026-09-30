@@ -37,13 +37,7 @@ class ForecastModelMetadata(BaseModel):
     methodology: str = Field(...)
 
 
-class DailyForecastPoint(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
-    date: str = Field(..., description="YYYY-MM-DD date")
-    p10: float = Field(..., description="P10 pessimistic demand forecast")
-    p50: float = Field(..., description="P50 median demand forecast")
-    p90: float = Field(..., description="P90 optimistic demand forecast")
+DailyForecastPoint = ForecastPoint
 
 
 class ForecastItem(BaseModel):

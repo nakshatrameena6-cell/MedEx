@@ -11,6 +11,7 @@ from app.db.repositories import FacilityRepository
 from app.fixtures.mock_data import MOCK_RISK
 from datetime import datetime, timezone
 from app.schemas.risk import RiskItem, RiskResponse
+from app.services.risk import RiskService
 
 router = APIRouter(prefix="/risk", tags=["Risk"])
 

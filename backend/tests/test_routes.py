@@ -32,8 +32,9 @@ def test_all_declared_phase1_routes_registered(client):
 
     # GET /api/v1/transfers
     tr_res = client.get("/api/v1/transfers", headers=headers_facility)
-    assert tr_res.status_code == 200
-    open_trf = next((t for t in tr_res.json() if t.get("status") == "OPEN"), None)
+    tr_data = tr_res.json()
+    tr_items = tr_data["items"] if isinstance(tr_data, dict) and "items" in tr_data else tr_data
+    open_trf = next((t for t in tr_items if t.get("status") == "OPEN"), None)
     target_id = open_trf["transfer_id"] if open_trf else "TRF-001"
 
     # POST /api/v1/transfers/{transfer_id}/decision

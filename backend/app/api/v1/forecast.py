@@ -33,11 +33,12 @@ def get_forecast(
 
     effective_fac_id = facility_id
     effective_drug_code = (drug_id or drug_code or "").upper()
+    target_district_id = ctx.district if ctx.district != "ALL" else district_id
 
     facility_repo = FacilityRepository(db)
     facilities = facility_repo.filter_facilities(
         ctx=ctx,
-        district_id=district_id or (ctx.district if ctx.district != "ALL" else None)
+        district_id=target_district_id
     )
 
     if effective_fac_id:
