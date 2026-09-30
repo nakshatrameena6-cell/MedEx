@@ -5,12 +5,6 @@ from app.db.models import AuditLog, IssuesReceipts, StockSnapshot, Transfer
 from app.db.seed import seed_database
 
 
-@pytest.fixture(autouse=True)
-def setup_db():
-    db = SessionLocal()
-    seed_database(db, reset=True)
-    db.close()
-
 
 
 def test_optimize_endpoint_basic(client):

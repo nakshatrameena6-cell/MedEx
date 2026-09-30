@@ -6,14 +6,6 @@ from app.db.seed import seed_database
 from app.services.audit import audit_service
 
 
-@pytest.fixture(scope="module", autouse=True)
-def seed_test_db():
-    db = SessionLocal()
-    try:
-        seed_database(db, reset=True)
-    finally:
-        db.close()
-
 
 def test_seed_database_deterministic(client):
     db = SessionLocal()
