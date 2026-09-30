@@ -24,14 +24,14 @@ class FederationService:
 
         # Determine round number & ID
         existing_rounds = self.db.query(FederationRoundRecord).order_by(FederationRoundRecord.round_number.desc()).all()
-        if body.round_number is not None:
-            r_num = body.round_number
-        elif existing_rounds:
-            r_num = existing_rounds[0].round_number + 1
-        else:
-            r_num = 2
-
+        max_num = max([r.round_number for r in existing_rounds], default=1)
+        r_num = body.round_number if (body.round_number and body.round_number > max_num) else (max_num + 1)
+        
         r_id = f"FED-R{r_num:02d}"
+        existing_rec = self.db.query(FederationRoundRecord).filter(FederationRoundRecord.round_id == r_id).first()
+        if existing_rec:
+            r_num = max_num + 1
+            r_id = f"FED-R{r_num:02d}"
         
         nodes_count = body.participating_nodes or 15
         agg_method = body.aggregation_method or "FedAvg"
