@@ -1,10 +1,14 @@
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ScenarioRunRequest(BaseModel):
-    scenario_type: str = Field(..., description="e.g. MONSOON_SPIKE, SUPPLY_CHAIN_BREAK, DEMAND_SURGE, CUSTOM")
+    model_config = ConfigDict(populate_by_name=True)
+
+    scenario_type: Optional[str] = Field("CUSTOM", description="e.g. MONSOON_SPIKE, SUPPLY_CHAIN_BREAK, DEMAND_SURGE, CUSTOM")
     district_id: Optional[str] = Field(None, description="Target district ID e.g. TN-D01")
+    prompt: Optional[str] = Field(None, description="Hypothetical scenario prompt description")
+    horizon_weeks: Optional[int] = Field(4, description="Simulation horizon in weeks")
     parameters: Optional[Dict[str, Any]] = Field(
         default_factory=dict,
         description="Hypothetical scenario parameters e.g. stock_change_pct, demand_change_pct, unavailable_facility_ids, transport_delay_hours"
@@ -12,6 +16,8 @@ class ScenarioRunRequest(BaseModel):
 
 
 class ScenarioRunResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     scenario_id: str = Field(...)
     scenario_type: str = Field("CUSTOM")
     district_id: str = Field(...)
@@ -28,4 +34,6 @@ class ScenarioRunResponse(BaseModel):
 
 
 class ScenarioListResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     scenarios: List[ScenarioRunResponse] = Field(default_factory=list)

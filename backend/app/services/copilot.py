@@ -184,8 +184,9 @@ class CopilotService:
                     "notes": t.decision_comment
                 }
 
+        user_query = request.question or request.prompt or ""
         # Generate Gemini explanation
-        exp_res = self.gemini_adapter.generate_explanation(request.prompt, facts, is_mock=settings.MOCK_MODE)
+        exp_res = self.gemini_adapter.generate_explanation(user_query, facts, is_mock=settings.MOCK_MODE)
 
         # Audit Event creation
         audit_service.record(
@@ -194,7 +195,7 @@ class CopilotService:
             "COPILOT",
             resource_id=target_fac_id or target_district,
             details={
-                "prompt": request.prompt,
+                "prompt": user_query,
                 "district": target_district,
                 "facility_id": target_fac_id,
                 "model": exp_res["model"],
