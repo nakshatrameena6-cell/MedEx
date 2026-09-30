@@ -5,13 +5,6 @@ from app.db.seed import seed_database
 from app.main import app
 
 
-@pytest.fixture(scope="module", autouse=True)
-def prepare_database():
-    db = SessionLocal()
-    try:
-        seed_database(db, reset=True)
-    finally:
-        db.close()
 
 
 def test_forecast_endpoint_database_backed(client):

@@ -3,7 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.db.database import get_db, engine
+from app.db.database import get_db, engine, SessionLocal
 from app.db.models import Base, Facility, DrugMaster, StockSnapshot, AuditLog
 from sqlalchemy.orm import Session
 
@@ -94,6 +94,15 @@ def test_capture_flow_voice_photo_and_persistence():
     # 3. Verify status live refresh
     fac_res = client.get("/api/v1/facilities/TN-PHC-002/status", headers=FACILITY_HEADERS)
     assert fac_res.status_code == 200
+
+    # 4. Clean up test snapshot to maintain hermetic test database state
+    db = SessionLocal()
+    try:
+        db.query(StockSnapshot).filter(StockSnapshot.source == "CAPTURED").delete()
+        db.commit()
+    finally:
+        db.close()
+
 
 
 
