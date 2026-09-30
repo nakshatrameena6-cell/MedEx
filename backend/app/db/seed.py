@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.db.database import Base, SessionLocal, engine
 from app.db.models import (
     Alert, AuditLog, BedStatus, DiseaseSignals, DrugMaster, DrugNameMap,
-    Facility, IssuesReceipts, OPDFootfall, StaffAttendance, StockSnapshot,
+    Facility, FederationRoundRecord, IssuesReceipts, OPDFootfall, StaffAttendance, StockSnapshot,
     Transfer, WeatherDaily
 )
 
@@ -362,7 +362,27 @@ def seed_database(db: Session, reset: bool = False):
     db.commit()
     print("Seeded Demo Alerts.")
 
-    # 8. Seed Audit Log
+    # 8. Seed Federation Rounds
+    fed_round = FederationRoundRecord(
+        round_id="FED-R01",
+        round_number=1,
+        participating_nodes=12,
+        status="COMPLETED",
+        accuracy=0.94,
+        loss=0.14,
+        model_version="v1.1.0",
+        previous_model_version="v1.0.0",
+        aggregation_method="FedAvg",
+        metrics={"participating_states": ["TN", "BR", "MH"], "local_samples_count": 5600},
+        created_at=datetime.datetime.utcnow() - datetime.timedelta(days=1),
+        completed_at=datetime.datetime.utcnow() - datetime.timedelta(days=1, hours=-1),
+        created_by="state_admin"
+    )
+    db.add(fed_round)
+    db.commit()
+    print("Seeded Demo Federation Round.")
+
+    # 9. Seed Audit Log
     audit = AuditLog(
         user_id="system_seed",
         role="STATE",

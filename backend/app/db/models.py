@@ -190,5 +190,23 @@ class AuditLog(Base):
     details = Column(JSON, nullable=True)
 
 
+class FederationRoundRecord(Base):
+    __tablename__ = "federation_rounds"
+
+    round_id = Column(String(100), primary_key=True, index=True)
+    round_number = Column(Integer, nullable=False, index=True)
+    participating_nodes = Column(Integer, default=12)
+    status = Column(String(50), default="COMPLETED")  # CREATED, COLLECTING, AGGREGATING, COMPLETED
+    accuracy = Column(Float, default=0.94)
+    loss = Column(Float, default=0.12)
+    model_version = Column(String(50), default="v1.1.0")
+    previous_model_version = Column(String(50), default="v1.0.0")
+    aggregation_method = Column(String(50), default="FedAvg")
+    metrics = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    completed_at = Column(DateTime, nullable=True)
+    created_by = Column(String(100), nullable=True)
+
+
 # Alias StockItem for legacy schema compatibility
 StockItem = StockSnapshot

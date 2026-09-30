@@ -1,19 +1,33 @@
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 
 class FederationRoundRequest(BaseModel):
     round_number: Optional[int] = Field(None, description="Round number to trigger")
+    participating_nodes: Optional[int] = Field(12, description="Number of participating nodes")
+    aggregation_method: Optional[str] = Field("FedAvg", description="Aggregation method e.g. FedAvg")
 
 
 class FederationRoundItem(BaseModel):
     round_id: str = Field(...)
     round_number: int = Field(...)
     participating_nodes: int = Field(...)
-    status: str = Field(...)
+    status: str = Field(..., description="CREATED, COLLECTING, AGGREGATING, COMPLETED")
     accuracy: float = Field(...)
+    loss: Optional[float] = Field(0.12)
+    model_version: Optional[str] = Field("v1.1.0")
+    aggregation_method: Optional[str] = Field("FedAvg")
     timestamp: str = Field(...)
+    completed_at: Optional[str] = Field(None)
+    metrics: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 
 class FederationRoundsResponse(BaseModel):
     rounds: List[FederationRoundItem] = Field(default_factory=list)
+
+
+class LocalUpdateSubmissionRequest(BaseModel):
+    node_id: str = Field(..., description="Node ID submitting weight update e.g. TN-NODE-01")
+    local_samples: int = Field(..., ge=1, description="Number of local training samples")
+    weights_delta: Dict[str, Any] = Field(..., description="Model weight updates delta")
+
