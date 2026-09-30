@@ -1,8 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Facility } from '../../types/api';
-import { BaseMap } from './BaseMap';
-import { MapControls } from './MapControls';
-import { MapLegend } from './MapLegend';
+import { FacilityMap } from './FacilityMap';
 import { FacilityDrawer } from './FacilityDrawer';
 import { Skeleton } from '../common/Skeleton';
 import { ErrorState } from '../common/ErrorState';
@@ -28,8 +26,6 @@ export const MedExHealthMap: React.FC<MedExHealthMapProps> = ({
   onRetry,
   className = '',
 }) => {
-  const [tileLayerType, setTileLayerType] = useState<'dark' | 'satellite'>('dark');
-
   if (isLoading) {
     return (
       <div className={`medex-panel p-6 flex flex-col items-center justify-center min-h-[420px] ${className}`}>
@@ -52,46 +48,17 @@ export const MedExHealthMap: React.FC<MedExHealthMapProps> = ({
 
   return (
     <div className={`medex-panel relative overflow-hidden rounded-lg min-h-[480px] border-medex-border ${className}`}>
-      {/* Interactive Base Map Component */}
-      <BaseMap
+      {/* Keyless MapLibre Facility Map */}
+      <FacilityMap
         facilities={facilities}
         selectedFacilityId={selectedFacilityId}
-        onSelectFacility={(id) => onSelectFacility(id)}
+        onSelectFacility={onSelectFacility}
         activePolyline={activePolyline}
-        tileLayerType={tileLayerType}
+        showControls={true}
+        showLegend={true}
       />
 
-      {/* Floating Map Controls (Top Right) */}
-      <div className="absolute top-4 right-4 z-20">
-        <MapControls
-          onZoomIn={() => {
-            const mapEl = document.querySelector('.leaflet-container');
-            if (mapEl) {
-              const zoomBtn = mapEl.querySelector('.leaflet-control-zoom-in') as HTMLElement;
-              if (zoomBtn) zoomBtn.click();
-            }
-          }}
-          onZoomOut={() => {
-            const mapEl = document.querySelector('.leaflet-container');
-            if (mapEl) {
-              const zoomBtn = mapEl.querySelector('.leaflet-control-zoom-out') as HTMLElement;
-              if (zoomBtn) zoomBtn.click();
-            }
-          }}
-          onRecenter={() => {
-            onSelectFacility(null);
-          }}
-          tileLayer={tileLayerType}
-          onToggleTileLayer={() => setTileLayerType(tileLayerType === 'dark' ? 'satellite' : 'dark')}
-        />
-      </div>
-
-      {/* Floating Map Legend (Bottom Right) */}
-      <div className="absolute bottom-4 right-4 z-20">
-        <MapLegend />
-      </div>
-
-      {/* Facility Detail Drawer (Authoritative surface consuming GET /facilities/{facility_id}/status) */}
+      {/* Facility Detail Drawer */}
       <FacilityDrawer
         facilityId={selectedFacilityId}
         onClose={() => onSelectFacility(null)}

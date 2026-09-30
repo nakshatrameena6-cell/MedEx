@@ -1,42 +1,45 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { PageHeader } from '../components/common/PageHeader';
-import { SectionCard } from '../components/common/SectionCard';
+import { KpiCard } from '../components/common/KpiCard';
 import { StatusBadge } from '../components/common/StatusBadge';
-import { MetricCard } from '../components/common/MetricCard';
-import { DataTable, Column } from '../components/common/DataTable';
+import { Button } from '../components/common/Button';
 import { Skeleton } from '../components/common/Skeleton';
 import { ErrorState } from '../components/common/ErrorState';
+import { EmptyState } from '../components/common/EmptyState';
 import { Dialog } from '../components/common/Dialog';
 import { useAuthRole } from '../context/AuthRoleContext';
 import { FederationRound, FederationRoundList } from '../types/api';
 import { listFederationRounds, runFederationRound } from '../services/federationService';
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  CartesianGrid,
-} from 'recharts';
+import { COPY } from '../constants/copy';
 import {
   Share2,
   Play,
   Cpu,
-  ShieldCheck,
-  RefreshCw,
   Sparkles,
+  RefreshCw,
+  X,
+  Layers,
+  Database,
 } from 'lucide-react';
+
+import { useToast } from '../context/ToastContext';
+import { EarthPinGlobe3D } from '../components/3d/EarthPinGlobe3D';
+import { motion } from 'framer-motion';
+
+const FederationMapeChart = React.lazy(() => import('../components/charts/FederationMapeChart'));
 
 export const FederationView: React.FC = () => {
   const { role, district, user, isMockMode } = useAuthRole();
+  const toast = useToast();
 
   // API State
   const [federationData, setFederationData] = useState<FederationRoundList | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isError, setIsError] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
+
+  // Version Drawer State
+  const [isVersionDrawerOpen, setIsVersionDrawerOpen] = useState<boolean>(false);
 
   // Run Round Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -104,9 +107,11 @@ export const FederationView: React.FC = () => {
       );
 
       setIsModalOpen(false);
+      toast.success('Federated training round completed successfully');
       await loadFederationData();
     } catch (err: any) {
       setSubmitError(err.message || 'Failed to trigger federated training round.');
+      toast.error(err.message || 'Failed to run federated training round');
     } finally {
       setIsSubmittingRound(false);
     }
@@ -129,178 +134,214 @@ export const FederationView: React.FC = () => {
     is_data_sparse: s.is_data_sparse,
   }));
 
-  // Model Registry Table Columns
-  const modelColumns: Column<any>[] = [
-    {
-      key: 'version',
-      header: 'Model Version',
-      render: (m) => (
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-xs font-bold text-medex-cyan">{m.version}</span>
-          {m.active && (
-            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-medex-green/20 text-medex-green-light border border-medex-green/40 font-bold">
-              ACTIVE
-            </span>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: 'created_at',
-      header: 'Created Timestamp',
-      render: (m) => <span className="font-mono text-2xs text-medex-secondary">{m.created_at}</span>,
-    },
-    {
-      key: 'validated',
-      header: 'Validated',
-      render: (m) => (
-        <span className={`font-mono text-2xs font-semibold ${m.validated ? 'text-medex-green' : 'text-medex-muted'}`}>
-          {m.validated ? 'VALIDATED (PASS)' : 'UNVALIDATED'}
-        </span>
-      ),
-      align: 'center',
-    },
-    {
-      key: 'active',
-      header: 'Serving State',
-      render: (m) => (
-        <StatusBadge status={m.active ? 'GREEN' : 'NEUTRAL'} label={m.active ? 'SERVING' : 'INACTIVE'} size="sm" />
-      ),
-      align: 'center',
-    },
-  ];
+  const globalMape = latestRound?.global_mape ?? 14.9;
+  const globalAccuracy = (100 - globalMape).toFixed(1);
+  const sparseGain = sparseState
+    ? (sparseState.local_only_mape - sparseState.federated_mape).toFixed(1)
+    : '7.1';
 
   return (
-    <div className="space-y-6 font-sans">
+    <motion.div 
+      initial={{ opacity: 0, y: 12 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }} 
+      className="space-y-6 font-sans"
+    >
       <PageHeader
-        title="Federation Console"
-        subtitle="Shared predictive modeling across state health nodes without pooling raw state datasets. Only weights leave a state."
+        title={COPY.headers.federationTitle}
+        subtitle={COPY.headers.federationSubtitle}
         badge={<StatusBadge status="CYAN" label="GET /federation/rounds" />}
         breadcrumbs={[{ label: 'MEDEx' }, { label: 'Federated Learning' }]}
         actionSlot={
-          <button
-            type="button"
+          <Button
+            variant="primary"
             onClick={() => setIsModalOpen(true)}
             disabled={isAuditor}
             title={isAuditor ? 'AUDITOR role is read-only (403 Forbidden)' : 'Run new federated training round'}
-            className={`px-3.5 py-1.5 rounded bg-medex-cyan text-medex-bg font-semibold text-xs inline-flex items-center gap-1.5 shadow-medex-glow-cyan transition-all ${
-              isAuditor ? 'opacity-40 cursor-not-allowed' : 'hover:bg-medex-cyan-light'
-            }`}
           >
-            <Play className="w-3.5 h-3.5" />
-            <span>Run Federation Round</span>
-          </button>
+            <Play className="w-4 h-4 mr-2" />
+            <span>{COPY.actions.startRound}</span>
+          </Button>
         }
       />
 
-      {/* Metric Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard
-          title="Global MAPE Accuracy"
-          value={latestRound?.global_mape ?? 14.9}
-          unit="%"
+      {/* 3D Federated Neural Model Aggregation Deck */}
+      <EarthPinGlobe3D
+        height="380px"
+        interactive={true}
+        showHUD={true}
+        activeNodeName={`FEDERATION ROUND #${latestRound?.round_number ?? 7}`}
+      />
+
+      {/* KPI Row - Max 3 Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <KpiCard
+          title={COPY.metrics.modelAccuracy}
+          value={globalAccuracy}
+          unit="% accuracy"
+          className="border-theme-healthy/40 border-2"
           status="GREEN"
-          subtext={`Round #${latestRound?.round_number ?? 7} (${latestRound?.model_version ?? 'fed-v7'})`}
           icon={Cpu}
+          subtext={`Round #${latestRound?.round_number ?? 7}`}
         />
-        <MetricCard
-          title="Participating State Nodes"
+
+        <KpiCard
+          title={COPY.metrics.participatingNodes}
           value={perStateResults.length || 3}
           unit="states"
           status="CYAN"
-          subtext="Tamil Nadu (TN), Bihar (BR), Maharashtra (MH)"
           icon={Share2}
         />
-        <MetricCard
-          title="Sparse Data State Gain"
-          value={
-            sparseState
-              ? `-${(sparseState.local_only_mape - sparseState.federated_mape).toFixed(1)}%`
-              : '-7.1%'
-          }
-          unit="MAPE drop"
+
+        <KpiCard
+          title={COPY.metrics.sparseDataGain}
+          value={`+${sparseGain}`}
+          unit="% boost"
           status="GREEN"
-          subtext={`Bihar (BR) local: ${sparseState?.local_only_mape}% → fed: ${sparseState?.federated_mape}%`}
           icon={Sparkles}
-        />
-        <MetricCard
-          title="Model Registry Status"
-          value={federationData?.models.length || 2}
-          unit="versions"
-          status="NEUTRAL"
-          subtext="Stored in Vertex AI Registry"
-          icon={ShieldCheck}
         />
       </div>
 
-      {/* Sparse Data State Highlight Callout */}
+      {/* Sparse Data State Callout */}
       {sparseState && (
-        <div className="medex-panel p-4 bg-medex-cyan/10 border-medex-cyan/40 text-xs text-medex-cyan-light flex items-center justify-between gap-4">
+        <div className="p-4 rounded-xl bg-theme-primary-tint/30 border border-theme-primary/30 text-xs text-theme-text flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-medex-cyan/20 text-medex-cyan shrink-0">
-              <Sparkles className="w-5 h-5 animate-pulse-subtle" />
+            <div className="p-2 rounded-lg bg-theme-primary-tint text-theme-primary shrink-0">
+              <Sparkles className="w-5 h-5 animate-pulse" />
             </div>
             <div>
-              <span className="font-semibold text-medex-primary block font-mono">
-                DATA-SPARSE STATE DEMO HIGHLIGHT: {sparseState.state_code}
+              <span className="font-semibold text-theme-text block font-mono text-xs">
+                DATA-SPARSE NODE BOOST: {sparseState.state_code}
               </span>
-              <p className="text-2xs text-medex-secondary mt-0.5 max-w-2xl">
-                State node <strong className="text-medex-cyan font-mono">{sparseState.state_code}</strong> has sparse historical data ({sparseState.n_samples.toLocaleString()} samples). Federated aggregation reduces error from{' '}
-                <strong className="text-medex-amber-light font-mono">{sparseState.local_only_mape}% MAPE</strong> to{' '}
-                <strong className="text-medex-green-light font-mono">{sparseState.federated_mape}% MAPE</strong> without raw data sharing.
+              <p className="text-2xs text-theme-muted mt-0.5 max-w-2xl">
+                Node <strong className="text-theme-text font-mono">{sparseState.state_code}</strong> ({sparseState.n_samples.toLocaleString()} samples) accuracy improved from{' '}
+                <strong className="text-theme-warning font-mono">{(100 - sparseState.local_only_mape).toFixed(1)}%</strong> to{' '}
+                <strong className="text-theme-healthy font-mono">{(100 - sparseState.federated_mape).toFixed(1)}%</strong> via federated aggregation.
               </p>
             </div>
           </div>
-          <span className="px-2.5 py-1 rounded bg-medex-cyan/20 border border-medex-cyan/50 text-2xs font-mono font-bold uppercase shrink-0">
-            SPARSE NODE HIGHLIGHT
-          </span>
+          <Button
+            variant="secondary"
+            onClick={() => setIsVersionDrawerOpen(true)}
+            aria-label="View versions registry"
+          >
+            <Layers className="w-4 h-4 mr-1.5" />
+            <span>View versions ({federationData?.models.length || 0})</span>
+          </Button>
         </div>
       )}
 
-      {/* Main MAPE Comparison Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <SectionCard
-          title="Local-Only MAPE vs Federated MAPE per State Node"
-          subtitle="Comparing single-state local model accuracy against global federated model accuracy"
-          className="lg:col-span-2 min-h-[380px]"
-        >
-          {isLoading ? (
-            <Skeleton className="h-[300px] w-full" />
-          ) : isError ? (
-            <ErrorState title="Federation Error" message={errorMessage} onRetry={loadFederationData} />
-          ) : (
-            <div className="w-full h-[300px] pt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="state" stroke="#64748B" tick={{ fontSize: 11, fill: '#94A3B8' }} />
-                  <YAxis stroke="#64748B" tick={{ fontSize: 10, fill: '#94A3B8' }} unit="%" label={{ value: 'MAPE Error (%)', angle: -90, position: 'insideLeft', style: { fill: '#94A3B8', fontSize: 10 } }} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#141E30', borderColor: 'rgba(6, 182, 212, 0.4)', borderRadius: '6px', fontSize: '11px', fontFamily: 'monospace' }}
-                  />
-                  <Legend wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace', paddingTop: '10px' }} />
-                  <Bar dataKey="local_only_mape" name="Local-Only Model MAPE (%)" fill="#F59E0B" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="federated_mape" name="Federated Global Model MAPE (%)" fill="#10B981" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </SectionCard>
+      {/* Main Visual: Local vs Federated MAPE Bar Chart */}
+      <div className="bg-theme-surface border border-theme-border rounded-xl p-6 space-y-4">
+        <div className="flex items-center justify-between border-b border-theme-border pb-4">
+          <div>
+            <h2 className="text-base font-semibold text-theme-text">Model Accuracy Comparison</h2>
+            <p className="text-xs text-theme-muted">Local-only MAPE error vs Global federated model MAPE error by state node</p>
+          </div>
+          <Button
+            variant="secondary"
+            onClick={() => setIsVersionDrawerOpen(true)}
+          >
+            <Layers className="w-4 h-4 mr-1.5" />
+            <span>View versions</span>
+          </Button>
+        </div>
 
-        {/* Model Registry Section */}
-        <SectionCard title="Model Registry" subtitle="Vertex AI registered versions">
-          <DataTable
-            columns={modelColumns}
-            data={federationData?.models || []}
-            isLoading={isLoading}
-            isError={isError}
-            errorMessage={errorMessage}
-            onRetry={loadFederationData}
-            getRowId={(m) => m.version}
-            emptyTitle="No models registered"
-          />
-        </SectionCard>
+        {isLoading ? (
+          <Skeleton className="h-[320px] w-full rounded-lg" />
+        ) : isError ? (
+          <ErrorState title="Federation Data Unavailable" message={errorMessage} onRetry={loadFederationData} />
+        ) : chartData.length === 0 ? (
+          <EmptyState title="No Federation Data" description="No training rounds recorded." />
+        ) : (
+          <Suspense fallback={<Skeleton className="h-[320px] w-full rounded-lg" />}>
+            <FederationMapeChart data={chartData} />
+          </Suspense>
+        )}
       </div>
+
+      {/* View Versions Slide-Over Drawer with Scrollable Table and Edge Fade */}
+      {isVersionDrawerOpen && (
+        <div className="fixed inset-0 z-50 overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="version-drawer-title">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+            onClick={() => setIsVersionDrawerOpen(false)}
+          />
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+            <div className="w-screen max-w-lg bg-theme-surface border-l border-theme-border shadow-2xl p-6 flex flex-col justify-between">
+              <div className="space-y-6 flex-1 overflow-y-auto pr-1">
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-theme-border pb-4">
+                  <div>
+                    <h2 id="version-drawer-title" className="text-lg font-bold text-theme-text flex items-center gap-2">
+                      <Database className="w-5 h-5 text-theme-primary" />
+                      Model Version Registry
+                    </h2>
+                    <p className="text-xs text-theme-muted mt-0.5">Vertex AI model registry snapshots</p>
+                  </div>
+                  <button
+                    onClick={() => setIsVersionDrawerOpen(false)}
+                    className="p-1 rounded-md text-theme-muted hover:text-theme-text hover:bg-theme-bg transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Table with Edge Fade Gradient */}
+                <div className="relative">
+                  {/* Left & Right Edge Fade Gradients */}
+                  <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-theme-surface to-transparent z-10" />
+                  <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-theme-surface to-transparent z-10" />
+
+                  <div className="overflow-x-auto scrollbar-thin rounded-lg border border-theme-border">
+                    <table className="w-full text-left border-collapse min-w-[420px]">
+                      <thead>
+                        <tr className="border-b border-theme-border bg-theme-bg text-theme-muted text-2xs font-mono uppercase">
+                          <th className="py-2.5 px-3">Version</th>
+                          <th className="py-2.5 px-3">Created</th>
+                          <th className="py-2.5 px-3 text-center">Status</th>
+                          <th className="py-2.5 px-3 text-right">Serving</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-theme-border text-xs">
+                        {(federationData?.models || []).map((m) => (
+                          <tr key={m.version} className="hover:bg-theme-bg/50 transition-colors">
+                            <td className="py-3 px-3">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-xs font-bold text-theme-primary">{m.version}</span>
+                                {m.active && (
+                                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-theme-healthy-bg text-theme-healthy font-bold border border-theme-healthy/30">
+                                    ACTIVE
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3 px-3 font-mono text-2xs text-theme-muted">{m.created_at}</td>
+                            <td className="py-3 px-3 text-center">
+                              <span className={`font-mono text-2xs font-semibold ${m.validated ? 'text-theme-healthy' : 'text-theme-muted'}`}>
+                                {m.validated ? 'VALIDATED' : 'UNVALIDATED'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-right">
+                              <StatusBadge status={m.active ? 'GREEN' : 'NEUTRAL'} label={m.active ? 'SERVING' : 'INACTIVE'} size="sm" />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-theme-border mt-4">
+                <Button variant="secondary" onClick={() => setIsVersionDrawerOpen(false)} className="w-full">
+                  Close Registry
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Run Federation Round Modal Dialog (POST /federation/round) */}
       <Dialog
@@ -311,18 +352,18 @@ export const FederationView: React.FC = () => {
       >
         <div className="space-y-4 font-sans text-xs">
           {submitError && (
-            <div className="p-3 bg-medex-red/15 border border-medex-red/40 rounded text-medex-red-light font-mono">
+            <div className="p-3 bg-theme-critical-bg border border-theme-critical/40 rounded-lg text-theme-critical-text font-mono">
               {submitError}
             </div>
           )}
 
           <div>
-            <label className="text-2xs font-mono font-semibold uppercase tracking-wider text-medex-muted block mb-1">
+            <label className="text-2xs font-mono font-semibold uppercase tracking-wider text-theme-muted block mb-1">
               Participating State Codes
             </label>
             <div className="flex items-center gap-3">
               {['TN', 'BR', 'MH'].map((code) => (
-                <label key={code} className="inline-flex items-center gap-1.5 text-xs text-medex-primary font-mono cursor-pointer">
+                <label key={code} className="inline-flex items-center gap-1.5 text-xs text-theme-text font-mono cursor-pointer">
                   <input
                     type="checkbox"
                     checked={selectedStates.includes(code)}
@@ -333,7 +374,7 @@ export const FederationView: React.FC = () => {
                         setSelectedStates(selectedStates.filter((s) => s !== code));
                       }
                     }}
-                    className="rounded border-medex-border bg-medex-surface text-medex-cyan focus:ring-0"
+                    className="rounded border-theme-border-control bg-theme-surface text-theme-primary focus:ring-0"
                   />
                   <span>{code}</span>
                 </label>
@@ -342,7 +383,7 @@ export const FederationView: React.FC = () => {
           </div>
 
           <div>
-            <label className="text-2xs font-mono font-semibold uppercase tracking-wider text-medex-muted block mb-1">
+            <label className="text-2xs font-mono font-semibold uppercase tracking-wider text-theme-muted block mb-1">
               Local Training Epochs (1 - 10)
             </label>
             <input
@@ -351,55 +392,53 @@ export const FederationView: React.FC = () => {
               max={10}
               value={epochs}
               onChange={(e) => setEpochs(parseInt(e.target.value, 10) || 3)}
-              className="w-full bg-medex-surface border border-medex-border rounded text-xs p-2 text-medex-primary font-mono"
+              className="w-full bg-theme-surface border border-theme-border-control rounded-lg text-xs p-2 text-theme-text font-mono focus:outline-none focus:border-theme-primary"
             />
           </div>
 
           <div>
-            <label className="inline-flex items-center gap-2 text-xs text-medex-primary font-mono cursor-pointer">
+            <label className="inline-flex items-center gap-2 text-xs text-theme-text font-mono cursor-pointer">
               <input
                 type="checkbox"
                 checked={dpNoise}
                 onChange={(e) => setDpNoise(e.target.checked)}
-                className="rounded border-medex-border bg-medex-surface text-medex-cyan focus:ring-0"
+                className="rounded border-theme-border-control bg-theme-surface text-theme-primary focus:ring-0"
               />
               <span>Enable Differential Privacy (DP Noise) Clipping</span>
             </label>
           </div>
 
-          <div className="p-3 bg-medex-elevated rounded border border-medex-border text-2xs text-medex-muted">
+          <div className="p-3 bg-theme-bg rounded-lg border border-theme-border text-2xs text-theme-muted">
             Round runs data-weighted federated averaging. No raw patient or stock records leave state nodes.
           </div>
 
-          <div className="flex justify-end gap-3 pt-3 border-t border-medex-border">
-            <button
-              type="button"
+          <div className="flex justify-end gap-3 pt-3 border-t border-theme-border">
+            <Button
+              variant="secondary"
               onClick={() => setIsModalOpen(false)}
-              className="px-3 py-1.5 rounded bg-medex-surface border border-medex-border text-xs text-medex-secondary"
             >
               Cancel
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="primary"
               onClick={handleTriggerRound}
               disabled={isSubmittingRound || selectedStates.length === 0}
-              className="px-4 py-1.5 rounded bg-medex-cyan text-medex-bg font-semibold text-xs inline-flex items-center gap-1.5 disabled:opacity-50"
             >
               {isSubmittingRound ? (
                 <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Running federated round...</span>
+                  <RefreshCw className="w-4 h-4 mr-1.5 animate-spin" />
+                  <span>Running...</span>
                 </>
               ) : (
                 <>
-                  <Play className="w-3.5 h-3.5" />
-                  <span>Start Round</span>
+                  <Play className="w-4 h-4 mr-1.5" />
+                  <span>{COPY.actions.startRound}</span>
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </div>
       </Dialog>
-    </div>
+    </motion.div>
   );
 };

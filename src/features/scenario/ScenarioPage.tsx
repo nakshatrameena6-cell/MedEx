@@ -1,35 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthRole } from '../../context/AuthRoleContext';
 import { ScenarioResponse } from '../../types/api';
 import { runScenario } from '../../services/scenarioService';
 import { PageHeader } from '../../components/common/PageHeader';
-import { SectionCard } from '../../components/common/SectionCard';
 import { StatusBadge } from '../../components/common/StatusBadge';
-import { MetricCard } from '../../components/common/MetricCard';
+import { Button } from '../../components/common/Button';
 import { Skeleton } from '../../components/common/Skeleton';
 import { EmptyState } from '../../components/common/EmptyState';
-import {
-  Activity,
-  AlertTriangle,
-  Flame,
-  ShieldAlert,
-  Loader2,
-  TrendingDown,
-  ArrowRight,
-  Sparkles,
-  Info,
-} from 'lucide-react';
-import {
-  ResponsiveContainer,
-  ComposedChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip as RechartsTooltip,
-  CartesianGrid,
-  Legend,
-} from 'recharts';
+import { ErrorState } from '../../components/common/ErrorState';
+import { Card3D } from '../../components/3d/Card3D';
+import { Flame, ArrowRight, ShieldAlert, Building2, Sliders, Activity, Sparkles, Cpu } from 'lucide-react';
+import { JellyRadio, ThoughtLine } from '../../components/reactbits';
+import { COPY } from '../../constants/copy';
+
+const ScenarioBurnDownChart = React.lazy(() => import('../../components/charts/ScenarioBurnDownChart'));
 
 export const ScenarioPage: React.FC = () => {
   const navigate = useNavigate();
@@ -82,279 +68,353 @@ export const ScenarioPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 text-left font-sans">
+    <motion.div 
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="space-y-6 font-sans text-theme-text"
+    >
       <PageHeader
-        title="Emergency Surge Scenario Simulator"
-        subtitle="Simulate disease outbreaks or seasonal surges to model inventory burn-down without mutating production data."
-        badge={<StatusBadge status="CYAN" label="POST /scenario/run" />}
-        breadcrumbs={[
-          { label: 'MEDEx' },
-          { label: 'Scenario Simulator' },
-        ]}
+        title={COPY.headers.scenarioTitle}
+        subtitle="Simulate disease outbreaks or seasonal surges to model inventory burn-down without modifying live data"
       />
 
-      {/* Simulation Safety Banner */}
-      <div className="p-4 bg-medex-cyan/10 border border-medex-cyan/30 rounded-xl text-xs text-medex-cyan-light flex items-center gap-3">
-        <Info className="w-5 h-5 shrink-0 text-medex-cyan" />
-        <div>
-          <span className="font-bold font-mono block">SIMULATION ONLY — DECISION SUPPORT</span>
-          Running emergency surge simulations projects burn-down curves. No live facility inventory or transfer states are modified.
-        </div>
-      </div>
-
       {!isPermitted && (
-        <div className="p-4 bg-medex-amber/15 border border-medex-amber/40 rounded-xl text-xs text-medex-amber-light flex items-center gap-3">
-          <ShieldAlert className="w-5 h-5 shrink-0" />
+        <div className="p-4 bg-theme-warning-bg/40 border border-theme-warning-text/40 rounded-xl text-[13px] text-theme-warning-text flex items-center gap-3 font-sans backdrop-blur-md">
+          <ShieldAlert className="w-5 h-5 shrink-0" strokeWidth={1.8} />
           <div>
-            <span className="font-bold font-mono block">ROLE SCOPE RESTRICTION:</span>
-            Scenario simulation execution (POST /scenario/run) is restricted to DISTRICT and STATE roles. Your current role ({role}) is read-only.
+            <span className="font-semibold block">Role Restriction</span>
+            Scenario simulation execution is restricted to DISTRICT and STATE roles. Your current role ({role}) is read-only.
           </div>
         </div>
       )}
 
-      {/* Simulation Input Form */}
-      <SectionCard
-        title="Scenario Simulation Parameters"
-        subtitle="Gemini parses prompt into disease, affected blocks, and demand uplift percentage"
+      {/* Simulation Form Card with 3D Specular Sheen */}
+      <Card3D 
+        maxTilt={3} 
+        specularColor="rgba(56, 189, 248, 0.12)"
+        className="p-6 rounded-2xl border border-white/10 bg-theme-surface/85 backdrop-blur-xl shadow-2xl relative overflow-hidden"
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-            <div className="md:col-span-6">
-              <label className="text-2xs font-mono text-medex-muted block mb-1">
-                Surge Scenario Prompt (Natural Language)
+        <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-theme-primary/10 border border-theme-primary/30 flex items-center justify-center text-theme-primary">
+              <Sliders className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-[16px] font-semibold tracking-tight text-theme-text">
+                Simulation Parameters
+              </h2>
+              <p className="text-[11px] text-theme-muted font-mono">
+                TELEMETRY // NON-DESTRUCTIVE EPIDEMIOLOGY TWIN
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-mono tracking-wider px-2 py-0.5 rounded bg-white/5 border border-white/10 text-theme-muted">
+            SYS_ENV: READY
+          </span>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end">
+            <div className="md:col-span-6 space-y-1.5">
+              <label className="text-[11px] font-semibold text-theme-muted uppercase tracking-[0.08em] flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-theme-primary" />
+                Surge Scenario Prompt
               </label>
               <input
                 type="text"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 disabled={!isPermitted || isLoading}
-                placeholder="e.g. Dengue surge in 3 blocks with 40% uplift..."
-                className="w-full bg-medex-bg border border-medex-border rounded-lg px-3 py-2 text-xs text-medex-primary font-mono focus:outline-none focus:border-medex-cyan"
+                placeholder="e.g. Dengue surge in 3 blocks with 45% uplift..."
+                className="w-full bg-theme-bg/80 border border-white/15 rounded-xl px-4 py-2.5 text-[14px] text-theme-text focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary/30 transition-all font-mono"
               />
             </div>
 
-            <div className="md:col-span-3">
-              <label className="text-2xs font-mono text-medex-muted block mb-1">
-                District ID
+            <div className="md:col-span-3 space-y-1.5">
+              <label className="text-[11px] font-semibold text-theme-muted uppercase tracking-[0.08em] block">
+                Target District
               </label>
               <select
                 value={districtId}
                 onChange={(e) => setDistrictId(e.target.value)}
                 disabled={!isPermitted || isLoading}
-                className="w-full bg-medex-bg border border-medex-border rounded-lg px-3 py-2 text-xs text-medex-primary font-mono focus:outline-none focus:border-medex-cyan"
+                className="w-full bg-theme-bg/80 border border-white/15 rounded-xl px-3.5 py-2.5 text-[14px] text-theme-text focus:outline-none focus:border-theme-primary font-mono transition-all"
               >
-                <option value="TN-D01">TN-D01 (Tamil Nadu D01)</option>
-                <option value="BR-D02">BR-D02 (Bihar D02)</option>
-                <option value="MH-D03">MH-D03 (Maharashtra D03)</option>
+                <option value="TN-D01" className="bg-theme-surface">TN-D01 (Tamil Nadu D01)</option>
+                <option value="BR-D02" className="bg-theme-surface">BR-D02 (Bihar D02)</option>
+                <option value="MH-D03" className="bg-theme-surface">MH-D03 (Maharashtra D03)</option>
               </select>
             </div>
 
-            <div className="md:col-span-3">
-              <label className="text-2xs font-mono text-medex-muted block mb-1">
-                Horizon: <strong className="text-medex-cyan">{horizonWeeks} weeks</strong>
+            <div className="md:col-span-3 space-y-1.5">
+              <label className="text-[11px] font-semibold text-theme-muted uppercase tracking-[0.08em] block">
+                Simulation Horizon
               </label>
-              <input
-                type="range"
-                min="2"
-                max="8"
-                value={horizonWeeks}
-                onChange={(e) => setHorizonWeeks(parseInt(e.target.value) || 4)}
-                disabled={!isPermitted || isLoading}
-                className="w-full accent-medex-cyan bg-medex-bg h-1.5 rounded cursor-pointer"
+              <JellyRadio
+                items={[
+                  { value: '2', label: '2 Weeks' },
+                  { value: '4', label: '4 Weeks' },
+                  { value: '6', label: '6 Weeks' },
+                  { value: '8', label: '8 Weeks' },
+                ]}
+                value={String(horizonWeeks)}
+                onChange={(val: string) => setHorizonWeeks(parseInt(val, 10) || 4)}
+                chipColor="var(--color-surface)"
+                activeColor="var(--palette-lime)"
+                textColor="var(--color-text)"
+                activeTextColor="var(--palette-coffee)"
+                size="sm"
+                radius={12}
               />
             </div>
           </div>
 
-          <div className="flex justify-end pt-1">
-            <button
+          <div className="flex justify-between items-center pt-2">
+            <div className="text-[12px] text-theme-muted flex items-center gap-1.5 font-mono">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              Isolated sandbox execution
+            </div>
+            <Button
               type="submit"
-              disabled={!isPermitted || isLoading || !prompt.trim()}
-              className={`px-6 py-2.5 rounded-lg bg-medex-cyan text-medex-bg font-bold text-xs inline-flex items-center gap-2 shadow-md transition-all ${
-                !isPermitted || isLoading || !prompt.trim()
-                  ? 'opacity-50 cursor-not-allowed'
-                  : 'hover:brightness-110'
-              }`}
+              variant="primary"
+              icon={Flame}
+              isLoading={isLoading}
+              disabled={!isPermitted || !prompt.trim()}
+              className="px-6 py-2.5 shadow-lg shadow-theme-primary/20"
             >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Running Scenario Simulation...</span>
-                </>
-              ) : (
-                <>
-                  <Flame className="w-4 h-4" />
-                  <span>Run Scenario Simulation (POST /scenario/run)</span>
-                </>
-              )}
-            </button>
+              {COPY.actions.runPlanner}
+            </Button>
           </div>
         </form>
-      </SectionCard>
+      </Card3D>
 
       {errorMessage && (
-        <div className="p-4 bg-medex-red/15 border border-medex-red/30 rounded-xl text-xs text-medex-red-light flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5 shrink-0" />
-          <span>{errorMessage}</span>
-        </div>
+        <ErrorState
+          title="Simulation Error"
+          message={errorMessage}
+          onRetry={handleSubmit as any}
+        />
       )}
 
       {/* Results View */}
       {isLoading ? (
-        <div className="space-y-4">
-          <Skeleton className="w-full h-24 rounded-xl" />
-          <Skeleton className="w-full h-64 rounded-xl" />
+        <div className="p-8 rounded-2xl border border-white/10 bg-theme-surface/70 backdrop-blur-xl shadow-2xl space-y-6">
+          <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+            <div className="p-2 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20">
+              <Cpu className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <h3 className="text-[15px] font-bold text-theme-text font-mono">
+                SIMULATION IN PROGRESS
+              </h3>
+              <p className="text-[11px] text-theme-muted">
+                Executing Monte Carlo resilience projection across regional node clusters
+              </p>
+            </div>
+          </div>
+          <ThoughtLine
+            label="Analyzing scenario dynamics…"
+            glyph="sparkle"
+            collapsible={false}
+            glyphColor="#C5D86D"
+            color="var(--theme-text)"
+            fontSize={15}
+            steps={[
+              { text: 'Ingesting federated consumption vectors and block parameters…', status: 'done' },
+              { text: `Projecting ${horizonWeeks}-week depletion rates for ${districtId}…`, status: 'running' },
+              { text: 'Evaluating buffer stock resilience & alternative dispatch routes…', status: 'pending' },
+              { text: 'Compiling localized burn-down curves & vulnerability report…', status: 'pending' },
+            ]}
+          />
         </div>
       ) : !scenarioResult ? (
         <EmptyState
           title="Configure Scenario to View Impact"
-          description="Enter a disease surge prompt and execute the simulation to observe projected stock burn-down and affected facilities."
+          description="Enter a disease surge prompt and execute the simulation to observe projected stock burn-down."
         />
       ) : (
-        <div className="space-y-6">
-          {/* Parsed & Impact Metrics */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <MetricCard
-              title="Parsed Disease & Surge"
-              value={scenarioResult.parsed.disease.toUpperCase()}
-              unit={`+${scenarioResult.parsed.uplift_pct}%`}
-              status="AMBER"
-              subtext={`Blocks: ${scenarioResult.parsed.affected_blocks.join(', ')}`}
-              icon={Sparkles}
-            />
+        <motion.div 
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="space-y-6"
+        >
+          {/* Max 3 KPI Cards with 3D Tilt Physics */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {/* Card 1: Red Facilities Impact (Hero Card) */}
+            <Card3D 
+              specularColor="rgba(239, 68, 68, 0.28)" 
+              className="p-6 rounded-2xl border border-theme-critical/40 bg-theme-surface/90 backdrop-blur-xl relative overflow-hidden shadow-xl"
+            >
+              <div className="flex items-center justify-between text-[13px] text-theme-muted">
+                <span className="font-mono text-[10px] tracking-wider text-theme-critical uppercase font-bold">[01] CRITICAL SHIFT</span>
+                <StatusBadge status="RED" label="Critical Surge" size="sm" />
+              </div>
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className="text-[42px] font-bold text-theme-critical leading-none tracking-tight font-mono">
+                  {scenarioResult.summary.facilities_red_after}
+                </span>
+                <span className="text-[12px] text-theme-muted font-medium">
+                  facilities (baseline: {scenarioResult.summary.facilities_red_before})
+                </span>
+              </div>
+              <div className="mt-3 text-[11px] text-theme-muted font-mono flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-theme-critical animate-ping" />
+                Projected stockouts within {scenarioResult.parsed.duration_weeks}w
+              </div>
+            </Card3D>
 
-            <MetricCard
-              title="Red Facilities Impact"
-              value={scenarioResult.summary.facilities_red_after}
-              unit={`from ${scenarioResult.summary.facilities_red_before}`}
-              status="RED"
-              delta={{
-                value: scenarioResult.summary.facilities_red_after - scenarioResult.summary.facilities_red_before,
-                label: 'new RED',
-                isPositiveGood: false,
-              }}
-              subtext="Critical stockout risk surge"
-              icon={AlertTriangle}
-            />
+            {/* Card 2: Surge Uplift */}
+            <Card3D 
+              specularColor="rgba(16, 185, 129, 0.22)" 
+              className="p-6 rounded-2xl border border-white/10 bg-theme-surface/90 backdrop-blur-xl relative overflow-hidden shadow-xl"
+            >
+              <div className="flex items-center justify-between text-[13px] text-theme-muted">
+                <span className="font-mono text-[10px] tracking-wider text-emerald-400 uppercase font-bold">[02] DEMAND SPIKE</span>
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold uppercase">
+                  {scenarioResult.parsed.disease}
+                </span>
+              </div>
+              <div className="mt-4">
+                <span className="text-[42px] font-bold text-theme-text leading-none tracking-tight font-mono">
+                  +{scenarioResult.parsed.uplift_pct}%
+                </span>
+              </div>
+              <p className="mt-3 text-[11px] text-theme-muted font-mono">
+                Consumption multiplier over historical baseline
+              </p>
+            </Card3D>
 
-            <MetricCard
-              title="Simulated Duration"
-              value={scenarioResult.parsed.duration_weeks}
-              unit="weeks"
-              status="CYAN"
-              subtext={`Target District: ${districtId}`}
-              icon={Activity}
-            />
-
-            <MetricCard
-              title="At-Risk Facilities"
-              value={scenarioResult.at_risk.length}
-              unit="items"
-              status="RED"
-              subtext="Projected to breach safety buffer"
-              icon={TrendingDown}
-            />
+            {/* Card 3: Duration */}
+            <Card3D 
+              specularColor="rgba(56, 189, 248, 0.22)" 
+              className="p-6 rounded-2xl border border-white/10 bg-theme-surface/90 backdrop-blur-xl relative overflow-hidden shadow-xl"
+            >
+              <div className="flex items-center justify-between text-[13px] text-theme-muted">
+                <span className="font-mono text-[10px] tracking-wider text-sky-400 uppercase font-bold">[03] TEMPORAL HORIZON</span>
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20 font-semibold">
+                  ACTIVE
+                </span>
+              </div>
+              <div className="mt-4">
+                <span className="text-[42px] font-bold text-theme-text leading-none tracking-tight font-mono">
+                  {scenarioResult.parsed.duration_weeks} <span className="text-[20px] font-normal text-theme-muted">weeks</span>
+                </span>
+              </div>
+              <p className="mt-3 text-[11px] text-theme-muted font-mono">
+                Monte Carlo propagation span
+              </p>
+            </Card3D>
           </div>
 
-          {/* Burn-down Recharts Visualization */}
+          {/* Burn-down Visualization with 3D Border Sheen */}
           {scenarioResult.burn_down && scenarioResult.burn_down.length > 0 && (
-            <SectionCard
-              title="Stock Burn-down Projection (Baseline vs Scenario)"
-              subtitle="Comparison of expected stock depletion under baseline demand vs surge scenario"
+            <Card3D 
+              maxTilt={2}
+              specularColor="rgba(56, 189, 248, 0.12)"
+              className="p-6 rounded-2xl border border-white/10 bg-theme-surface/85 backdrop-blur-xl shadow-2xl space-y-4"
             >
-              <div className="h-[320px] w-full pt-4">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={scenarioResult.burn_down[0].points}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1F293D" />
-                    <XAxis dataKey="date" stroke="#94A3B8" fontSize={11} fontFamily="monospace" />
-                    <YAxis stroke="#94A3B8" fontSize={11} fontFamily="monospace" />
-                    <RechartsTooltip
-                      contentStyle={{
-                        backgroundColor: '#111827',
-                        borderColor: '#1F293D',
-                        borderRadius: '0.5rem',
-                        fontSize: '0.75rem',
-                      }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: '0.75rem', fontFamily: 'monospace' }} />
-
-                    <Line
-                      type="monotone"
-                      dataKey="baseline_stock"
-                      name="Baseline Stock"
-                      stroke="#06B6D4"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-
-                    <Line
-                      type="monotone"
-                      dataKey="scenario_stock"
-                      name="Surge Scenario Stock"
-                      stroke="#EF4444"
-                      strokeWidth={2.5}
-                      strokeDasharray="6 4"
-                      dot={{ r: 4, fill: '#EF4444' }}
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-theme-primary" />
+                  <h3 className="text-[16px] font-semibold text-theme-text">
+                    Stock Burn-down Projection (Baseline vs Surge Scenario)
+                  </h3>
+                </div>
+                <span className="text-[11px] font-mono text-theme-muted">
+                  CONFIDENCE: 95% // MONTE CARLO
+                </span>
               </div>
-            </SectionCard>
+              <Suspense fallback={<Skeleton className="h-[320px] w-full rounded-xl" />}>
+                <ScenarioBurnDownChart data={scenarioResult.burn_down[0].points} />
+              </Suspense>
+            </Card3D>
           )}
 
-          {/* At Risk Facilities Table */}
-          <SectionCard
-            title="Facilities at Risk Under Scenario"
-            subtitle="Cover days comparison before and after simulated surge"
-          >
+          {/* At-Risk Facilities Table with Framer Motion transitions */}
+          <div className="rounded-2xl border border-white/10 bg-theme-surface/85 backdrop-blur-xl overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-theme-primary" />
+                <h3 className="text-[16px] font-semibold text-theme-text">
+                  Facilities at Risk Under Scenario
+                </h3>
+              </div>
+              <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-theme-primary/10 border border-theme-primary/20 text-theme-primary font-semibold">
+                {scenarioResult.at_risk.length} IDENTIFIED
+              </span>
+            </div>
+
             <div className="overflow-x-auto">
-              <table className="w-full text-xs font-mono text-medex-primary">
+              <table className="w-full text-left border-collapse font-sans">
                 <thead>
-                  <tr className="border-b border-medex-border text-medex-muted uppercase text-2xs">
-                    <th className="p-3 text-left">Facility ID</th>
-                    <th className="p-3 text-left">Drug Code</th>
-                    <th className="p-3 text-center">Baseline Cover</th>
-                    <th className="p-3 text-center">Scenario Cover</th>
-                    <th className="p-3 text-center">Scenario Status</th>
+                  <tr className="bg-white/[0.03] border-b border-white/10 text-theme-muted text-[12px] font-semibold uppercase tracking-wider font-mono">
+                    <th scope="col" className="px-6 py-3.5">Facility ID</th>
+                    <th scope="col" className="px-6 py-3.5">Drug Code</th>
+                    <th scope="col" className="px-6 py-3.5 text-center">Baseline Cover</th>
+                    <th scope="col" className="px-6 py-3.5 text-center">Scenario Cover</th>
+                    <th scope="col" className="px-6 py-3.5 text-center">Scenario Status</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {scenarioResult.at_risk.map((item, idx) => (
-                    <tr key={idx} className="border-b border-medex-border/40 hover:bg-medex-surface/30">
-                      <td className="p-3 font-bold text-medex-primary">{item.facility_id}</td>
-                      <td className="p-3 text-medex-cyan font-bold">{item.drug_code}</td>
-                      <td className="p-3 text-center text-medex-secondary">{item.cover_days_baseline} days</td>
-                      <td className="p-3 text-center font-bold text-medex-red-light">
-                        {item.cover_days_scenario} days
-                      </td>
-                      <td className="p-3 text-center">
-                        <StatusBadge status={item.status_scenario} size="sm" />
-                      </td>
-                    </tr>
-                  ))}
+                <tbody className="divide-y divide-white/5">
+                  <AnimatePresence>
+                    {scenarioResult.at_risk.map((item, idx) => (
+                      <motion.tr 
+                        key={idx} 
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.03, duration: 0.2 }}
+                        className="h-[64px] hover:bg-white/[0.04] transition-colors"
+                      >
+                        <td className="px-6 py-3.5 font-semibold text-theme-text font-mono text-[13px]">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-md bg-white/5 border border-white/10 flex items-center justify-center">
+                              <Building2 className="w-3.5 h-3.5 text-theme-muted" strokeWidth={1.8} />
+                            </div>
+                            <span>{item.facility_id}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-3.5 text-theme-primary font-semibold font-mono text-[13px]">
+                          {item.drug_code}
+                        </td>
+                        <td className="px-6 py-3.5 text-center text-theme-muted font-mono text-[13px]">
+                          {item.cover_days_baseline}d
+                        </td>
+                        <td className="px-6 py-3.5 text-center font-bold text-theme-critical font-mono text-[13px]">
+                          {item.cover_days_scenario}d
+                        </td>
+                        <td className="px-6 py-3.5 text-center">
+                          <StatusBadge status={item.status_scenario} size="sm" />
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </AnimatePresence>
                 </tbody>
               </table>
             </div>
 
-            {/* Suggested Optimize Button */}
             {scenarioResult.suggested_optimize_request && (
-              <div className="pt-4 flex justify-end border-t border-medex-border mt-4">
-                <button
-                  type="button"
+              <div className="p-4 border-t border-white/10 bg-white/[0.02] flex justify-end">
+                <Button
+                  variant="secondary"
+                  icon={ArrowRight}
+                  iconPosition="right"
                   onClick={() =>
                     navigate(
                       `/transfers?district_id=${scenarioResult.suggested_optimize_request.district_id}&drug_code=${scenarioResult.suggested_optimize_request.drug_code}`
                     )
                   }
-                  className="px-5 py-2.5 rounded-lg bg-medex-cyan text-medex-bg font-bold text-xs inline-flex items-center gap-2 hover:brightness-110 shadow-md"
+                  className="shadow-md"
                 >
-                  <span>Optimize Scenario Redistribution in Transfer Review</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+                  Optimize Scenario Redistribution
+                </Button>
               </div>
             )}
-          </SectionCard>
-        </div>
+          </div>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 };
+

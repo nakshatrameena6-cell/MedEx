@@ -1,38 +1,30 @@
-import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useEffect, useState, useRef, Suspense } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/common/PageHeader';
-import { SectionCard } from '../components/common/SectionCard';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Select } from '../components/common/Select';
 import { Tabs } from '../components/common/Tabs';
-import { MetricCard } from '../components/common/MetricCard';
+import { Button } from '../components/common/Button';
 import { Skeleton } from '../components/common/Skeleton';
 import { ErrorState } from '../components/common/ErrorState';
 import { useAuthRole } from '../context/AuthRoleContext';
 import { ForecastResponse } from '../types/api';
 import { getForecast } from '../services/forecastService';
+import { COPY } from '../constants/copy';
 import {
-  ResponsiveContainer,
-  ComposedChart,
-  Line,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  CartesianGrid,
-} from 'recharts';
-import {
-  Cpu,
   RefreshCw,
+  Sliders,
   ArrowUpRight,
   ArrowDownRight,
-  Clock,
-  Layers,
-  Database,
+  X,
+  RotateCcw,
 } from 'lucide-react';
+import { Card3D } from '../components/3d/Card3D';
+
+const ForecastChart = React.lazy(() => import('../components/charts/ForecastChart'));
 
 export const ForecastView: React.FC = () => {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { role, district, user, isMockMode } = useAuthRole();
 
@@ -44,6 +36,8 @@ export const ForecastView: React.FC = () => {
   const [facilityId, setFacilityId] = useState<string>(initialFacility);
   const [drugCode, setDrugCode] = useState<string>(initialDrug);
   const [horizonWeeks, setHorizonWeeks] = useState<number>(initialHorizon);
+  const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   // API State
   const [forecastData, setForecastData] = useState<ForecastResponse | null>(null);
@@ -77,7 +71,7 @@ export const ForecastView: React.FC = () => {
       setForecastData(data);
     } catch (err: any) {
       setIsError(true);
-      setErrorMessage(err.message || 'Failed to fetch demand forecast from GET /forecast');
+      setErrorMessage(err.message || 'Failed to fetch demand forecast.');
     } finally {
       setIsLoading(false);
     }
@@ -87,7 +81,6 @@ export const ForecastView: React.FC = () => {
     loadForecast();
   }, [facilityId, drugCode, horizonWeeks, role, district, user, isMockMode]);
 
-  // Update query params in URL
   const updateSelection = (newFac: string, newDrug: string, newHorizon: number) => {
     setFacilityId(newFac);
     setDrugCode(newDrug);
@@ -99,7 +92,7 @@ export const ForecastView: React.FC = () => {
     });
   };
 
-  // Format chart dataset: combines 28-day history actuals + P10/P50/P90 points
+  // Format chart dataset
   const chartData = React.useMemo(() => {
     if (!forecastData) return [];
 
@@ -123,7 +116,6 @@ export const ForecastView: React.FC = () => {
       band: [p.p10, p.p90],
     }));
 
-    // Connect the last historical point to the first forecast point for seamless line rendering
     if (historyItems.length > 0 && forecastItems.length > 0) {
       const lastHistory = historyItems[historyItems.length - 1];
       const firstForecast = forecastItems[0];
@@ -133,332 +125,277 @@ export const ForecastView: React.FC = () => {
     return [...historyItems, ...forecastItems];
   }, [forecastData]);
 
-  // Custom Chart Tooltip
-  const CustomChartTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const isForecast = payload.some((p: any) => p.dataKey === 'p50' || p.dataKey === 'p10');
-      return (
-        <div className="medex-panel p-3 bg-medex-sidebar/95 border-medex-cyan/40 shadow-2xl text-2xs font-mono space-y-1.5 min-w-[180px]">
-          <div className="flex items-center justify-between font-bold border-b border-medex-border pb-1">
-            <span className="text-medex-cyan">{label}</span>
-            <span className="text-medex-muted">{isForecast ? 'PROJECTION' : 'ACTUAL'}</span>
-          </div>
+  const p50Latest = forecastData?.points && forecastData.points.length > 0
+    ? forecastData.points[forecastData.points.length - 1].p50
+    : 120;
 
-          {payload.map((entry: any, index: number) => {
-            if (entry.value === undefined || entry.value === null) return null;
-
-            let color = entry.color;
-            let name = entry.name;
-            let val = entry.value;
-
-            if (entry.dataKey === 'actual') {
-              name = 'Actual Issue Qty';
-              color = '#3B82F6';
-            } else if (entry.dataKey === 'p50') {
-              name = 'P50 (Median Forecast)';
-              color = '#06B6D4';
-            } else if (entry.dataKey === 'p90') {
-              name = 'P90 (Upper Bound)';
-              color = '#EF4444';
-            } else if (entry.dataKey === 'p10') {
-              name = 'P10 (Lower Bound)';
-              color = '#10B981';
-            } else if (entry.dataKey === 'band') {
-              return null; // Don't show raw array in tooltip list
-            }
-
-            return (
-              <div key={index} className="flex items-center justify-between gap-3">
-                <span className="flex items-center gap-1.5" style={{ color }}>
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-                  {name}:
-                </span>
-                <span className="font-bold text-medex-primary">{val} {forecastData?.unit}</span>
-              </div>
-            );
-          })}
-        </div>
-      );
-    }
-    return null;
-  };
+  let activeFilterCount = 0;
+  if (facilityId !== 'TN-PHC-014') activeFilterCount += 1;
+  if (drugCode !== 'ORS') activeFilterCount += 1;
+  if (horizonWeeks !== 4) activeFilterCount += 1;
 
   return (
-    <div className="space-y-6 font-sans">
-      <PageHeader
-        title="Demand Forecasting"
-        subtitle="Daily medicine demand projections from the federated intelligence model with P10, P50, and P90 uncertainty bands."
-        badge={<StatusBadge status="CYAN" label="GET /forecast" />}
-        breadcrumbs={[{ label: 'MEDEx' }, { label: 'Forecast View' }]}
-        actionSlot={
-          <button
-            type="button"
-            onClick={loadForecast}
-            className="px-3 py-1.5 rounded bg-medex-surface border border-medex-border text-xs font-semibold text-medex-secondary hover:text-medex-primary hover:border-medex-border-active transition-colors inline-flex items-center gap-1.5"
+    <div className="space-y-6 font-sans text-theme-text">
+      {/* Page Header */}
+      <div className="relative">
+        <PageHeader
+          title={COPY.headers.forecastTitle}
+          subtitle={`Projected demand for ${drugCode} at ${facilityId} across ${horizonWeeks} weeks`}
+          activeFilterCount={activeFilterCount}
+          onToggleFilters={() => setIsFilterPopoverOpen(!isFilterPopoverOpen)}
+          actionSlot={
+            <div className="flex items-center gap-3">
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={RefreshCw}
+                onClick={loadForecast}
+                isLoading={isLoading}
+              >
+                {COPY.actions.refresh}
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                icon={Sliders}
+                onClick={() => navigate(`/scenario?district_id=${district}`)}
+              >
+                {COPY.nav.scenarioSimulator}
+              </Button>
+            </div>
+          }
+        />
+
+        {/* Filters Popover */}
+        {isFilterPopoverOpen && (
+          <div
+            ref={popoverRef}
+            className="absolute right-0 top-12 z-30 w-80 bg-theme-surface border border-theme-border rounded-xl shadow-xl p-4 space-y-4 font-sans animate-fade-in text-theme-text"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
-          </button>
-        }
-      />
-
-      {/* Selector Controls Bar */}
-      <div className="medex-panel p-4 bg-medex-surface/60 border-medex-border flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-4">
-          <Select
-            label="Target Facility"
-            value={facilityId}
-            onChange={(val) => updateSelection(val, drugCode, horizonWeeks)}
-            options={[
-              { value: 'TN-PHC-014', label: 'PHC Sample-014 (Block-A)' },
-              { value: 'TN-PHC-021', label: 'PHC Sample-021 (Block-B)' },
-              { value: 'TN-CHC-003', label: 'CHC Sample-003 (Block-A)' },
-              { value: 'TN-PHC-042', label: 'PHC Sample-042 (Block-B)' },
-            ]}
-          />
-          <Select
-            label="Medicine Code"
-            value={drugCode}
-            onChange={(val) => updateSelection(facilityId, val, horizonWeeks)}
-            options={[
-              { value: 'ORS', label: 'ORS (Oral Rehydration Salts)' },
-              { value: 'PARA500', label: 'PARA500 (Paracetamol 500mg)' },
-              { value: 'AMOX500', label: 'AMOX500 (Amoxicillin 500mg)' },
-            ]}
-          />
-        </div>
-
-        {/* Horizon Control (2, 4, 6, 8 weeks - default 4) */}
-        <div className="flex flex-col gap-1">
-          <label className="text-2xs font-medium uppercase tracking-wider text-medex-muted">
-            Forecast Horizon (Weeks)
-          </label>
-          <Tabs
-            tabs={[
-              { id: '2', label: '2 Weeks' },
-              { id: '4', label: '4 Weeks' },
-              { id: '6', label: '6 Weeks' },
-              { id: '8', label: '8 Weeks' },
-            ]}
-            activeTab={String(horizonWeeks)}
-            onChange={(val) => updateSelection(facilityId, drugCode, parseInt(val, 10))}
-          />
-        </div>
-      </div>
-
-      {/* Metadata KPI Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard
-          title="Facility & Medicine"
-          value={forecastData?.drug_code || drugCode}
-          unit={forecastData?.unit || 'sachets'}
-          status="CYAN"
-          subtext={`Target: ${forecastData?.facility_id || facilityId}`}
-          icon={Database}
-        />
-        <MetricCard
-          title="Model Version"
-          value={forecastData?.model_version || 'fed-v7'}
-          status="GREEN"
-          subtext="Validated in Vertex AI Registry"
-          icon={Cpu}
-        />
-        <MetricCard
-          title="Model Scope"
-          value={forecastData?.model_scope || 'federated'}
-          status="CYAN"
-          subtext="Personalized per state node"
-          icon={Layers}
-        />
-        <MetricCard
-          title="Generated Timestamp"
-          value={
-            forecastData?.generated_at
-              ? new Date(forecastData.generated_at).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })
-              : '06:00 UTC'
-          }
-          status="NEUTRAL"
-          subtext={`Horizon: ${horizonWeeks} weeks projection`}
-          icon={Clock}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main P0 Forecast Chart */}
-        <SectionCard
-          title="Historical Issues vs Demand Forecast Projections"
-          subtitle="Past 28 days actual issue quantity + P10, P50 (median), P90 forecast corridor"
-          actionSlot={
-            <div className="flex items-center gap-2 text-2xs font-mono">
-              <span className="h-2 w-2 rounded-full bg-blue-500" />
-              <span className="text-medex-secondary">Actuals</span>
-              <span className="h-2 w-2 rounded-full bg-cyan-400 ml-2" />
-              <span className="text-medex-secondary">P50 Median</span>
+            <div className="flex items-center justify-between border-b border-theme-border pb-2">
+              <h3 className="text-[14px] font-semibold text-theme-text">Forecast Target & Horizon</h3>
+              <button
+                type="button"
+                onClick={() => setIsFilterPopoverOpen(false)}
+                className="p-1 rounded text-theme-muted hover:text-theme-text"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
-          }
-          className="lg:col-span-2 min-h-[420px]"
-        >
-          {isLoading ? (
-            <div className="p-4 space-y-4">
-              <Skeleton className="h-[320px] w-full" />
-            </div>
-          ) : isError ? (
-            <ErrorState
-              title="Forecast Load Error"
-              message={errorMessage}
-              onRetry={loadForecast}
-            />
-          ) : (
-            <div className="w-full h-[340px] pt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis
-                    dataKey="date"
-                    stroke="#64748B"
-                    tick={{ fontSize: 10, fill: '#94A3B8' }}
-                    tickFormatter={(val) => val.split('-').slice(1).join('/')}
-                  />
-                  <YAxis
-                    stroke="#64748B"
-                    tick={{ fontSize: 10, fill: '#94A3B8' }}
-                    unit={` ${forecastData?.unit || ''}`}
-                  />
-                  <Tooltip content={<CustomChartTooltip />} />
-                  <Legend
-                    wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace', paddingTop: '10px' }}
-                  />
 
-                  {/* P10-P90 Uncertainty Corridor Shaded Band */}
-                  <Area
-                    type="monotone"
-                    dataKey="band"
-                    name="P10-P90 Uncertainty Band"
-                    stroke="none"
-                    fill="rgba(6, 182, 212, 0.15)"
-                    isAnimationActive={false}
-                  />
-
-                  {/* Historical Actuals Solid Blue Line */}
-                  <Line
-                    type="monotone"
-                    dataKey="actual"
-                    name="Historical Actuals (Past 28 Days)"
-                    stroke="#3B82F6"
-                    strokeWidth={2.5}
-                    dot={{ r: 2, fill: '#3B82F6' }}
-                    connectNulls
-                  />
-
-                  {/* P50 Median Forecast Line */}
-                  <Line
-                    type="monotone"
-                    dataKey="p50"
-                    name="P50 Forecast Projection"
-                    stroke="#06B6D4"
-                    strokeWidth={2.5}
-                    strokeDasharray="4 4"
-                    dot={{ r: 3, fill: '#06B6D4' }}
-                    connectNulls
-                  />
-
-                  {/* P90 Upper Bound Line */}
-                  <Line
-                    type="monotone"
-                    dataKey="p90"
-                    name="P90 Upper Bound"
-                    stroke="#EF4444"
-                    strokeWidth={1.5}
-                    strokeDasharray="2 2"
-                    dot={false}
-                    connectNulls
-                  />
-
-                  {/* P10 Lower Bound Line */}
-                  <Line
-                    type="monotone"
-                    dataKey="p10"
-                    name="P10 Lower Bound"
-                    stroke="#10B981"
-                    strokeWidth={1.5}
-                    strokeDasharray="2 2"
-                    dot={false}
-                    connectNulls
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </SectionCard>
-
-        {/* Forecast Drivers Breakdown */}
-        <SectionCard
-          title="Forecast Factor Drivers"
-          subtitle="Backend driver feature contribution percentages"
-          actionSlot={
-            <span className="text-2xs font-mono text-medex-cyan font-semibold">
-              drivers[]
-            </span>
-          }
-        >
-          {isLoading ? (
             <div className="space-y-3">
-              <Skeleton className="h-12" />
-              <Skeleton className="h-12" />
-              <Skeleton className="h-12" />
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {(forecastData?.drivers || []).map((driver, idx) => {
-                const isUp = driver.direction === 'up';
-                const Icon = isUp ? ArrowUpRight : ArrowDownRight;
+              <Select
+                label="Target Facility"
+                value={facilityId}
+                onChange={(val) => updateSelection(val, drugCode, horizonWeeks)}
+                options={[
+                  { value: 'TN-PHC-014', label: 'PHC Sample-014 (Block-A)' },
+                  { value: 'TN-PHC-021', label: 'PHC Sample-021 (Block-B)' },
+                  { value: 'TN-CHC-003', label: 'CHC Sample-003 (Block-A)' },
+                  { value: 'TN-PHC-042', label: 'PHC Sample-042 (Block-B)' },
+                ]}
+              />
+              <Select
+                label="Medicine Code"
+                value={drugCode}
+                onChange={(val) => updateSelection(facilityId, val, horizonWeeks)}
+                options={[
+                  { value: 'ORS', label: 'ORS (Oral Rehydration Salts)' },
+                  { value: 'PARA500', label: 'PARA500 (Paracetamol 500mg)' },
+                  { value: 'AMOX500', label: 'AMOX500 (Amoxicillin 500mg)' },
+                ]}
+              />
 
-                return (
-                  <div
-                    key={idx}
-                    className="medex-panel p-3 bg-medex-surface/60 border-medex-border flex items-center justify-between gap-3 font-mono text-2xs"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`p-1.5 rounded ${
-                          isUp
-                            ? 'bg-medex-cyan/15 text-medex-cyan'
-                            : 'bg-medex-amber/15 text-medex-amber'
-                        }`}
-                      >
-                        <Icon className="w-3.5 h-3.5" />
-                      </div>
-                      <div>
-                        <span className="font-semibold text-medex-primary block">
-                          {driver.name}
-                        </span>
-                        <span className="text-medex-muted">Direction: {driver.direction}</span>
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <span className="text-sm font-bold text-medex-cyan block">
-                        +{driver.contribution_pct}%
-                      </span>
-                      <span className="text-medex-muted">Contribution</span>
-                    </div>
-                  </div>
-                );
-              })}
-
-              <div className="p-3 bg-medex-elevated rounded border border-medex-border text-2xs text-medex-secondary leading-normal">
-                <span className="font-semibold text-medex-cyan font-mono block mb-1">
-                  MODEL INSIGHT:
-                </span>
-                Demand forecast considers rainfall 7-day totals, dengue signal vectors, and historical seasonality. Gemini explains supplied facts without inventing stock numbers.
+              <div className="space-y-1">
+                <label className="text-[12px] font-semibold text-theme-muted uppercase tracking-[0.05em] block">
+                  Forecast Horizon
+                </label>
+                <Tabs
+                  tabs={[
+                    { id: '2', label: '2 Weeks' },
+                    { id: '4', label: '4 Weeks' },
+                    { id: '6', label: '6 Weeks' },
+                    { id: '8', label: '8 Weeks' },
+                  ]}
+                  activeTab={String(horizonWeeks)}
+                  onChange={(val) => updateSelection(facilityId, drugCode, parseInt(val, 10))}
+                />
               </div>
             </div>
-          )}
-        </SectionCard>
+
+            <div className="pt-2 border-t border-theme-border flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => updateSelection('TN-PHC-014', 'ORS', 4)}
+                className="inline-flex items-center gap-1.5 text-[12px] font-medium text-theme-muted hover:text-theme-primary transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset</span>
+              </button>
+
+              <Button variant="primary" size="sm" onClick={() => setIsFilterPopoverOpen(false)}>
+                Apply
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Max 3 KPI Cards */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Skeleton className="h-28 rounded-lg" />
+          <Skeleton className="h-28 rounded-lg" />
+          <Skeleton className="h-28 rounded-lg" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {/* Card 1: Hero P50 Projection */}
+          <Card3D glowColor="rgba(45, 212, 191, 0.28)">
+            <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[10px] text-cyan-400 font-bold tracking-wider">[01]</span>
+                  <span className="text-[13px] font-medium text-theme-muted">P50 Median Projection</span>
+                </div>
+                <StatusBadge status="CYAN" label="Active" size="sm" />
+              </div>
+              <div className="flex items-baseline gap-2 pt-1">
+                <span className="text-[38px] font-bold text-cyan-400 leading-none tracking-tight font-mono">
+                  {p50Latest}
+                </span>
+                <span className="text-[13px] font-mono text-theme-muted">
+                  {forecastData?.unit || 'sachets'}
+                </span>
+              </div>
+              <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-theme-muted">
+                <span>Model median trajectory</span>
+                <span className="font-mono text-[9px] text-cyan-400 font-bold uppercase tracking-wider">
+                  CONFIDENCE: 92%
+                </span>
+              </div>
+            </div>
+          </Card3D>
+
+          {/* Card 2: Model Version */}
+          <Card3D glowColor="rgba(16, 185, 129, 0.25)">
+            <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[10px] text-emerald-400 font-bold tracking-wider">[02]</span>
+                  <span className="text-[13px] font-medium text-theme-muted">Active Model Version</span>
+                </div>
+                <StatusBadge status="GREEN" label="Validated" size="sm" />
+              </div>
+              <div className="pt-1">
+                <span className="text-[38px] font-bold text-theme-text leading-none tracking-tight font-mono">
+                  {forecastData?.model_version || 'fed-v7'}
+                </span>
+              </div>
+              <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-theme-muted">
+                <span>Scope: {forecastData?.model_scope || 'federated'}</span>
+                <span className="font-mono text-[9px] text-emerald-400 font-bold uppercase tracking-wider">
+                  VERIFIED
+                </span>
+              </div>
+            </div>
+          </Card3D>
+
+          {/* Card 3: Horizon */}
+          <Card3D glowColor="rgba(56, 189, 248, 0.25)">
+            <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[10px] text-sky-400 font-bold tracking-wider">[03]</span>
+                  <span className="text-[13px] font-medium text-theme-muted">Forecast Horizon</span>
+                </div>
+                <span className="font-mono text-[10px] text-slate-400 bg-white/[0.05] px-2 py-0.5 rounded border border-white/[0.08]">
+                  LOOKAHEAD
+                </span>
+              </div>
+              <div className="pt-1">
+                <span className="text-[38px] font-bold text-theme-text leading-none tracking-tight font-mono">
+                  {horizonWeeks} wks
+                </span>
+              </div>
+              <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-theme-muted">
+                <span>Multi-horizon uncertainty corridor</span>
+                <span className="font-mono text-[9px] text-sky-400 font-bold uppercase tracking-wider">
+                  P10-P90
+                </span>
+              </div>
+            </div>
+          </Card3D>
+        </div>
+      )}
+
+      {/* Main Visual: P10/P50/P90 Composed Chart */}
+      <div className="rounded-lg border border-theme-border bg-theme-surface p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-theme-border pb-3">
+          <h2 className="text-[17px] font-semibold text-theme-text">
+            Demand Forecast & Uncertainty Band
+          </h2>
+          <div className="flex items-center gap-4 text-[12px] font-mono">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />
+              <span>Historical Actuals</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-teal-400" />
+              <span>P50 Projection</span>
+            </span>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <Skeleton className="h-[340px] w-full rounded-lg" />
+        ) : isError ? (
+          <ErrorState
+            title="Couldn't load forecast data"
+            message={errorMessage}
+            onRetry={loadForecast}
+          />
+        ) : (
+          <Suspense fallback={<Skeleton className="h-[340px] w-full rounded-lg" />}>
+            <ForecastChart data={chartData} unit={forecastData?.unit || 'sachets'} />
+          </Suspense>
+        )}
+      </div>
+
+      {/* Factor Drivers Section */}
+      {forecastData?.drivers && forecastData.drivers.length > 0 && (
+        <div className="rounded-lg border border-theme-border bg-theme-surface p-5 space-y-3">
+          <h3 className="text-[14px] font-semibold text-theme-text border-b border-theme-border pb-2">
+            Forecast Feature Drivers
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-[13px]">
+            {forecastData.drivers.map((driver, idx) => {
+              const isUp = driver.direction === 'up';
+              const Icon = isUp ? ArrowUpRight : ArrowDownRight;
+
+              return (
+                <div
+                  key={idx}
+                  className="p-3 rounded-lg border border-theme-border bg-theme-bg flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded bg-theme-primary-tint text-theme-primary">
+                      <Icon className="w-4 h-4" strokeWidth={1.8} />
+                    </div>
+                    <div>
+                      <span className="font-semibold text-theme-text block">{driver.name}</span>
+                      <span className="text-[11px] text-theme-muted font-mono">{driver.direction}</span>
+                    </div>
+                  </div>
+                  <span className="text-[14px] font-semibold text-theme-primary font-mono">
+                    +{driver.contribution_pct}%
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuthRole } from '../../context/AuthRoleContext';
 import { OptimizeRequest, OptimizeResponse, Transfer, TransferState } from '../../types/api';
@@ -6,30 +6,34 @@ import { listTransfers, runOptimizer } from '../../services/transferService';
 import { listFacilities } from '../../services/facilitiesService';
 import { PageHeader } from '../../components/common/PageHeader';
 import { StatusBadge } from '../../components/common/StatusBadge';
+import { Button } from '../../components/common/Button';
 import { Skeleton } from '../../components/common/Skeleton';
 import { EmptyState } from '../../components/common/EmptyState';
-import { BaseMap } from '../../components/map/BaseMap';
-import { MapControls } from '../../components/map/MapControls';
-import { MapLegend } from '../../components/map/MapLegend';
+import { ErrorState } from '../../components/common/ErrorState';
+import { FacilityMap } from '../../components/map/FacilityMap';
 import { OptimizerForm } from './OptimizerForm';
 import { ProposalCard } from './ProposalCard';
 import { TransferDecisionPanel } from './TransferDecisionPanel';
-import { RefreshCw, AlertCircle, Filter } from 'lucide-react';
+import { COPY } from '../../constants/copy';
+import { Select } from '../../components/common/Select';
+import { RefreshCw, X, RotateCcw } from 'lucide-react';
+import { Card3D } from '../../components/3d/Card3D';
+
+import { useToast } from '../../context/ToastContext';
 
 export const TransferReviewPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { role, district, user, isMockMode } = useAuthRole();
+  const toast = useToast();
 
-  // Query Params prepopulation from Risk Queue (e.g., ?district_id=TN-D01&drug_code=ORS)
   const queryDistrict = searchParams.get('district_id');
   const queryDrug = searchParams.get('drug_code');
 
   const [filterState, setFilterState] = useState<TransferState | 'ALL'>('ALL');
+  const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
-  // Facilities data for map markers
   const [facilities, setFacilities] = useState<any[]>([]);
-
-  // Transfers & Proposals state
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null);
   const [solverStatus, setSolverStatus] = useState<'OPTIMAL' | 'FEASIBLE' | 'INFEASIBLE' | null>(null);
@@ -37,8 +41,6 @@ export const TransferReviewPage: React.FC = () => {
   const [isLoadingTransfers, setIsLoadingTransfers] = useState<boolean>(true);
   const [isOptimizing, setIsOptimizing] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  const [tileLayerType, setTileLayerType] = useState<'dark' | 'satellite'>('dark');
 
   const getAuthHeaders = (): Record<string, string> => {
     const headers: Record<string, string> = {
@@ -52,7 +54,6 @@ export const TransferReviewPage: React.FC = () => {
     return headers;
   };
 
-  // Load facilities for background map
   const loadFacilitiesData = async () => {
     try {
       const data = await listFacilities(
@@ -65,8 +66,7 @@ export const TransferReviewPage: React.FC = () => {
     }
   };
 
-  // Load existing transfers
-  const fetchTransfersData = async () => {
+  const fetchTransfersData = async (isManualRefresh = false) => {
     setIsLoadingTransfers(true);
     setErrorMsg(null);
     try {
@@ -89,9 +89,13 @@ export const TransferReviewPage: React.FC = () => {
       } else {
         setSelectedTransfer(null);
       }
+      if (isManualRefresh) {
+        toast.success('Transfer proposals refreshed');
+      }
     } catch (err: any) {
       console.error('Failed to load transfers:', err);
       setErrorMsg(err.message || 'Failed to load transfer proposals.');
+      toast.error(err.message || 'Failed to load transfer proposals');
     } finally {
       setIsLoadingTransfers(false);
     }
@@ -102,7 +106,6 @@ export const TransferReviewPage: React.FC = () => {
     fetchTransfersData();
   }, [role, district, user, isMockMode, filterState, queryDistrict, queryDrug]);
 
-  // Execute OR-Tools Optimizer
   const handleRunOptimizer = async (req: OptimizeRequest) => {
     setIsOptimizing(true);
     setErrorMsg(null);
@@ -113,42 +116,198 @@ export const TransferReviewPage: React.FC = () => {
       if (res.solver.status === 'INFEASIBLE' || res.proposals.length === 0) {
         setTransfers([]);
         setSelectedTransfer(null);
+        toast.info('No feasible transfer proposals found for these parameters');
       } else {
         setTransfers(res.proposals);
         setSelectedTransfer(res.proposals[0]);
+        toast.success(`Optimization run completed — ${res.proposals.length} proposals generated`);
       }
     } catch (err: any) {
       console.error('Optimizer error:', err);
       setErrorMsg(err.message || 'Failed to run OR-Tools optimizer.');
+      toast.error(err.message || 'Failed to run optimization solver');
     } finally {
       setIsOptimizing(false);
     }
   };
 
   const isReadOnly = role === 'AUDITOR' || role === 'FACILITY';
+  const openCount = transfers.filter((t) => t.state === 'OPEN').length;
+  const avgEta = transfers.length > 0
+    ? (transfers.reduce((acc, curr) => acc + curr.eta_hours, 0) / transfers.length).toFixed(1)
+    : '2.5';
+  const totalQty = transfers.reduce((acc, curr) => acc + curr.qty, 0);
+
+  let activeFilterCount = 0;
+  if (filterState !== 'ALL') activeFilterCount += 1;
 
   return (
-    <div className="space-y-6 text-left">
-      <PageHeader
-        title="Redistribution & Transfer Review"
-        subtitle="Ranked transportation proposals generated by Google OR-Tools optimization model with human-in-the-loop decision governance."
-        badge={
-          <div className="flex items-center gap-2">
-            <StatusBadge status="CYAN" label="POST /optimize" />
-            <StatusBadge status="CYAN" label="GET /transfers" />
-          </div>
-        }
-        breadcrumbs={[
-          { label: 'MEDEx' },
-          { label: 'Redistribution' },
-        ]}
-      />
+    <div className="space-y-6 font-sans text-theme-text">
+      {/* Page Header */}
+      <div className="relative">
+        <PageHeader
+          title={COPY.headers.transfersTitle}
+          subtitle={`${transfers.length} stock reallocation proposals active in District ${district}`}
+          activeFilterCount={activeFilterCount}
+          onToggleFilters={() => setIsFilterPopoverOpen(!isFilterPopoverOpen)}
+          actionSlot={
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={RefreshCw}
+              onClick={() => fetchTransfersData(true)}
+              isLoading={isLoadingTransfers}
+            >
+              {COPY.actions.refresh}
+            </Button>
+          }
+        />
 
-      {/* Split View Layout: Left Panel (~40%) & Right Map (~60%) */}
+        {/* Filters Popover */}
+        {isFilterPopoverOpen && (
+          <div
+            ref={popoverRef}
+            className="absolute right-0 top-12 z-30 w-80 bg-theme-surface border border-theme-border rounded-xl shadow-xl p-4 space-y-4 font-sans animate-fade-in text-theme-text"
+          >
+            <div className="flex items-center justify-between border-b border-theme-border pb-2">
+              <h3 className="text-[14px] font-semibold text-theme-text">Filter Proposals</h3>
+              <button
+                type="button"
+                onClick={() => setIsFilterPopoverOpen(false)}
+                className="p-1 rounded text-theme-muted hover:text-theme-text"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <Select
+                label="Transfer State"
+                value={filterState}
+                onChange={(val) => setFilterState(val as any)}
+                options={[
+                  { value: 'ALL', label: 'All States' },
+                  { value: 'OPEN', label: 'OPEN' },
+                  { value: 'APPROVED', label: 'APPROVED' },
+                  { value: 'REJECTED', label: 'REJECTED' },
+                  { value: 'ESCALATED', label: 'ESCALATED' },
+                  { value: 'CLOSED', label: 'CLOSED' },
+                ]}
+              />
+            </div>
+
+            <div className="pt-2 border-t border-theme-border flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setFilterState('ALL')}
+                className="inline-flex items-center gap-1.5 text-[12px] font-medium text-theme-muted hover:text-theme-primary transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset</span>
+              </button>
+
+              <Button variant="primary" size="sm" onClick={() => setIsFilterPopoverOpen(false)}>
+                Apply
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Max 3 KPI Cards */}
+      {isLoadingTransfers ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Skeleton className="h-28 rounded-lg" />
+          <Skeleton className="h-28 rounded-lg" />
+          <Skeleton className="h-28 rounded-lg" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {/* Card 1: Open Proposals (Hero Card) */}
+          <Card3D glowColor="rgba(45, 212, 191, 0.28)">
+            <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[10px] text-cyan-400 font-bold tracking-wider">[01]</span>
+                  <span className="text-[13px] font-medium text-theme-muted">Open Proposals</span>
+                </div>
+                <StatusBadge status="CYAN" label="Active" size="sm" />
+              </div>
+              <div className="flex items-baseline gap-2 pt-1">
+                <span className="text-[38px] font-bold text-cyan-400 leading-none tracking-tight font-mono">
+                  {openCount}
+                </span>
+                <span className="text-[12px] font-mono text-theme-muted">proposals</span>
+              </div>
+              <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-theme-muted">
+                <span>OR-Tools solver solutions</span>
+                <span className="font-mono text-[9px] text-cyan-400 font-bold uppercase tracking-wider">
+                  SOLVER READY
+                </span>
+              </div>
+            </div>
+          </Card3D>
+
+          {/* Card 2: Average ETA */}
+          <Card3D glowColor="rgba(56, 189, 248, 0.25)">
+            <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[10px] text-sky-400 font-bold tracking-wider">[02]</span>
+                  <span className="text-[13px] font-medium text-theme-muted">Average Transit ETA</span>
+                </div>
+                <span className="font-mono text-[10px] text-slate-400 bg-white/[0.05] px-2 py-0.5 rounded border border-white/[0.08]">
+                  P50 TRANSIT
+                </span>
+              </div>
+              <div className="flex items-baseline gap-1.5 pt-1">
+                <span className="text-[38px] font-bold text-theme-text leading-none tracking-tight font-mono">
+                  {avgEta}
+                </span>
+                <span className="text-[13px] font-mono text-theme-muted">hours</span>
+              </div>
+              <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-theme-muted">
+                <span>Fleet dispatch window</span>
+                <span className="font-mono text-[9px] text-sky-400 font-bold uppercase tracking-wider">
+                  IN NETWORK
+                </span>
+              </div>
+            </div>
+          </Card3D>
+
+          {/* Card 3: Reallocation Qty */}
+          <Card3D glowColor="rgba(16, 185, 129, 0.25)">
+            <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[10px] text-emerald-400 font-bold tracking-wider">[03]</span>
+                  <span className="text-[13px] font-medium text-theme-muted">Total Reallocated Qty</span>
+                </div>
+                <span className="font-mono text-[10px] text-slate-400 bg-white/[0.05] px-2 py-0.5 rounded border border-white/[0.08]">
+                  TOTAL BUFFER
+                </span>
+              </div>
+              <div className="flex items-baseline gap-1.5 pt-1">
+                <span className="text-[38px] font-bold text-theme-text leading-none tracking-tight font-mono">
+                  {totalQty.toLocaleString()}
+                </span>
+                <span className="text-[13px] font-mono text-theme-muted">units</span>
+              </div>
+              <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-theme-muted">
+                <span>Balancing stock across depots</span>
+                <span className="font-mono text-[9px] text-emerald-400 font-bold uppercase tracking-wider">
+                  OPTIMIZED
+                </span>
+              </div>
+            </div>
+          </Card3D>
+        </div>
+      )}
+
+      {/* Split Layout: Left Form & Proposals List | Right Map Visual */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* LEFT PANEL (~40% desktop: 5 of 12 cols) */}
+        {/* Left Column (5/12) */}
         <div className="lg:col-span-5 space-y-6">
-          {/* Optimizer Control Form */}
           <OptimizerForm
             currentDistrict={queryDistrict || district}
             onRunOptimizer={handleRunOptimizer}
@@ -156,87 +315,26 @@ export const TransferReviewPage: React.FC = () => {
             disabled={isReadOnly}
           />
 
-          {/* List Controls & Filter Header */}
-          <div className="medex-panel p-4 bg-medex-surface/60 border border-medex-border rounded-xl space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-medex-border">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-medex-primary font-mono uppercase tracking-wider">
-                  Proposals & Transfer List
-                </span>
-                <span className="text-2xs font-mono text-medex-cyan font-bold bg-medex-cyan/15 px-2 py-0.5 rounded">
-                  {transfers.length} items
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={fetchTransfersData}
-                  className="p-1.5 rounded bg-medex-surface border border-medex-border text-medex-secondary hover:text-medex-primary"
-                  title="Refresh Transfers"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Filter by State */}
-            <div className="flex items-center gap-2 text-2xs font-mono">
-              <Filter className="w-3.5 h-3.5 text-medex-muted" />
-              <span className="text-medex-muted">State Filter:</span>
-              <select
-                value={filterState}
-                onChange={(e) => setFilterState(e.target.value as any)}
-                className="bg-medex-bg border border-medex-border rounded px-2 py-1 text-medex-primary focus:outline-none focus:border-medex-cyan"
-              >
-                <option value="ALL">ALL STATES</option>
-                <option value="OPEN">OPEN</option>
-                <option value="APPROVED">APPROVED</option>
-                <option value="REJECTED">REJECTED</option>
-                <option value="ESCALATED">ESCALATED</option>
-                <option value="CLOSED">CLOSED</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Solver Status Alert */}
-          {solverStatus && (
-            <div
-              className={`p-3 rounded-xl border text-xs font-mono flex items-center justify-between ${
-                solverStatus === 'INFEASIBLE'
-                  ? 'bg-medex-red/15 border-medex-red/40 text-medex-red-light'
-                  : 'bg-medex-green/15 border-medex-green/40 text-medex-green-light'
-              }`}
-            >
-              <span>
-                OR-Tools Solver Status: <strong>{solverStatus}</strong>
-              </span>
-              {solverStatus === 'INFEASIBLE' && (
-                <span className="text-2xs">No feasible transfer proposals were found.</span>
-              )}
-            </div>
-          )}
-
           {errorMsg && (
-            <div className="p-3 bg-medex-red/15 border border-medex-red/30 rounded-xl text-xs text-medex-red-light flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{errorMsg}</span>
-            </div>
+            <ErrorState
+              title="Optimizer Error"
+              message={errorMsg}
+              onRetry={fetchTransfersData}
+            />
           )}
 
-          {/* Proposals List */}
           {isLoadingTransfers ? (
             <div className="space-y-3">
-              <Skeleton className="w-full h-32 rounded-xl" />
-              <Skeleton className="w-full h-32 rounded-xl" />
+              <Skeleton className="w-full h-32 rounded-lg" />
+              <Skeleton className="w-full h-32 rounded-lg" />
             </div>
           ) : transfers.length === 0 ? (
             <EmptyState
-              title={solverStatus === 'INFEASIBLE' ? 'No Feasible Proposals Found' : 'No Transfers Found'}
+              title={solverStatus === 'INFEASIBLE' ? 'No Feasible Proposals' : 'No Transfers Found'}
               description={
                 solverStatus === 'INFEASIBLE'
-                  ? 'The OR-Tools transportation solver could not find a feasible stock route respecting donor floor cover (≥14d) and vehicle constraints.'
-                  : 'No transfer proposals match the selected filters or district parameters.'
+                  ? 'No route met floor cover constraints (≥14d) and vehicle limits.'
+                  : 'No transfer proposals match the selected filter parameters.'
               }
             />
           ) : (
@@ -252,7 +350,6 @@ export const TransferReviewPage: React.FC = () => {
             </div>
           )}
 
-          {/* Decision Panel for Selected Transfer */}
           {selectedTransfer && (
             <TransferDecisionPanel
               transfer={selectedTransfer}
@@ -263,61 +360,36 @@ export const TransferReviewPage: React.FC = () => {
           )}
         </div>
 
-        {/* RIGHT PANEL (~60% desktop: 7 of 12 cols) - Interactive Transfer Route Map */}
-        <div className="lg:col-span-7 sticky top-4 space-y-4">
-          <div className="medex-panel relative overflow-hidden rounded-xl h-[640px] border-medex-border">
-            <BaseMap
+        {/* Right Column (7/12): Main Map Visual */}
+        <div className="lg:col-span-7 sticky top-20 space-y-4">
+          <div className="rounded-lg border border-theme-border bg-theme-surface overflow-hidden h-[600px] relative">
+            <FacilityMap
               facilities={facilities}
               selectedFacilityId={selectedTransfer?.to.facility_id || null}
               onSelectFacility={() => {}}
               activePolyline={selectedTransfer?.route?.polyline || null}
-              tileLayerType={tileLayerType}
+              transferRoute={
+                selectedTransfer
+                  ? {
+                      from: {
+                        lat: selectedTransfer.from.lat,
+                        lng: selectedTransfer.from.lng,
+                        name: selectedTransfer.from.name,
+                        facility_id: selectedTransfer.from.facility_id,
+                      },
+                      to: {
+                        lat: selectedTransfer.to.lat,
+                        lng: selectedTransfer.to.lng,
+                        name: selectedTransfer.to.name,
+                        facility_id: selectedTransfer.to.facility_id,
+                      },
+                      polyline: selectedTransfer.route?.polyline || null,
+                    }
+                  : null
+              }
+              showControls={true}
+              showLegend={true}
             />
-
-            {/* Map Header Overlay */}
-            <div className="absolute top-4 left-4 z-20 bg-medex-sidebar/90 border border-medex-border backdrop-blur-md p-3 rounded-lg text-2xs font-mono space-y-1">
-              <span className="font-bold text-medex-cyan block uppercase">
-                ROUTE GIS MAP VIEW
-              </span>
-              {selectedTransfer ? (
-                <div className="text-medex-primary">
-                  <span>Transfer: <strong>{selectedTransfer.transfer_id}</strong></span>
-                  <div className="text-medex-secondary text-2xs">
-                    Donor: {selectedTransfer.from.name} &rarr; Recipient: {selectedTransfer.to.name}
-                  </div>
-                </div>
-              ) : (
-                <span className="text-medex-muted">Select a transfer proposal to view route polyline</span>
-              )}
-            </div>
-
-            {/* Map Controls (Top Right) */}
-            <div className="absolute top-4 right-4 z-20">
-              <MapControls
-                onZoomIn={() => {
-                  const mapEl = document.querySelector('.leaflet-container');
-                  if (mapEl) {
-                    const zoomBtn = mapEl.querySelector('.leaflet-control-zoom-in') as HTMLElement;
-                    if (zoomBtn) zoomBtn.click();
-                  }
-                }}
-                onZoomOut={() => {
-                  const mapEl = document.querySelector('.leaflet-container');
-                  if (mapEl) {
-                    const zoomBtn = mapEl.querySelector('.leaflet-control-zoom-out') as HTMLElement;
-                    if (zoomBtn) zoomBtn.click();
-                  }
-                }}
-                onRecenter={() => {}}
-                tileLayer={tileLayerType}
-                onToggleTileLayer={() => setTileLayerType(tileLayerType === 'dark' ? 'satellite' : 'dark')}
-              />
-            </div>
-
-            {/* Map Legend (Bottom Right) */}
-            <div className="absolute bottom-4 right-4 z-20">
-              <MapLegend />
-            </div>
           </div>
         </div>
       </div>

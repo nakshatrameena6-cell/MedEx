@@ -1,6 +1,9 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthRoleProvider } from './context/AuthRoleContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { DevModeProvider } from './context/DevModeContext';
+import { ToastProvider } from './context/ToastContext';
 import { AppLayout } from './components/layout/AppLayout';
 import { CaptureView } from './views/CaptureView';
 import { MapView } from './views/MapView';
@@ -11,28 +14,36 @@ import { FederationView } from './views/FederationView';
 import { ScenarioView } from './views/ScenarioView';
 import { AlertsView } from './views/AlertsView';
 import { AuditView } from './views/AuditView';
+import { StyleGuideView } from './views/StyleGuideView';
 
 export const App: React.FC = () => {
   return (
-    <AuthRoleProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<AppLayout />}>
-            <Route index element={<Navigate to="/map" replace />} />
-            <Route path="capture" element={<CaptureView />} />
-            <Route path="map" element={<MapView />} />
-            <Route path="risk" element={<RiskView />} />
-            <Route path="forecast" element={<ForecastView />} />
-            <Route path="transfers" element={<TransferView />} />
-            <Route path="federation" element={<FederationView />} />
-            <Route path="scenario" element={<ScenarioView />} />
-            <Route path="alerts" element={<AlertsView />} />
-            <Route path="audit" element={<AuditView />} />
-            <Route path="*" element={<Navigate to="/map" replace />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </AuthRoleProvider>
+    <ThemeProvider>
+      <DevModeProvider>
+        <AuthRoleProvider>
+          <ToastProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<AppLayout />}>
+                  <Route index element={<Navigate to="/map" replace />} />
+                  <Route path="capture" element={<CaptureView />} />
+                  <Route path="map" element={<MapView />} />
+                  <Route path="risk" element={<RiskView />} />
+                  <Route path="forecast" element={<ForecastView />} />
+                  <Route path="transfers" element={<TransferView />} />
+                  <Route path="federation" element={<FederationView />} />
+                  <Route path="scenario" element={<ScenarioView />} />
+                  <Route path="alerts" element={<AlertsView />} />
+                  <Route path="audit" element={<AuditView />} />
+                  <Route path="design-system" element={<StyleGuideView />} />
+                  <Route path="*" element={<Navigate to="/map" replace />} />
+                </Route>
+              </Routes>
+            </BrowserRouter>
+          </ToastProvider>
+        </AuthRoleProvider>
+      </DevModeProvider>
+    </ThemeProvider>
   );
 };
 

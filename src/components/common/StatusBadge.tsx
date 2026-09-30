@@ -1,65 +1,71 @@
 import React from 'react';
-import { RiskStatus } from '../../types/api';
+import { AlertTriangle, Clock, CheckCircle2, Info, Circle } from 'lucide-react';
 
-interface StatusBadgeProps {
-  status: RiskStatus | 'CYAN' | 'NEUTRAL';
+export type StatusType =
+  | 'RED'
+  | 'AMBER'
+  | 'GREEN'
+  | 'CYAN'
+  | 'NEUTRAL'
+  | 'CRITICAL'
+  | 'WATCH'
+  | 'STABLE';
+
+export interface StatusBadgeProps {
+  status: StatusType | string;
   label?: string;
   size?: 'sm' | 'md' | 'lg';
-  showDot?: boolean;
+  className?: string;
 }
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({
   status,
   label,
   size = 'md',
-  showDot = true,
+  className = '',
 }) => {
-  const getBadgeStyle = () => {
-    switch (status) {
-      case 'RED':
-        return 'status-badge-red';
-      case 'AMBER':
-        return 'status-badge-amber';
-      case 'GREEN':
-        return 'status-badge-green';
-      case 'CYAN':
-        return 'status-badge-cyan';
-      default:
-        return 'status-badge-neutral';
-    }
-  };
+  const normalized = String(status).toUpperCase();
 
-  const getDotStyle = () => {
-    switch (status) {
-      case 'RED':
-        return 'bg-medex-red animate-pulse-subtle';
-      case 'AMBER':
-        return 'bg-medex-amber';
-      case 'GREEN':
-        return 'bg-medex-green';
-      case 'CYAN':
-        return 'bg-medex-cyan';
-      default:
-        return 'bg-medex-muted';
-    }
-  };
+  let Icon = Info;
+  let bgClass = 'bg-theme-border/50 text-theme-muted';
+  let textLabel = label;
+
+  if (normalized === 'RED' || normalized === 'CRITICAL') {
+    Icon = AlertTriangle;
+    bgClass = 'bg-theme-critical-bg text-theme-critical-text';
+    textLabel = label || 'Critical';
+  } else if (normalized === 'AMBER' || normalized === 'WATCH' || normalized === 'WARNING') {
+    Icon = Clock;
+    bgClass = 'bg-theme-warning-bg text-theme-warning-text';
+    textLabel = label || 'Watch';
+  } else if (normalized === 'GREEN' || normalized === 'STABLE' || normalized === 'HEALTHY') {
+    Icon = CheckCircle2;
+    bgClass = 'bg-theme-healthy-bg text-theme-healthy-text';
+    textLabel = label || 'Stable';
+  } else if (normalized === 'CYAN' || normalized === 'PRIMARY') {
+    Icon = Info;
+    bgClass = 'bg-theme-primary-tint text-theme-primary';
+    textLabel = label || 'Active';
+  } else if (normalized === 'NEUTRAL') {
+    Icon = Circle;
+    bgClass = 'bg-theme-border/60 text-theme-muted';
+    textLabel = label || 'Info';
+  } else {
+    textLabel = label || status;
+  }
 
   const sizeClasses = {
-    sm: 'text-2xs px-1.5 py-0.5 font-medium',
-    md: 'text-xs px-2.5 py-1 font-semibold',
-    lg: 'text-sm px-3 py-1.5 font-semibold',
+    sm: 'h-6 px-2 text-[11px]',
+    md: 'h-7 px-2.5 text-[12px]',
+    lg: 'h-8 px-3 text-[13px]',
   };
-
-  const displayLabel = label || status;
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full uppercase tracking-wider font-mono ${getBadgeStyle()} ${sizeClasses[size]}`}
+      className={`inline-flex items-center gap-1.5 rounded-md font-medium leading-none select-none ${sizeClasses[size]} ${bgClass} ${className}`}
     >
-      {showDot && (
-        <span className={`h-1.5 w-1.5 rounded-full ${getDotStyle()}`} />
-      )}
-      {displayLabel}
+      <Icon className="w-4 h-4 shrink-0" strokeWidth={1.8} />
+      <span>{textLabel}</span>
     </span>
   );
 };
