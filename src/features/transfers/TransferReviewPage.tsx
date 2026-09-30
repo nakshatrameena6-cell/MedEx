@@ -1,0 +1,326 @@
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useAuthRole } from '../../context/AuthRoleContext';
+import { OptimizeRequest, OptimizeResponse, Transfer, TransferState } from '../../types/api';
+import { listTransfers, runOptimizer } from '../../services/transferService';
+import { listFacilities } from '../../services/facilitiesService';
+import { PageHeader } from '../../components/common/PageHeader';
+import { StatusBadge } from '../../components/common/StatusBadge';
+import { Skeleton } from '../../components/common/Skeleton';
+import { EmptyState } from '../../components/common/EmptyState';
+import { BaseMap } from '../../components/map/BaseMap';
+import { MapControls } from '../../components/map/MapControls';
+import { MapLegend } from '../../components/map/MapLegend';
+import { OptimizerForm } from './OptimizerForm';
+import { ProposalCard } from './ProposalCard';
+import { TransferDecisionPanel } from './TransferDecisionPanel';
+import { RefreshCw, AlertCircle, Filter } from 'lucide-react';
+
+export const TransferReviewPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const { role, district, user, isMockMode } = useAuthRole();
+
+  // Query Params prepopulation from Risk Queue (e.g., ?district_id=TN-D01&drug_code=ORS)
+  const queryDistrict = searchParams.get('district_id');
+  const queryDrug = searchParams.get('drug_code');
+
+  const [filterState, setFilterState] = useState<TransferState | 'ALL'>('ALL');
+
+  // Facilities data for map markers
+  const [facilities, setFacilities] = useState<any[]>([]);
+
+  // Transfers & Proposals state
+  const [transfers, setTransfers] = useState<Transfer[]>([]);
+  const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null);
+  const [solverStatus, setSolverStatus] = useState<'OPTIMAL' | 'FEASIBLE' | 'INFEASIBLE' | null>(null);
+
+  const [isLoadingTransfers, setIsLoadingTransfers] = useState<boolean>(true);
+  const [isOptimizing, setIsOptimizing] = useState<boolean>(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const [tileLayerType, setTileLayerType] = useState<'dark' | 'satellite'>('dark');
+
+  const getAuthHeaders = (): Record<string, string> => {
+    const headers: Record<string, string> = {
+      'X-Role': role,
+      'X-District': district,
+      'X-User': user,
+    };
+    if (isMockMode) {
+      headers['X-Mock'] = 'true';
+    }
+    return headers;
+  };
+
+  // Load facilities for background map
+  const loadFacilitiesData = async () => {
+    try {
+      const data = await listFacilities(
+        { district_id: queryDistrict || (district !== 'ALL' ? district : 'TN-D01') },
+        getAuthHeaders()
+      );
+      setFacilities(data.items);
+    } catch (err) {
+      console.warn('Failed to load facilities for transfer map:', err);
+    }
+  };
+
+  // Load existing transfers
+  const fetchTransfersData = async () => {
+    setIsLoadingTransfers(true);
+    setErrorMsg(null);
+    try {
+      const data = await listTransfers(
+        {
+          district_id: queryDistrict || district,
+          state: filterState !== 'ALL' ? filterState : undefined,
+        },
+        getAuthHeaders()
+      );
+
+      let filteredItems = data.items;
+      if (queryDrug) {
+        filteredItems = filteredItems.filter((t) => t.drug_code === queryDrug);
+      }
+
+      setTransfers(filteredItems);
+      if (filteredItems.length > 0) {
+        setSelectedTransfer(filteredItems[0]);
+      } else {
+        setSelectedTransfer(null);
+      }
+    } catch (err: any) {
+      console.error('Failed to load transfers:', err);
+      setErrorMsg(err.message || 'Failed to load transfer proposals.');
+    } finally {
+      setIsLoadingTransfers(false);
+    }
+  };
+
+  useEffect(() => {
+    loadFacilitiesData();
+    fetchTransfersData();
+  }, [role, district, user, isMockMode, filterState, queryDistrict, queryDrug]);
+
+  // Execute OR-Tools Optimizer
+  const handleRunOptimizer = async (req: OptimizeRequest) => {
+    setIsOptimizing(true);
+    setErrorMsg(null);
+    try {
+      const res: OptimizeResponse = await runOptimizer(req, getAuthHeaders());
+      setSolverStatus(res.solver.status);
+
+      if (res.solver.status === 'INFEASIBLE' || res.proposals.length === 0) {
+        setTransfers([]);
+        setSelectedTransfer(null);
+      } else {
+        setTransfers(res.proposals);
+        setSelectedTransfer(res.proposals[0]);
+      }
+    } catch (err: any) {
+      console.error('Optimizer error:', err);
+      setErrorMsg(err.message || 'Failed to run OR-Tools optimizer.');
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  const isReadOnly = role === 'AUDITOR' || role === 'FACILITY';
+
+  return (
+    <div className="space-y-6 text-left">
+      <PageHeader
+        title="Redistribution & Transfer Review"
+        subtitle="Ranked transportation proposals generated by Google OR-Tools optimization model with human-in-the-loop decision governance."
+        badge={
+          <div className="flex items-center gap-2">
+            <StatusBadge status="CYAN" label="POST /optimize" />
+            <StatusBadge status="CYAN" label="GET /transfers" />
+          </div>
+        }
+        breadcrumbs={[
+          { label: 'MEDEx' },
+          { label: 'Redistribution' },
+        ]}
+      />
+
+      {/* Split View Layout: Left Panel (~40%) & Right Map (~60%) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* LEFT PANEL (~40% desktop: 5 of 12 cols) */}
+        <div className="lg:col-span-5 space-y-6">
+          {/* Optimizer Control Form */}
+          <OptimizerForm
+            currentDistrict={queryDistrict || district}
+            onRunOptimizer={handleRunOptimizer}
+            isLoading={isOptimizing}
+            disabled={isReadOnly}
+          />
+
+          {/* List Controls & Filter Header */}
+          <div className="medex-panel p-4 bg-medex-surface/60 border border-medex-border rounded-xl space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-medex-border">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-medex-primary font-mono uppercase tracking-wider">
+                  Proposals & Transfer List
+                </span>
+                <span className="text-2xs font-mono text-medex-cyan font-bold bg-medex-cyan/15 px-2 py-0.5 rounded">
+                  {transfers.length} items
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={fetchTransfersData}
+                  className="p-1.5 rounded bg-medex-surface border border-medex-border text-medex-secondary hover:text-medex-primary"
+                  title="Refresh Transfers"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Filter by State */}
+            <div className="flex items-center gap-2 text-2xs font-mono">
+              <Filter className="w-3.5 h-3.5 text-medex-muted" />
+              <span className="text-medex-muted">State Filter:</span>
+              <select
+                value={filterState}
+                onChange={(e) => setFilterState(e.target.value as any)}
+                className="bg-medex-bg border border-medex-border rounded px-2 py-1 text-medex-primary focus:outline-none focus:border-medex-cyan"
+              >
+                <option value="ALL">ALL STATES</option>
+                <option value="OPEN">OPEN</option>
+                <option value="APPROVED">APPROVED</option>
+                <option value="REJECTED">REJECTED</option>
+                <option value="ESCALATED">ESCALATED</option>
+                <option value="CLOSED">CLOSED</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Solver Status Alert */}
+          {solverStatus && (
+            <div
+              className={`p-3 rounded-xl border text-xs font-mono flex items-center justify-between ${
+                solverStatus === 'INFEASIBLE'
+                  ? 'bg-medex-red/15 border-medex-red/40 text-medex-red-light'
+                  : 'bg-medex-green/15 border-medex-green/40 text-medex-green-light'
+              }`}
+            >
+              <span>
+                OR-Tools Solver Status: <strong>{solverStatus}</strong>
+              </span>
+              {solverStatus === 'INFEASIBLE' && (
+                <span className="text-2xs">No feasible transfer proposals were found.</span>
+              )}
+            </div>
+          )}
+
+          {errorMsg && (
+            <div className="p-3 bg-medex-red/15 border border-medex-red/30 rounded-xl text-xs text-medex-red-light flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          {/* Proposals List */}
+          {isLoadingTransfers ? (
+            <div className="space-y-3">
+              <Skeleton className="w-full h-32 rounded-xl" />
+              <Skeleton className="w-full h-32 rounded-xl" />
+            </div>
+          ) : transfers.length === 0 ? (
+            <EmptyState
+              title={solverStatus === 'INFEASIBLE' ? 'No Feasible Proposals Found' : 'No Transfers Found'}
+              description={
+                solverStatus === 'INFEASIBLE'
+                  ? 'The OR-Tools transportation solver could not find a feasible stock route respecting donor floor cover (≥14d) and vehicle constraints.'
+                  : 'No transfer proposals match the selected filters or district parameters.'
+              }
+            />
+          ) : (
+            <div className="space-y-4">
+              {transfers.map((t) => (
+                <ProposalCard
+                  key={t.transfer_id}
+                  transfer={t}
+                  isSelected={selectedTransfer?.transfer_id === t.transfer_id}
+                  onSelect={(selected) => setSelectedTransfer(selected)}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Decision Panel for Selected Transfer */}
+          {selectedTransfer && (
+            <TransferDecisionPanel
+              transfer={selectedTransfer}
+              onDecisionSuccess={() => fetchTransfersData()}
+              userRole={role}
+              headers={getAuthHeaders()}
+            />
+          )}
+        </div>
+
+        {/* RIGHT PANEL (~60% desktop: 7 of 12 cols) - Interactive Transfer Route Map */}
+        <div className="lg:col-span-7 sticky top-4 space-y-4">
+          <div className="medex-panel relative overflow-hidden rounded-xl h-[640px] border-medex-border">
+            <BaseMap
+              facilities={facilities}
+              selectedFacilityId={selectedTransfer?.to.facility_id || null}
+              onSelectFacility={() => {}}
+              activePolyline={selectedTransfer?.route?.polyline || null}
+              tileLayerType={tileLayerType}
+            />
+
+            {/* Map Header Overlay */}
+            <div className="absolute top-4 left-4 z-20 bg-medex-sidebar/90 border border-medex-border backdrop-blur-md p-3 rounded-lg text-2xs font-mono space-y-1">
+              <span className="font-bold text-medex-cyan block uppercase">
+                ROUTE GIS MAP VIEW
+              </span>
+              {selectedTransfer ? (
+                <div className="text-medex-primary">
+                  <span>Transfer: <strong>{selectedTransfer.transfer_id}</strong></span>
+                  <div className="text-medex-secondary text-2xs">
+                    Donor: {selectedTransfer.from.name} &rarr; Recipient: {selectedTransfer.to.name}
+                  </div>
+                </div>
+              ) : (
+                <span className="text-medex-muted">Select a transfer proposal to view route polyline</span>
+              )}
+            </div>
+
+            {/* Map Controls (Top Right) */}
+            <div className="absolute top-4 right-4 z-20">
+              <MapControls
+                onZoomIn={() => {
+                  const mapEl = document.querySelector('.leaflet-container');
+                  if (mapEl) {
+                    const zoomBtn = mapEl.querySelector('.leaflet-control-zoom-in') as HTMLElement;
+                    if (zoomBtn) zoomBtn.click();
+                  }
+                }}
+                onZoomOut={() => {
+                  const mapEl = document.querySelector('.leaflet-container');
+                  if (mapEl) {
+                    const zoomBtn = mapEl.querySelector('.leaflet-control-zoom-out') as HTMLElement;
+                    if (zoomBtn) zoomBtn.click();
+                  }
+                }}
+                onRecenter={() => {}}
+                tileLayer={tileLayerType}
+                onToggleTileLayer={() => setTileLayerType(tileLayerType === 'dark' ? 'satellite' : 'dark')}
+              />
+            </div>
+
+            {/* Map Legend (Bottom Right) */}
+            <div className="absolute bottom-4 right-4 z-20">
+              <MapLegend />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
