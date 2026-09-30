@@ -1,0 +1,1527 @@
+openapi: 3.0.3
+
+info:
+  title: AushadhiGrid API
+  version: 1.1.0
+  description: |
+    Prototype API contract for AushadhiGrid (PRD v1.1, Section 17).
+
+    **Implemented by:** Nattu (FastAPI on Cloud Run). **Consumed by:** Meenachi (React frontend).
+    This file is the single source of truth. Contract freeze is at H3; later changes are committed
+    here together with the code that uses them.
+
+    ## Conventions
+    - Base path is `/api/v1`. All bodies are JSON unless stated (capture uploads are `multipart/form-data`).
+    - Timestamps are ISO-8601 UTC (`2026-09-29T06:30:00Z`). Dates are `YYYY-MM-DD`.
+    - `confidence` and probabilities are numbers from 0 to 1. Cover is measured in days.
+    - Quantities are integers in the drug's base `unit` (sachets, tablets, vials, and so on).
+    - IDs: state `TN`, district `TN-D01`, facility `TN-PHC-014`, drug code `ORS`.
+    - Numbers come from models and SQL. Gemini text fields (`reason`, `answer`) only explain supplied facts.
+    - Every error uses the `Error` envelope. Validation failures are HTTP 422.
+    - When the server runs with `MOCK_MODE=true`, every response carries the header `X-Mock: true`
+      and returns the fixtures generated from the examples in this file.
+
+    ## Access (prototype)
+    A role switcher in the frontend sends three headers on every call. Row filtering by role and
+    district is enforced in SQL on the backend. Real Firebase auth is design-only for the prototype.
+
+    | Header | Values |
+    |---|---|
+    | `X-Role` | `FACILITY`, `BLOCK`, `DISTRICT`, `STATE`, `AUDITOR` |
+    | `X-District` | a district id, or `ALL` for `STATE` and `AUDITOR` |
+    | `X-User` | user id, written to the audit log |
+
+    `AUDITOR` is read-only: any write returns 403.
+
+    ### Default permissions (proposed; enforce in one middleware)
+    `own` means the caller's facility, block or district.
+
+    | Action | FACILITY | BLOCK | DISTRICT | STATE | AUDITOR |
+    |---|---|---|---|---|---|
+    | Read facilities, status, forecast, risk, transfers, alerts | own facility | own block | own district | all | all |
+    | Capture (voice, photo, confirm) | own facility | own block | own district | yes | no |
+    | `POST /optimize` | no | own block | own district | yes | no |
+    | Transfer decision | no | own block | own district | yes | no |
+    | `POST /copilot/ask` | yes | yes | yes | yes | yes |
+    | `POST /scenario/run` | no | no | own district | yes | no |
+    | `POST /federation/round` | no | no | no | yes | no |
+    | `GET /federation/rounds` | no | no | no | yes | yes |
+    | `GET /audit` | no | no | own district | yes | yes |
+
+    ## Key flows
+    - **Capture:** `POST /capture/voice` returns rows. Rows with `needs_confirm=true` must be confirmed
+      by the user. `POST /capture/confirm` saves them and returns `updated_status` so the map refreshes.
+    - **Redistribution:** `POST /optimize` returns proposals (state `OPEN`), then the user calls
+      `POST /transfers/{id}/decision`.
+    - **Copilot refusals** are HTTP 200 with `refused: true`, not errors.
+
+    ## Frontend notes
+    - `route.polyline` is a Google encoded polyline (decode with the Maps JS geometry library).
+    - `GET /risk` returns AMBER and RED only unless `status` is passed. Use `GET /facilities` for map markers.
+    - `/forecast` points are daily; `history` is the last 28 days of actuals.
+    - In `/federation/rounds`, plot `local_only_mape` against `federated_mape` per state. The state with
+      `is_data_sparse: true` shows the biggest drop in the demo.
+
+    ## Errors and suggested UI behaviour
+    `forbidden` 403 hide the action. `not_found` 404 empty state. `invalid_transition` 409 refresh the
+    transfer. `file_too_large` 413 ask to record or shoot again. `validation_error`,
+    `constraint_violation`, `unparseable_scenario` 422 show `message`. `upstream_unavailable` 502 show retry.
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development
+  - url: https://REPLACE-AFTER-FIRST-DEPLOY.a.run.app/api/v1
+    description: Cloud Run (also serves MOCK_MODE)
+
+security:
+  - RoleHeader: []
+    DistrictHeader: []
+    UserHeader: []
+
+tags:
+  - name: system
+  - name: capture
+    description: Voice and photo stock entry (PHC Capture screen)
+  - name: facilities
+    description: Facility list and status (District Map)
+  - name: forecast
+    description: Demand forecast (Forecast View)
+  - name: risk
+    description: Days-of-cover, priority and resilience (Risk Queue, District Map)
+  - name: redistribution
+    description: Optimizer and transfer workflow (Transfer Review)
+  - name: copilot
+    description: Guarded natural-language questions (Copilot Panel)
+  - name: scenario
+    description: Emergency surge simulation, P1 (Scenario Simulator)
+  - name: federation
+    description: Federated training rounds (Federation Console)
+  - name: alerts
+    description: Multilingual alerts with voice notes, P1
+  - name: audit
+    description: Append-only audit log (Audit Trail)
+
+paths:
+  /health:
+    get:
+      tags: [system]
+      operationId: getHealth
+      summary: Liveness and mode check
+      description: Used by the deploy smoke test. Needs no headers.
+      security: []
+      responses:
+        '200':
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+              example: { status: ok, mock_mode: true, version: 1.1.0, time: '2026-09-29T06:30:00Z' }
+
+  /capture/voice:
+    post:
+      tags: [capture]
+      operationId: captureVoice
+      summary: Audio to structured stock rows
+      description: |
+        Flow: Speech-to-Text, then Gemini JSON extraction, then match against `drug_name_map`.
+        Nothing is saved. Rows with `needs_confirm=true` (confidence under 0.85 or unmatched drug)
+        must be confirmed by the user, then saved with `POST /capture/confirm`.
+        Accepted audio: `audio/webm`, `audio/wav`, `audio/ogg`, `audio/mpeg`. Max 10 MB.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [audio, facility_id]
+              properties:
+                audio:
+                  type: string
+                  format: binary
+                facility_id:
+                  $ref: '#/components/schemas/FacilityId'
+                language:
+                  $ref: '#/components/schemas/Language'
+      responses:
+        '200':
+          description: Extracted rows
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaptureResponse'
+              example:
+                capture_id: CAP-20260929-0001
+                facility_id: TN-PHC-014
+                source: voice
+                language: ta-IN
+                transcript: ORS 120 packets, paracetamol 500 tablets 800
+                confidence_threshold: 0.85
+                rows:
+                  - { row_id: 1, drug_heard: ORS, drug_code: ORS, drug_name: Oral Rehydration Salts, qty: 120, unit: sachets, batch_no: null, expiry_date: null, confidence: 0.96, needs_confirm: false }
+                  - { row_id: 2, drug_heard: paracetamol, drug_code: PARA500, drug_name: Paracetamol 500 mg, qty: 800, unit: tablets, batch_no: null, expiry_date: null, confidence: 0.78, needs_confirm: true }
+                warnings: []
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '502': { $ref: '#/components/responses/UpstreamUnavailable' }
+
+  /capture/photo:
+    post:
+      tags: [capture]
+      operationId: capturePhoto
+      summary: Register or shelf photo to structured stock rows
+      description: |
+        Gemini multimodal extraction, then drug matching. Same response and same confirm step as
+        voice. `transcript` and `language` are null. Accepted: `image/jpeg`, `image/png`. Max 8 MB.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image, facility_id]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                facility_id:
+                  $ref: '#/components/schemas/FacilityId'
+      responses:
+        '200':
+          description: Extracted rows
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaptureResponse'
+              example:
+                capture_id: CAP-20260929-0002
+                facility_id: TN-PHC-014
+                source: photo
+                language: null
+                transcript: null
+                confidence_threshold: 0.85
+                rows:
+                  - { row_id: 1, drug_heard: ORS, drug_code: ORS, drug_name: Oral Rehydration Salts, qty: 110, unit: sachets, batch_no: B2291, expiry_date: '2027-03-31', confidence: 0.91, needs_confirm: false }
+                warnings: [ 'Row 3 was unreadable and skipped' ]
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '502': { $ref: '#/components/responses/UpstreamUnavailable' }
+
+  /capture/confirm:
+    post:
+      tags: [capture]
+      operationId: confirmCapture
+      summary: Save user-confirmed rows as a stock snapshot
+      description: |
+        Writes a `stock_snapshots` record and an audit entry. Returns the recomputed status for
+        the affected drugs so the map can refresh without another call.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaptureConfirmRequest'
+            example:
+              capture_id: CAP-20260929-0001
+              facility_id: TN-PHC-014
+              rows:
+                - { drug_code: ORS, qty: 120, unit: sachets }
+                - { drug_code: PARA500, qty: 800, unit: tablets }
+      responses:
+        '200':
+          description: Snapshot saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaptureConfirmResponse'
+              example:
+                snapshot_id: SNAP-000482
+                facility_id: TN-PHC-014
+                recorded_at: '2026-09-29T06:31:12Z'
+                rows_saved: 2
+                updated_status:
+                  - { drug_code: ORS, status: RED, cover_days: 5.1 }
+                  - { drug_code: PARA500, status: GREEN, cover_days: 41.0 }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+
+  /facilities:
+    get:
+      tags: [facilities]
+      operationId: listFacilities
+      summary: Facilities with coordinates and current status
+      description: |
+        `status` is the status for `drug_code` when given, otherwise the worst status across
+        essential drugs at that facility.
+      parameters:
+        - $ref: '#/components/parameters/DistrictIdQuery'
+        - $ref: '#/components/parameters/DrugCodeQuery'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/RiskStatus'
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/FacilityType'
+      responses:
+        '200':
+          description: Facility list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FacilityList'
+              example:
+                as_of: '2026-09-29T06:30:00Z'
+                items:
+                  - { facility_id: TN-PHC-014, name: PHC Sample-014, type: PHC, state_code: TN, district_id: TN-D01, block: Block-A, lat: 10.79, lng: 78.70, population_served: 18500, vulnerability_weight: 1.8, status: RED, last_report_at: '2026-09-29T05:10:00Z' }
+                  - { facility_id: TN-PHC-021, name: PHC Sample-021, type: PHC, state_code: TN, district_id: TN-D01, block: Block-B, lat: 10.83, lng: 78.75, population_served: 22000, vulnerability_weight: 1.0, status: GREEN, last_report_at: '2026-09-29T04:45:00Z' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+
+  /facilities/{facility_id}/status:
+    get:
+      tags: [facilities]
+      operationId: getFacilityStatus
+      summary: Stock, beds and attendance for one facility
+      parameters:
+        - $ref: '#/components/parameters/FacilityIdPath'
+      responses:
+        '200':
+          description: Facility status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FacilityStatus'
+              example:
+                as_of: '2026-09-29T06:30:00Z'
+                facility: { facility_id: TN-PHC-014, name: PHC Sample-014, type: PHC, state_code: TN, district_id: TN-D01, block: Block-A, lat: 10.79, lng: 78.70, population_served: 18500, vulnerability_weight: 1.8, status: RED, last_report_at: '2026-09-29T05:10:00Z' }
+                stock:
+                  - { drug_code: ORS, drug_name: Oral Rehydration Salts, unit: sachets, stock_qty: 120, usable_qty: 120, nearest_expiry: '2027-03-31', cover_days: 5.1, status: RED, last_updated_at: '2026-09-29T05:10:00Z' }
+                  - { drug_code: PARA500, drug_name: Paracetamol 500 mg, unit: tablets, stock_qty: 800, usable_qty: 800, nearest_expiry: '2027-08-31', cover_days: 41.0, status: GREEN, last_updated_at: '2026-09-29T05:10:00Z' }
+                beds: { total: 10, occupied: 6, occupancy_pct: 60 }
+                attendance: { date: '2026-09-29', sanctioned: 8, present: 6, present_pct: 75 }
+                open_alerts: 2
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /forecast:
+    get:
+      tags: [forecast]
+      operationId: getForecast
+      summary: Demand forecast with P10-P90 band
+      description: |
+        Daily demand from the federated model (personalised per state). Always returns P10, P50
+        and P90. `history` holds the last 28 days of actual issues for the chart.
+      parameters:
+        - name: facility_id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/FacilityId'
+        - name: drug_code
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/DrugCode'
+        - name: horizon_weeks
+          in: query
+          schema: { type: integer, minimum: 2, maximum: 8, default: 4 }
+      responses:
+        '200':
+          description: Forecast
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForecastResponse'
+              example:
+                facility_id: TN-PHC-014
+                drug_code: ORS
+                unit: sachets
+                horizon_weeks: 4
+                model_version: fed-v7
+                model_scope: federated
+                generated_at: '2026-09-29T06:00:00Z'
+                history:
+                  - { date: '2026-09-27', qty: 21 }
+                  - { date: '2026-09-28', qty: 24 }
+                points:
+                  - { date: '2026-09-30', p10: 18, p50: 24, p90: 33 }
+                  - { date: '2026-10-01', p10: 19, p50: 26, p90: 36 }
+                drivers:
+                  - { name: rainfall_7d, direction: up, contribution_pct: 38 }
+                  - { name: dengue_signal, direction: up, contribution_pct: 24 }
+                  - { name: seasonality, direction: up, contribution_pct: 18 }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+
+  /risk:
+    get:
+      tags: [risk]
+      operationId: getRisk
+      summary: Ranked risk list and district resilience score
+      description: |
+        Items are sorted by `priority` descending. Includes only AMBER and RED by default; pass
+        `status` to override. `reason` is written by Gemini from the structured factors only.
+      parameters:
+        - $ref: '#/components/parameters/DistrictIdQuery'
+        - $ref: '#/components/parameters/DrugCodeQuery'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/RiskStatus'
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        '200':
+          description: Risk list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskResponse'
+              example:
+                district_id: TN-D01
+                as_of: '2026-09-29T06:30:00Z'
+                resilience: { score: 71, previous_week_score: 78, delta: -7, drift_alert: true }
+                items:
+                  - facility_id: TN-PHC-014
+                    facility_name: PHC Sample-014
+                    district_id: TN-D01
+                    block: Block-A
+                    lat: 10.79
+                    lng: 78.70
+                    drug_code: ORS
+                    drug_name: Oral Rehydration Salts
+                    unit: sachets
+                    stock_qty: 120
+                    cover_days: 5.1
+                    cover_days_p90: 3.6
+                    lead_time_days: 9
+                    safety_buffer_days: 3
+                    status: RED
+                    p_stockout: 0.82
+                    drug_criticality: 4
+                    vulnerability_weight: 1.8
+                    priority: 0.91
+                    exposure_units: 96
+                    reason: ORS is projected to run out in about 5 days, before the next delivery arrives in 9 days. Demand is rising after heavy rain.
+                    flags: []
+                    as_of: '2026-09-29T06:30:00Z'
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+
+  /optimize:
+    post:
+      tags: [redistribution]
+      operationId: runOptimizer
+      summary: Generate ranked transfer proposals
+      description: |
+        OR-Tools transportation model with Maps Distance Matrix travel times. Proposals are saved
+        as transfers in state `OPEN`, so they can be listed and decided. Constraints: donor keeps
+        at least 14 days of cover, vehicle capacity, batch expiry longer than transit plus use time,
+        blocked facilities excluded. `allow_cross_state` is only accepted when `emergency_mode` is true.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OptimizeRequest'
+            example:
+              district_id: TN-D01
+              drug_code: ORS
+              emergency_mode: false
+              allow_cross_state: false
+              blocked_facility_ids: []
+              max_proposals: 5
+      responses:
+        '200':
+          description: Proposals, best first
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OptimizeResponse'
+              example:
+                run_id: RUN-000031
+                generated_at: '2026-09-29T06:35:00Z'
+                solver: { status: OPTIMAL, objective_value: 1834.5 }
+                proposals:
+                  - transfer_id: T-001
+                    run_id: RUN-000031
+                    rank: 1
+                    state: OPEN
+                    drug_code: ORS
+                    drug_name: Oral Rehydration Salts
+                    unit: sachets
+                    qty: 400
+                    from: { facility_id: TN-CHC-003, name: CHC Sample-003, lat: 10.81, lng: 78.69, district_id: TN-D01, cover_days_before: 42.0, cover_days_after: 16.0 }
+                    to: { facility_id: TN-PHC-014, name: PHC Sample-014, lat: 10.79, lng: 78.70, district_id: TN-D01, cover_days_before: 5.1, cover_days_after: 21.0 }
+                    eta_hours: 6
+                    distance_km: 38.4
+                    cost_inr: 2400
+                    batch_expiry_date: '2027-03-31'
+                    expiry_ok: true
+                    cross_state: false
+                    route: { polyline: 'encoded_polyline_here', duration_min: 55 }
+                    reason: TN-CHC-003 holds 42 days of ORS and keeps 16 days after the move. The PHC is flood-prone and reaches 21 days of cover.
+                    created_at: '2026-09-29T06:35:00Z'
+                    updated_at: '2026-09-29T06:35:00Z'
+                    decided_by: null
+                    decision_comment: null
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '502': { $ref: '#/components/responses/UpstreamUnavailable' }
+
+  /transfers:
+    get:
+      tags: [redistribution]
+      operationId: listTransfers
+      summary: Transfers and their workflow state
+      parameters:
+        - $ref: '#/components/parameters/DistrictIdQuery'
+        - name: state
+          in: query
+          schema:
+            $ref: '#/components/schemas/TransferState'
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        '200':
+          description: Transfer list, newest first
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferList'
+              example:
+                items:
+                  - transfer_id: T-001
+                    run_id: RUN-000031
+                    rank: 1
+                    state: APPROVED
+                    drug_code: ORS
+                    drug_name: Oral Rehydration Salts
+                    unit: sachets
+                    qty: 400
+                    from: { facility_id: TN-CHC-003, name: CHC Sample-003, lat: 10.81, lng: 78.69, district_id: TN-D01, cover_days_before: 42.0, cover_days_after: 16.0 }
+                    to: { facility_id: TN-PHC-014, name: PHC Sample-014, lat: 10.79, lng: 78.70, district_id: TN-D01, cover_days_before: 5.1, cover_days_after: 21.0 }
+                    eta_hours: 6
+                    distance_km: 38.4
+                    cost_inr: 2400
+                    batch_expiry_date: '2027-03-31'
+                    expiry_ok: true
+                    cross_state: false
+                    route: { polyline: 'encoded_polyline_here', duration_min: 55 }
+                    reason: TN-CHC-003 holds 42 days of ORS and keeps 16 days after the move.
+                    created_at: '2026-09-29T06:35:00Z'
+                    updated_at: '2026-09-29T06:40:00Z'
+                    decided_by: dho.d01
+                    decision_comment: Approved for dispatch
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+
+  /transfers/{transfer_id}/decision:
+    post:
+      tags: [redistribution]
+      operationId: decideTransfer
+      summary: Approve, modify, reject, escalate or close a transfer
+      description: |
+        | Decision | Allowed from | Result state | Notes |
+        |---|---|---|---|
+        | `APPROVE` | `OPEN`, `UNDER_REVIEW`, `ESCALATED` | `APPROVED` | |
+        | `MODIFY` | `OPEN`, `UNDER_REVIEW` | `APPROVED` | Needs `modified_qty` or `modified_source_facility_id`. Constraints are re-checked (422 `constraint_violation` if broken). |
+        | `REJECT` | `OPEN`, `UNDER_REVIEW`, `ESCALATED` | `REJECTED` | `comment` required. Reason feeds back to the model. |
+        | `ESCALATE` | `OPEN`, `UNDER_REVIEW` | `ESCALATED` | Routed to the next level. |
+        | `MARK_DONE` | `APPROVED`, `IN_TRANSIT` | `CLOSED` | Receipt confirmed, ledger updated. |
+
+        Any other combination returns 409 `invalid_transition`. `IN_TRANSIT` and `RECEIVED` exist in
+        the enum but are not produced by the prototype. Every decision writes an audit entry.
+        Role limits: `BLOCK` may decide transfers inside its block, `DISTRICT` inside its district,
+        `STATE` anywhere, `AUDITOR` never.
+      parameters:
+        - $ref: '#/components/parameters/TransferIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferDecisionRequest'
+            example:
+              decision: APPROVE
+              comment: Approved for dispatch
+      responses:
+        '200':
+          description: Updated transfer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+              example:
+                transfer_id: T-001
+                run_id: RUN-000031
+                rank: 1
+                state: APPROVED
+                drug_code: ORS
+                drug_name: Oral Rehydration Salts
+                unit: sachets
+                qty: 400
+                from: { facility_id: TN-CHC-003, name: CHC Sample-003, lat: 10.81, lng: 78.69, district_id: TN-D01, cover_days_before: 42.0, cover_days_after: 16.0 }
+                to: { facility_id: TN-PHC-014, name: PHC Sample-014, lat: 10.79, lng: 78.70, district_id: TN-D01, cover_days_before: 5.1, cover_days_after: 21.0 }
+                eta_hours: 6
+                distance_km: 38.4
+                cost_inr: 2400
+                batch_expiry_date: '2027-03-31'
+                expiry_ok: true
+                cross_state: false
+                route: { polyline: 'encoded_polyline_here', duration_min: 55 }
+                reason: TN-CHC-003 holds 42 days of ORS and keeps 16 days after the move.
+                created_at: '2026-09-29T06:35:00Z'
+                updated_at: '2026-09-29T06:40:00Z'
+                decided_by: dho.d01
+                decision_comment: Approved for dispatch
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+
+  /copilot/ask:
+    post:
+      tags: [copilot]
+      operationId: askCopilot
+      summary: Natural-language question over approved views
+      description: |
+        Gemini selects an approved query template or view, the SQL runs read-only with role and
+        district filters applied in SQL, and Gemini summarises the returned rows. Out-of-scope
+        questions return HTTP 200 with `refused=true` and a `refusal_reason`. Every question is
+        logged. `sources` cites the view and its data timestamp. Approved views:
+        `v_risk_current`, `v_stock_latest`, `v_forecast_daily`, `v_transfers`, `v_resilience_weekly`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CopilotAskRequest'
+            example:
+              question: Which PHCs in my district run out of ORS in 10 days?
+              language: en-IN
+      responses:
+        '200':
+          description: Answer or refusal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CopilotAskResponse'
+              example:
+                query_id: Q-000217
+                language: en-IN
+                refused: false
+                refusal_reason: null
+                answer: Two PHCs are projected to run out of ORS within 10 days. PHC Sample-014 has about 5 days of cover and PHC Sample-031 has about 8.
+                sources:
+                  - { view: v_risk_current, as_of: '2026-09-29T06:30:00Z' }
+                table:
+                  columns: [facility_id, facility_name, cover_days]
+                  rows:
+                    - [TN-PHC-014, PHC Sample-014, 5.1]
+                    - [TN-PHC-031, PHC Sample-031, 8.2]
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '502': { $ref: '#/components/responses/UpstreamUnavailable' }
+
+  /scenario/run:
+    post:
+      tags: [scenario]
+      operationId: runScenario
+      summary: Simulate an emergency surge (P1)
+      description: |
+        Gemini extracts `{disease, affected_blocks, uplift_pct, duration_weeks}` from the prompt,
+        the forecast is re-run with the uplift, and a burn-down is returned. Nothing is saved or
+        changed. If the prompt cannot be parsed the API returns 422 `unparseable_scenario`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScenarioRequest'
+            example:
+              prompt: Dengue surge in 3 blocks
+              district_id: TN-D01
+              horizon_weeks: 4
+      responses:
+        '200':
+          description: Scenario result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScenarioResponse'
+              example:
+                scenario_id: SCN-000009
+                parsed: { disease: dengue, affected_blocks: [Block-A, Block-B, Block-C], uplift_pct: 40, duration_weeks: 4 }
+                summary: { facilities_red_before: 3, facilities_red_after: 9 }
+                burn_down:
+                  - drug_code: PARA500
+                    unit: tablets
+                    points:
+                      - { date: '2026-09-30', baseline_stock: 18200, scenario_stock: 17600 }
+                      - { date: '2026-10-07', baseline_stock: 15100, scenario_stock: 12900 }
+                at_risk:
+                  - { facility_id: TN-PHC-014, drug_code: PARA500, cover_days_baseline: 41.0, cover_days_scenario: 22.0, status_scenario: AMBER }
+                suggested_optimize_request: { district_id: TN-D01, drug_code: PARA500, emergency_mode: true, allow_cross_state: false, blocked_facility_ids: [], max_proposals: 5 }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '502': { $ref: '#/components/responses/UpstreamUnavailable' }
+
+  /federation/round:
+    post:
+      tags: [federation]
+      operationId: runFederationRound
+      summary: Trigger one federated training round
+      description: |
+        Flow: coordinator publishes the global model, each state node trains locally, weight updates
+        return (optionally clipped with noise), data-weighted federated averaging runs, and the new
+        version is validated and stored in the model registry. Only weights leave a state.
+        The prototype runs this synchronously and it can take a few seconds. Restricted to `STATE` role.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FederationRoundRequest'
+            example:
+              state_codes: [TN, BR, MH]
+              local_epochs: 3
+              dp_noise: false
+      responses:
+        '200':
+          description: Completed round
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationRound'
+              example:
+                round_id: FR-0008
+                round_number: 8
+                status: COMPLETED
+                model_version: fed-v8
+                started_at: '2026-09-29T06:45:00Z'
+                completed_at: '2026-09-29T06:45:07Z'
+                global_mape: 14.2
+                per_state:
+                  - { state_code: TN, n_samples: 52000, is_data_sparse: false, local_only_mape: 13.1, federated_mape: 12.8, update_norm: 0.42 }
+                  - { state_code: BR, n_samples: 9000, is_data_sparse: true, local_only_mape: 26.5, federated_mape: 17.9, update_norm: 0.61 }
+                  - { state_code: MH, n_samples: 41000, is_data_sparse: false, local_only_mape: 14.4, federated_mape: 13.6, update_norm: 0.47 }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+
+  /federation/rounds:
+    get:
+      tags: [federation]
+      operationId: listFederationRounds
+      summary: Round history and model versions for the chart
+      responses:
+        '200':
+          description: Rounds, oldest first
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationRoundList'
+              example:
+                rounds:
+                  - round_id: FR-0007
+                    round_number: 7
+                    status: COMPLETED
+                    model_version: fed-v7
+                    started_at: '2026-09-29T06:20:00Z'
+                    completed_at: '2026-09-29T06:20:06Z'
+                    global_mape: 14.9
+                    per_state:
+                      - { state_code: TN, n_samples: 52000, is_data_sparse: false, local_only_mape: 13.1, federated_mape: 13.0, update_norm: 0.44 }
+                      - { state_code: BR, n_samples: 9000, is_data_sparse: true, local_only_mape: 26.5, federated_mape: 19.4, update_norm: 0.66 }
+                      - { state_code: MH, n_samples: 41000, is_data_sparse: false, local_only_mape: 14.4, federated_mape: 14.0, update_norm: 0.49 }
+                models:
+                  - { version: fed-v7, created_at: '2026-09-29T06:20:06Z', validated: true, active: true }
+                  - { version: fed-v6, created_at: '2026-09-29T06:05:04Z', validated: true, active: false }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /alerts:
+    get:
+      tags: [alerts]
+      operationId: listAlerts
+      summary: Alerts with translated message and voice note (P1)
+      description: |
+        `message` is translated to `language`. `audio_url` is set when a voice note exists and points
+        to `GET /alerts/{alert_id}/audio`. `escalation_level` rises PHC, BLOCK, DISTRICT, STATE if
+        the alert stays unacknowledged.
+      parameters:
+        - $ref: '#/components/parameters/DistrictIdQuery'
+        - name: language
+          in: query
+          schema:
+            $ref: '#/components/schemas/Language'
+        - name: acknowledged
+          in: query
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: Alert list, highest severity first
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertList'
+              example:
+                items:
+                  - alert_id: AL-000044
+                    severity: HIGH
+                    rule_id: STOCKOUT_RED_ESSENTIAL
+                    facility_id: TN-PHC-014
+                    facility_name: PHC Sample-014
+                    drug_code: ORS
+                    message: ORS at PHC Sample-014 will run out in about 5 days. A transfer proposal is waiting for approval.
+                    language: en-IN
+                    audio_url: /api/v1/alerts/AL-000044/audio
+                    escalation_level: BLOCK
+                    acknowledged: false
+                    created_at: '2026-09-29T06:31:00Z'
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+
+  /alerts/{alert_id}/audio:
+    get:
+      tags: [alerts]
+      operationId: getAlertAudio
+      summary: Voice note for an alert (P1)
+      parameters:
+        - name: alert_id
+          in: path
+          required: true
+          schema: { type: string, example: AL-000044 }
+      responses:
+        '200':
+          description: Text-to-Speech audio
+          content:
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /audit:
+    get:
+      tags: [audit]
+      operationId: listAudit
+      summary: Append-only audit log
+      description: |
+        Read-only. `AUDITOR` and `STATE` see all districts, `DISTRICT` sees its own. Newest first,
+        paged with `cursor`.
+      parameters:
+        - name: actor
+          in: query
+          schema: { type: string }
+        - name: action
+          in: query
+          schema:
+            $ref: '#/components/schemas/AuditAction'
+        - name: entity_type
+          in: query
+          schema:
+            $ref: '#/components/schemas/AuditEntityType'
+        - name: entity_id
+          in: query
+          schema: { type: string }
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Audit entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditList'
+              example:
+                items:
+                  - { audit_id: AUD-001203, ts: '2026-09-29T06:40:00Z', actor: dho.d01, role: DISTRICT, action: TRANSFER_APPROVE, entity_type: TRANSFER, entity_id: T-001, comment: Approved for dispatch, details: { qty: 400, from: TN-CHC-003, to: TN-PHC-014 } }
+                  - { audit_id: AUD-001202, ts: '2026-09-29T06:35:00Z', actor: dho.d01, role: DISTRICT, action: OPTIMIZE_RUN, entity_type: TRANSFER, entity_id: RUN-000031, comment: null, details: { proposals: 1 } }
+                next_cursor: null
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+
+components:
+  securitySchemes:
+    RoleHeader:
+      type: apiKey
+      in: header
+      name: X-Role
+      description: FACILITY, BLOCK, DISTRICT, STATE or AUDITOR
+    DistrictHeader:
+      type: apiKey
+      in: header
+      name: X-District
+      description: District id, or ALL for STATE and AUDITOR
+    UserHeader:
+      type: apiKey
+      in: header
+      name: X-User
+      description: User id, recorded in the audit log
+
+  parameters:
+    DistrictIdQuery:
+      name: district_id
+      in: query
+      description: Defaults to the caller's X-District. Must be inside the caller's scope.
+      schema:
+        $ref: '#/components/schemas/DistrictId'
+    DrugCodeQuery:
+      name: drug_code
+      in: query
+      schema:
+        $ref: '#/components/schemas/DrugCode'
+    FacilityIdPath:
+      name: facility_id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/FacilityId'
+    TransferIdPath:
+      name: transfer_id
+      in: path
+      required: true
+      schema: { type: string, example: T-001 }
+
+  responses:
+    Forbidden:
+      description: Role or district scope does not allow this call
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: forbidden, message: AUDITOR role is read-only, details: null, request_id: req_8f2c1a }
+    NotFound:
+      description: Resource does not exist or is outside the caller's scope
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: not_found, message: Transfer T-999 not found, details: null, request_id: req_8f2c1b }
+    Conflict:
+      description: Action is not allowed from the current state
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: invalid_transition, message: 'Cannot APPROVE a transfer in state REJECTED', details: { state: REJECTED }, request_id: req_8f2c1c }
+    Unprocessable:
+      description: Validation failed or a business constraint was broken
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: validation_error, message: comment is required for REJECT, details: { field: comment }, request_id: req_8f2c1d }
+    PayloadTooLarge:
+      description: Uploaded file is over the size limit
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: file_too_large, message: Audio must be 10 MB or smaller, details: null, request_id: req_8f2c1e }
+    UpstreamUnavailable:
+      description: Gemini, Speech-to-Text, Maps or another Google service failed. Safe to retry.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: upstream_unavailable, message: Speech-to-Text did not respond, details: { service: speech }, request_id: req_8f2c1f }
+
+  schemas:
+    # ---------- identifiers and enums ----------
+    StateCode:
+      type: string
+      pattern: '^[A-Z]{2}$'
+      example: TN
+    DistrictId:
+      type: string
+      pattern: '^[A-Z]{2}-D[0-9]{2}$'
+      example: TN-D01
+    FacilityId:
+      type: string
+      pattern: '^[A-Z]{2}-[A-Z]{2,4}-[0-9]{3}$'
+      example: TN-PHC-014
+    DrugCode:
+      type: string
+      pattern: '^[A-Z0-9_]{2,16}$'
+      description: Code from drug_master
+      example: ORS
+    Language:
+      type: string
+      enum: [en-IN, ta-IN, hi-IN]
+      default: en-IN
+    RiskStatus:
+      type: string
+      enum: [RED, AMBER, GREEN]
+      description: RED = cover under lead time plus safety buffer, AMBER = cover under 2x lead time, GREEN otherwise
+    FacilityType:
+      type: string
+      enum: [PHC, CHC, WAREHOUSE]
+    TransferState:
+      type: string
+      enum: [OPEN, UNDER_REVIEW, APPROVED, REJECTED, ESCALATED, IN_TRANSIT, RECEIVED, CLOSED]
+      description: The prototype produces OPEN, APPROVED, REJECTED, ESCALATED and CLOSED. IN_TRANSIT and RECEIVED are reserved.
+    Decision:
+      type: string
+      enum: [APPROVE, MODIFY, REJECT, ESCALATE, MARK_DONE]
+    AuditAction:
+      type: string
+      enum: [CAPTURE_CONFIRM, OPTIMIZE_RUN, TRANSFER_APPROVE, TRANSFER_MODIFY, TRANSFER_REJECT, TRANSFER_ESCALATE, TRANSFER_DONE, COPILOT_QUERY, FEDERATION_ROUND, ALERT_ACK]
+    AuditEntityType:
+      type: string
+      enum: [FACILITY, CAPTURE, TRANSFER, QUERY, ALERT, MODEL]
+
+    # ---------- shared ----------
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          enum: [validation_error, constraint_violation, unparseable_scenario, file_too_large, forbidden, not_found, invalid_transition, upstream_unavailable, internal_error]
+        message:
+          type: string
+        details:
+          type: object
+          nullable: true
+          additionalProperties: true
+        request_id:
+          type: string
+    Health:
+      type: object
+      required: [status, mock_mode, version, time]
+      properties:
+        status: { type: string, enum: [ok] }
+        mock_mode: { type: boolean }
+        version: { type: string }
+        time: { type: string, format: date-time }
+
+    # ---------- capture ----------
+    CaptureRow:
+      type: object
+      required: [row_id, drug_heard, drug_code, qty, unit, confidence, needs_confirm]
+      properties:
+        row_id: { type: integer }
+        drug_heard: { type: string, description: 'Text as spoken or read, before matching' }
+        drug_code: { allOf: [ { $ref: '#/components/schemas/DrugCode' } ], nullable: true, description: 'null when no drug_master match' }
+        drug_name: { type: string, nullable: true }
+        qty: { type: integer, minimum: 0 }
+        unit: { type: string }
+        batch_no: { type: string, nullable: true }
+        expiry_date: { type: string, format: date, nullable: true }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        needs_confirm: { type: boolean, description: 'True when confidence is under the threshold or drug_code is null' }
+    CaptureResponse:
+      type: object
+      required: [capture_id, facility_id, source, confidence_threshold, rows, warnings]
+      properties:
+        capture_id: { type: string }
+        facility_id: { $ref: '#/components/schemas/FacilityId' }
+        source: { type: string, enum: [voice, photo] }
+        language: { allOf: [ { $ref: '#/components/schemas/Language' } ], nullable: true }
+        transcript: { type: string, nullable: true }
+        confidence_threshold: { type: number, example: 0.85 }
+        rows:
+          type: array
+          items: { $ref: '#/components/schemas/CaptureRow' }
+        warnings:
+          type: array
+          items: { type: string }
+    ConfirmedRow:
+      type: object
+      required: [drug_code, qty, unit]
+      properties:
+        drug_code: { $ref: '#/components/schemas/DrugCode' }
+        qty: { type: integer, minimum: 0 }
+        unit: { type: string }
+        batch_no: { type: string, nullable: true }
+        expiry_date: { type: string, format: date, nullable: true }
+    CaptureConfirmRequest:
+      type: object
+      required: [capture_id, facility_id, rows]
+      properties:
+        capture_id: { type: string }
+        facility_id: { $ref: '#/components/schemas/FacilityId' }
+        rows:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/ConfirmedRow' }
+    StatusUpdate:
+      type: object
+      required: [drug_code, status, cover_days]
+      properties:
+        drug_code: { $ref: '#/components/schemas/DrugCode' }
+        status: { $ref: '#/components/schemas/RiskStatus' }
+        cover_days: { type: number }
+    CaptureConfirmResponse:
+      type: object
+      required: [snapshot_id, facility_id, recorded_at, rows_saved, updated_status]
+      properties:
+        snapshot_id: { type: string }
+        facility_id: { $ref: '#/components/schemas/FacilityId' }
+        recorded_at: { type: string, format: date-time }
+        rows_saved: { type: integer }
+        updated_status:
+          type: array
+          items: { $ref: '#/components/schemas/StatusUpdate' }
+
+    # ---------- facilities ----------
+    Facility:
+      type: object
+      required: [facility_id, name, type, state_code, district_id, lat, lng, status]
+      properties:
+        facility_id: { $ref: '#/components/schemas/FacilityId' }
+        name: { type: string }
+        type: { $ref: '#/components/schemas/FacilityType' }
+        state_code: { $ref: '#/components/schemas/StateCode' }
+        district_id: { $ref: '#/components/schemas/DistrictId' }
+        block: { type: string, nullable: true }
+        lat: { type: number }
+        lng: { type: number }
+        population_served: { type: integer, nullable: true }
+        vulnerability_weight: { type: number, minimum: 1.0, maximum: 2.0, description: 'Tribal, remote and flood-prone facilities score higher' }
+        status: { $ref: '#/components/schemas/RiskStatus' }
+        last_report_at: { type: string, format: date-time, nullable: true }
+    FacilityList:
+      type: object
+      required: [as_of, items]
+      properties:
+        as_of: { type: string, format: date-time }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Facility' }
+    StockItem:
+      type: object
+      required: [drug_code, drug_name, unit, stock_qty, usable_qty, cover_days, status]
+      properties:
+        drug_code: { $ref: '#/components/schemas/DrugCode' }
+        drug_name: { type: string }
+        unit: { type: string }
+        stock_qty: { type: integer }
+        usable_qty: { type: integer, description: 'Stock excluding expired batches' }
+        nearest_expiry: { type: string, format: date, nullable: true }
+        cover_days: { type: number, description: 'usable_qty divided by forecast daily demand (P50)' }
+        status: { $ref: '#/components/schemas/RiskStatus' }
+        last_updated_at: { type: string, format: date-time, nullable: true }
+    FacilityStatus:
+      type: object
+      required: [as_of, facility, stock, beds, attendance, open_alerts]
+      properties:
+        as_of: { type: string, format: date-time }
+        facility: { $ref: '#/components/schemas/Facility' }
+        stock:
+          type: array
+          items: { $ref: '#/components/schemas/StockItem' }
+        beds:
+          type: object
+          required: [total, occupied, occupancy_pct]
+          properties:
+            total: { type: integer }
+            occupied: { type: integer }
+            occupancy_pct: { type: number }
+        attendance:
+          type: object
+          required: [date, sanctioned, present, present_pct]
+          properties:
+            date: { type: string, format: date }
+            sanctioned: { type: integer }
+            present: { type: integer }
+            present_pct: { type: number }
+        open_alerts: { type: integer }
+
+    # ---------- forecast ----------
+    ForecastResponse:
+      type: object
+      required: [facility_id, drug_code, unit, horizon_weeks, model_version, model_scope, generated_at, history, points, drivers]
+      properties:
+        facility_id: { $ref: '#/components/schemas/FacilityId' }
+        drug_code: { $ref: '#/components/schemas/DrugCode' }
+        unit: { type: string }
+        horizon_weeks: { type: integer }
+        model_version: { type: string }
+        model_scope: { type: string, enum: [federated, local] }
+        generated_at: { type: string, format: date-time }
+        history:
+          type: array
+          description: Last 28 days of actual issues
+          items:
+            type: object
+            required: [date, qty]
+            properties:
+              date: { type: string, format: date }
+              qty: { type: number }
+        points:
+          type: array
+          description: One point per day, P10 <= P50 <= P90
+          items:
+            type: object
+            required: [date, p10, p50, p90]
+            properties:
+              date: { type: string, format: date }
+              p10: { type: number }
+              p50: { type: number }
+              p90: { type: number }
+        drivers:
+          type: array
+          items:
+            type: object
+            required: [name, direction, contribution_pct]
+            properties:
+              name: { type: string, example: rainfall_7d }
+              direction: { type: string, enum: [up, down] }
+              contribution_pct: { type: number }
+
+    # ---------- risk ----------
+    RiskFlag:
+      type: object
+      required: [code, reason]
+      properties:
+        code: { type: string, example: CONSUMPTION_SPIKE }
+        reason: { type: string }
+    RiskItem:
+      type: object
+      required: [facility_id, facility_name, district_id, lat, lng, drug_code, drug_name, unit, stock_qty, cover_days, lead_time_days, status, p_stockout, priority, reason, as_of]
+      properties:
+        facility_id: { $ref: '#/components/schemas/FacilityId' }
+        facility_name: { type: string }
+        district_id: { $ref: '#/components/schemas/DistrictId' }
+        block: { type: string, nullable: true }
+        lat: { type: number }
+        lng: { type: number }
+        drug_code: { $ref: '#/components/schemas/DrugCode' }
+        drug_name: { type: string }
+        unit: { type: string }
+        stock_qty: { type: integer }
+        cover_days: { type: number, description: 'Based on P50 demand' }
+        cover_days_p90: { type: number, description: 'Conservative view based on P90 demand' }
+        lead_time_days: { type: number }
+        safety_buffer_days: { type: number }
+        status: { $ref: '#/components/schemas/RiskStatus' }
+        p_stockout: { type: number, minimum: 0, maximum: 1, description: 'Probability of stock-out within lead time' }
+        drug_criticality: { type: integer, minimum: 1, maximum: 5 }
+        vulnerability_weight: { type: number, minimum: 1.0, maximum: 2.0 }
+        priority: { type: number, description: 'Priority Score from PRD Section 8, normalised 0-1, used for sorting' }
+        exposure_units: { type: integer, description: 'forecast_daily_demand x lead_time_days - stock_qty' }
+        reason: { type: string, description: 'Gemini explanation written from the factors above only' }
+        flags:
+          type: array
+          items: { $ref: '#/components/schemas/RiskFlag' }
+        as_of: { type: string, format: date-time }
+    RiskResponse:
+      type: object
+      required: [district_id, as_of, resilience, items]
+      properties:
+        district_id: { $ref: '#/components/schemas/DistrictId' }
+        as_of: { type: string, format: date-time }
+        resilience:
+          type: object
+          required: [score, previous_week_score, delta, drift_alert]
+          properties:
+            score: { type: integer, minimum: 0, maximum: 100 }
+            previous_week_score: { type: integer, minimum: 0, maximum: 100 }
+            delta: { type: integer }
+            drift_alert: { type: boolean, description: 'True when the score dropped by more than 5 points week over week' }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/RiskItem' }
+
+    # ---------- redistribution ----------
+    OptimizeRequest:
+      type: object
+      required: [district_id]
+      properties:
+        district_id: { $ref: '#/components/schemas/DistrictId' }
+        drug_code: { allOf: [ { $ref: '#/components/schemas/DrugCode' } ], nullable: true, description: 'Omit to optimise all RED drugs' }
+        emergency_mode: { type: boolean, default: false }
+        allow_cross_state: { type: boolean, default: false, description: 'Requires emergency_mode = true' }
+        blocked_facility_ids:
+          type: array
+          description: Road-cut toggle. These facilities are excluded as donors and recipients.
+          items: { $ref: '#/components/schemas/FacilityId' }
+        max_proposals: { type: integer, minimum: 1, maximum: 20, default: 5 }
+    TransferParty:
+      type: object
+      required: [facility_id, name, lat, lng, district_id, cover_days_before, cover_days_after]
+      properties:
+        facility_id: { $ref: '#/components/schemas/FacilityId' }
+        name: { type: string }
+        lat: { type: number }
+        lng: { type: number }
+        district_id: { $ref: '#/components/schemas/DistrictId' }
+        cover_days_before: { type: number }
+        cover_days_after: { type: number, description: 'Donor must stay at or above 14 days' }
+    Transfer:
+      type: object
+      required: [transfer_id, run_id, rank, state, drug_code, drug_name, unit, qty, from, to, eta_hours, distance_km, cost_inr, expiry_ok, cross_state, route, reason, created_at, updated_at]
+      properties:
+        transfer_id: { type: string }
+        run_id: { type: string }
+        rank: { type: integer, minimum: 1 }
+        state: { $ref: '#/components/schemas/TransferState' }
+        drug_code: { $ref: '#/components/schemas/DrugCode' }
+        drug_name: { type: string }
+        unit: { type: string }
+        qty: { type: integer, minimum: 1 }
+        from: { $ref: '#/components/schemas/TransferParty' }
+        to: { $ref: '#/components/schemas/TransferParty' }
+        eta_hours: { type: number }
+        distance_km: { type: number }
+        cost_inr: { type: number }
+        batch_expiry_date: { type: string, format: date, nullable: true }
+        expiry_ok: { type: boolean }
+        cross_state: { type: boolean }
+        route:
+          type: object
+          required: [polyline, duration_min]
+          properties:
+            polyline: { type: string, description: 'Google encoded polyline, drawn with the Maps JS geometry library' }
+            duration_min: { type: integer }
+        reason: { type: string, description: 'Gemini plain-language why' }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        decided_by: { type: string, nullable: true }
+        decision_comment: { type: string, nullable: true }
+    OptimizeResponse:
+      type: object
+      required: [run_id, generated_at, solver, proposals]
+      properties:
+        run_id: { type: string }
+        generated_at: { type: string, format: date-time }
+        solver:
+          type: object
+          required: [status, objective_value]
+          properties:
+            status: { type: string, enum: [OPTIMAL, FEASIBLE, INFEASIBLE] }
+            objective_value: { type: number, nullable: true }
+        proposals:
+          type: array
+          description: Empty when the solver is INFEASIBLE
+          items: { $ref: '#/components/schemas/Transfer' }
+    TransferList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Transfer' }
+    TransferDecisionRequest:
+      type: object
+      required: [decision]
+      properties:
+        decision: { $ref: '#/components/schemas/Decision' }
+        comment: { type: string, maxLength: 500, description: 'Required for REJECT' }
+        modified_qty: { type: integer, minimum: 1, description: 'MODIFY only' }
+        modified_source_facility_id:
+          allOf: [ { $ref: '#/components/schemas/FacilityId' } ]
+          description: MODIFY only
+
+    # ---------- copilot ----------
+    CopilotAskRequest:
+      type: object
+      required: [question]
+      properties:
+        question: { type: string, minLength: 1, maxLength: 500 }
+        language: { $ref: '#/components/schemas/Language' }
+    CopilotAskResponse:
+      type: object
+      required: [query_id, language, refused, answer, sources]
+      properties:
+        query_id: { type: string, description: 'Reference to the audit log entry' }
+        language: { $ref: '#/components/schemas/Language' }
+        refused: { type: boolean }
+        refusal_reason: { type: string, nullable: true }
+        answer: { type: string }
+        sources:
+          type: array
+          items:
+            type: object
+            required: [view, as_of]
+            properties:
+              view: { type: string }
+              as_of: { type: string, format: date-time }
+        table:
+          nullable: true
+          type: object
+          required: [columns, rows]
+          properties:
+            columns:
+              type: array
+              items: { type: string }
+            rows:
+              type: array
+              items:
+                type: array
+                items: {}
+
+    # ---------- scenario ----------
+    ScenarioRequest:
+      type: object
+      required: [prompt, district_id]
+      properties:
+        prompt: { type: string, minLength: 3, maxLength: 300 }
+        district_id: { $ref: '#/components/schemas/DistrictId' }
+        horizon_weeks: { type: integer, minimum: 2, maximum: 8, default: 4 }
+    ScenarioResponse:
+      type: object
+      required: [scenario_id, parsed, summary, burn_down, at_risk]
+      properties:
+        scenario_id: { type: string }
+        parsed:
+          type: object
+          required: [disease, affected_blocks, uplift_pct, duration_weeks]
+          properties:
+            disease: { type: string, example: dengue }
+            affected_blocks:
+              type: array
+              items: { type: string }
+            uplift_pct: { type: number }
+            duration_weeks: { type: integer }
+        summary:
+          type: object
+          required: [facilities_red_before, facilities_red_after]
+          properties:
+            facilities_red_before: { type: integer }
+            facilities_red_after: { type: integer }
+        burn_down:
+          type: array
+          items:
+            type: object
+            required: [drug_code, unit, points]
+            properties:
+              drug_code: { $ref: '#/components/schemas/DrugCode' }
+              unit: { type: string }
+              points:
+                type: array
+                items:
+                  type: object
+                  required: [date, baseline_stock, scenario_stock]
+                  properties:
+                    date: { type: string, format: date }
+                    baseline_stock: { type: number }
+                    scenario_stock: { type: number }
+        at_risk:
+          type: array
+          items:
+            type: object
+            required: [facility_id, drug_code, cover_days_baseline, cover_days_scenario, status_scenario]
+            properties:
+              facility_id: { $ref: '#/components/schemas/FacilityId' }
+              drug_code: { $ref: '#/components/schemas/DrugCode' }
+              cover_days_baseline: { type: number }
+              cover_days_scenario: { type: number }
+              status_scenario: { $ref: '#/components/schemas/RiskStatus' }
+        suggested_optimize_request:
+          $ref: '#/components/schemas/OptimizeRequest'
+
+    # ---------- federation ----------
+    FederationRoundRequest:
+      type: object
+      properties:
+        state_codes:
+          type: array
+          description: Defaults to all participating states
+          items: { $ref: '#/components/schemas/StateCode' }
+        local_epochs: { type: integer, minimum: 1, maximum: 10, default: 3 }
+        dp_noise: { type: boolean, default: false, description: 'Clip updates and add noise before averaging' }
+    StateResult:
+      type: object
+      required: [state_code, n_samples, is_data_sparse, local_only_mape, federated_mape]
+      properties:
+        state_code: { $ref: '#/components/schemas/StateCode' }
+        n_samples: { type: integer }
+        is_data_sparse: { type: boolean, description: 'Highlights the state that benefits most in the demo chart' }
+        local_only_mape: { type: number, description: 'Percent error when trained alone' }
+        federated_mape: { type: number, description: 'Percent error using the federated model' }
+        update_norm: { type: number }
+    FederationRound:
+      type: object
+      required: [round_id, round_number, status, model_version, started_at, per_state]
+      properties:
+        round_id: { type: string }
+        round_number: { type: integer }
+        status: { type: string, enum: [COMPLETED, FAILED] }
+        model_version: { type: string }
+        started_at: { type: string, format: date-time }
+        completed_at: { type: string, format: date-time, nullable: true }
+        global_mape: { type: number, nullable: true }
+        per_state:
+          type: array
+          items: { $ref: '#/components/schemas/StateResult' }
+    FederationRoundList:
+      type: object
+      required: [rounds, models]
+      properties:
+        rounds:
+          type: array
+          items: { $ref: '#/components/schemas/FederationRound' }
+        models:
+          type: array
+          items:
+            type: object
+            required: [version, created_at, validated, active]
+            properties:
+              version: { type: string }
+              created_at: { type: string, format: date-time }
+              validated: { type: boolean }
+              active: { type: boolean }
+
+    # ---------- alerts ----------
+    Alert:
+      type: object
+      required: [alert_id, severity, rule_id, facility_id, facility_name, message, language, escalation_level, acknowledged, created_at]
+      properties:
+        alert_id: { type: string }
+        severity: { type: string, enum: [HIGH, MEDIUM, LOW] }
+        rule_id: { type: string, example: STOCKOUT_RED_ESSENTIAL }
+        facility_id: { $ref: '#/components/schemas/FacilityId' }
+        facility_name: { type: string }
+        drug_code: { allOf: [ { $ref: '#/components/schemas/DrugCode' } ], nullable: true }
+        message: { type: string }
+        language: { $ref: '#/components/schemas/Language' }
+        audio_url: { type: string, nullable: true }
+        escalation_level: { type: string, enum: [PHC, BLOCK, DISTRICT, STATE] }
+        acknowledged: { type: boolean }
+        created_at: { type: string, format: date-time }
+    AlertList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Alert' }
+
+    # ---------- audit ----------
+    AuditEntry:
+      type: object
+      required: [audit_id, ts, actor, role, action, entity_type, entity_id]
+      properties:
+        audit_id: { type: string }
+        ts: { type: string, format: date-time }
+        actor: { type: string }
+        role: { type: string, enum: [FACILITY, BLOCK, DISTRICT, STATE, AUDITOR] }
+        action: { $ref: '#/components/schemas/AuditAction' }
+        entity_type: { $ref: '#/components/schemas/AuditEntityType' }
+        entity_id: { type: string }
+        comment: { type: string, nullable: true }
+        details:
+          type: object
+          additionalProperties: true
+    AuditList:
+      type: object
+      required: [items, next_cursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/AuditEntry' }
+        next_cursor: { type: string, nullable: true }

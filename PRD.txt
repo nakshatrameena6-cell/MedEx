@@ -1,0 +1,1097 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}</style><style>:root{color-scheme:light dark;--md-bg:#fff;--md-text:rgba(0,0,0,.8);--md-muted:rgba(0,0,0,.6);--md-fill:rgba(0,0,0,.04);--md-fill-strong:rgba(0,0,0,.06);--md-rule:rgba(0,0,0,.1);--md-rule-strong:rgba(0,0,0,.16);--md-link:hsl(210 100% 45%)}@media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){--md-bg:#0d0d0d;--md-text:rgba(255,255,255,.85);--md-muted:rgba(255,255,255,.6);--md-fill:rgba(255,255,255,.06);--md-fill-strong:rgba(255,255,255,.09);--md-rule:rgba(255,255,255,.14);--md-rule-strong:rgba(255,255,255,.22);--md-link:hsl(210 100% 72%)}}:root[data-theme="dark"]{color-scheme:dark;--md-bg:#0d0d0d;--md-text:rgba(255,255,255,.85);--md-muted:rgba(255,255,255,.6);--md-fill:rgba(255,255,255,.06);--md-fill-strong:rgba(255,255,255,.09);--md-rule:rgba(255,255,255,.14);--md-rule-strong:rgba(255,255,255,.22);--md-link:hsl(210 100% 72%)}:root[data-theme="light"]{color-scheme:light}@media print{:root,:root[data-theme="dark"]{color-scheme:light;--md-bg:#fff;--md-text:rgba(0,0,0,.8);--md-muted:rgba(0,0,0,.6);--md-fill:rgba(0,0,0,.04);--md-fill-strong:rgba(0,0,0,.06);--md-rule:rgba(0,0,0,.1);--md-rule-strong:rgba(0,0,0,.16);--md-link:hsl(210 100% 45%)}}body{background:var(--md-bg);color:var(--md-text);max-width:720px;margin:0 auto;padding:32px;display:flex;flex-direction:column;gap:10px;font:14px/1.55 -apple-system,BlinkMacSystemFont,'SF Pro','Segoe UI',sans-serif;overflow-wrap:break-word}body>:first-child{margin-top:0}h1,h2,h3,h4,h5,h6{margin:6px 0 0;line-height:1.25;font-weight:600;text-wrap:balance}h1{font-size:1.35em}h2{font-size:1.15em;color:var(--md-muted)}h3,h4,h5,h6{font-size:1em}p,ul,ol,blockquote,table,pre,hr{margin:0}strong{font-weight:600}a{color:var(--md-link);text-decoration:none}a:hover{text-decoration:underline}ul,ol{display:flex;flex-direction:column;gap:6px;padding-left:22px}ul{list-style:disc}ol{list-style:decimal}:is(li,td,th)>*+:is(p,ul,ol,blockquote){margin-top:6px}blockquote{display:flex;flex-direction:column;gap:10px;border-left:2px solid var(--md-rule);padding-left:10px;color:var(--md-muted)}:not(pre)>code{background:var(--md-fill);padding:1px 3px;border-radius:4px;font:.92em 'SF Mono',ui-monospace,Menlo,Consolas,monospace}a>code{background:none;color:inherit}pre{background:var(--md-fill);padding:10px 12px;border-radius:6px;overflow-x:auto;font:12px/1.5 'SF Mono',ui-monospace,Menlo,Consolas,monospace;margin-block:4px}pre code{background:none;padding:0;font:inherit}table{width:100%;border-collapse:separate;border-spacing:2px;font:inherit}th,td{padding:6px 8px;border-radius:3px;text-align:left;vertical-align:top}th{background:var(--md-fill-strong);font-weight:600}td{background:var(--md-fill)}:is(th,td) :not(pre)>code{background:transparent}hr{border:0;border-top:1px solid var(--md-rule-strong);margin-block:10px}img{max-width:100%;height:auto;border-radius:4px}</style>
+</head><body>
+<h1>AushadhiGrid: Federated AI Health Supply Chain Resilience Platform</h1>
+<p><strong>Product Requirements Document, Prototype Edition</strong> · Build with AI: Code for Communities (GDG / Google Cloud) · Track: Smart Health &amp; Supply Chain Resilience · v1.1 · 29 Sep 2026</p>
+<blockquote>
+<p><em>&quot;No Primary Health Centre in India should run out of a medicine that the system could have seen coming.&quot;</em></p>
+</blockquote>
+<p><strong>Note:</strong> <em>AushadhiGrid</em> is a working name. Team: <strong>Nattu (backend)</strong> and <strong>Meenachi (frontend)</strong>. v1.1 adds the role split and a two-person 24-hour timeline (Sections 5, 16, 17, 18, 19, 23). Structure is adapted from the PRYSM Enterprise PRD (agents, rule DSL, human-in-the-loop, audit log, resilience score, phased roadmap), with all content rebuilt for public-health supply chains and Google AI.</p>
+<hr>
+<h2>1. Executive Summary</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Product</td>
+<td>Federated AI platform giving live visibility of medicines, beds and staff across PHCs, with demand forecasting, stock-out early warning and cross-district redistribution</td>
+</tr>
+<tr>
+<td>Positioning</td>
+<td>A health-supply copilot for District Health Officers that <em>recommends</em>, while officers <em>approve</em></td>
+</tr>
+<tr>
+<td>Users</td>
+<td>PHC pharmacists/ANMs, Block MOs, District Health Officers, warehouse managers, State health departments, cross-state coordinators, auditors</td>
+</tr>
+<tr>
+<td>Core promise</td>
+<td>See the shortage weeks before it happens, and move stock before patients feel it</td>
+</tr>
+<tr>
+<td>Differentiators</td>
+<td>Federated model sharing (no raw data leaves a state), voice/photo capture in Indian languages, explainable Gemini alerts, equity-weighted redistribution, human approval on every transfer</td>
+</tr>
+<tr>
+<td>Google AI (mandatory)</td>
+<td>Gemini (extraction, vision, copilot, explanations), Vertex AI (forecasting, registry), BigQuery ML, Speech-to-Text, Translation, Text-to-Speech, Maps Platform, Earth Engine</td>
+</tr>
+<tr>
+<td>Prototype scope</td>
+<td>3 simulated states, ~60 PHCs, 25 essential drugs, 24 months of realistic data, deployed on Cloud Run</td>
+</tr>
+</tbody>
+</table>
+<h3>Competitive gap</h3>
+<table>
+<thead>
+<tr>
+<th>Existing</th>
+<th>What it does</th>
+<th>Gap AushadhiGrid fills</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>State inventory portals (e.g. e-Aushadhi-type systems)</td>
+<td>Record stock and indents</td>
+<td>Largely reactive, no forecasting, no cross-state learning</td>
+</tr>
+<tr>
+<td>HMIS / programme portals</td>
+<td>Report cases and services</td>
+<td>Not linked to stock decisions</td>
+</tr>
+<tr>
+<td>Excel and paper registers</td>
+<td>Fill the gaps</td>
+<td>No real-time view, no alerts</td>
+</tr>
+<tr>
+<td>Generic ERP/inventory SaaS</td>
+<td>Track inventory</td>
+<td>Not built for PHC connectivity, languages, or federated state ownership</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>2. Problem Context (preserved from the problem statement)</h2>
+<p>Medicines flow <strong>Medical Services Corporation → District warehouse → CHC/Block hospital → PHC → Sub-centre/ANM → Patient</strong>. Health is a state subject, so every state runs its own chain and data.</p>
+<p><strong>Failures:</strong> late or paper-based reporting; demand guessed rather than forecast; surplus in one district while another stocks out; roads and demand shock during dengue season, floods and cyclones; siloed systems; states cannot pool raw data.</p>
+<p><strong>Challenge requirements</strong> and how this PRD covers them:</p>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Section</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Real-time visibility: medicine stock, beds, staff attendance</td>
+<td>6, 9</td>
+</tr>
+<tr>
+<td>Demand forecasting</td>
+<td>6 (Forecast Agent), 8</td>
+</tr>
+<tr>
+<td>Early stock-out warnings during emergencies</td>
+<td>6, 7</td>
+</tr>
+<tr>
+<td>Automated cross-district redistribution</td>
+<td>6 (Redistribution Agent), 12</td>
+</tr>
+<tr>
+<td>Shared predictive modelling across states (federated)</td>
+<td>10</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>3. Product Vision and Phases</h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Timeline</th>
+<th>Capability</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>P0 Prototype</strong></td>
+<td>Now to 30 Sep</td>
+<td>Capture → forecast → risk → recommend transfer → approve → explain</td>
+<td>End-to-end proof on 3 simulated states</td>
+</tr>
+<tr>
+<td>P1 Pilot</td>
+<td>Month 1-3</td>
+<td>1 district, 20-50 real PHCs, state adapters</td>
+<td>Measured stock-out reduction</td>
+</tr>
+<tr>
+<td>P2 State scale</td>
+<td>Month 3-9</td>
+<td>Full state, HMIS/inventory connectors, offline app GA</td>
+<td>Statewide visibility</td>
+</tr>
+<tr>
+<td>P3 Federation</td>
+<td>Month 9-15</td>
+<td>3-5 states join model registry</td>
+<td>Shared-model accuracy gain</td>
+</tr>
+<tr>
+<td>P4 National / BRICS</td>
+<td>Year 2+</td>
+<td>Open-source digital public good, language and drug-ontology packs</td>
+<td>Cross-border adoption</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Philosophy:</strong> AushadhiGrid does not replace pharmacists or officers. Models produce numbers, Gemini explains, and humans decide.</p>
+<hr>
+<h2>4. Personas</h2>
+<table>
+<thead>
+<tr>
+<th>Persona</th>
+<th>Need</th>
+<th>Channel</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pharmacist / ANM</td>
+<td>Report stock in under 60 seconds/day</td>
+<td>Voice, photo, offline app</td>
+</tr>
+<tr>
+<td>Block MO</td>
+<td>See block PHCs, approve local transfers</td>
+<td>Mobile dashboard, WhatsApp</td>
+</tr>
+<tr>
+<td>District Health Officer</td>
+<td>Forecasts, alerts, transfer approval</td>
+<td>Web dashboard, copilot</td>
+</tr>
+<tr>
+<td>State / Corporation</td>
+<td>State view, procurement, model governance</td>
+<td>Web console, APIs</td>
+</tr>
+<tr>
+<td>Cross-state coordinator</td>
+<td>Emergency surplus visibility, federated model control</td>
+<td>Central console</td>
+</tr>
+<tr>
+<td>Auditor</td>
+<td>Explainable anomalies, immutable trail</td>
+<td>Reports</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>5. Prototype Scope (what must exist by submission)</h2>
+<table>
+<thead>
+<tr>
+<th>Priority</th>
+<th>Feature</th>
+<th>Notes</th>
+<th>Owner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>P0</strong></td>
+<td>Voice stock entry (Tamil, Hindi, English)</td>
+<td>Speech-to-Text → Gemini JSON → validation</td>
+<td>Nattu (API) · Meenachi (UI)</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>Photo stock capture</td>
+<td>Gemini multimodal on register/shelf image, confidence per row</td>
+<td>Nattu (API) · Meenachi (UI)</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>Live PHC map with red/amber/green</td>
+<td>Maps Platform + BigQuery</td>
+<td>Nattu (data, risk view) · Meenachi (map UI)</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>Demand forecast with confidence band</td>
+<td>Federated model (simulated 3 states)</td>
+<td>Nattu (model) · Meenachi (chart)</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>Days-of-cover and risk score</td>
+<td>Section 8</td>
+<td>Nattu (engine) · Meenachi (risk queue)</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>Redistribution recommendation + approve/reject</td>
+<td>OR-Tools + Maps distances + Gemini explanation</td>
+<td>Nattu (optimizer, decision API) · Meenachi (review screen)</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>Gemini copilot (NL → SQL over approved views)</td>
+<td>Section 11</td>
+<td>Nattu (guarded SQL) · Meenachi (panel)</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>Federated training demo</td>
+<td>Round-by-round accuracy chart</td>
+<td>Nattu (rounds) · Meenachi (console chart)</td>
+</tr>
+<tr>
+<td><strong>P1</strong></td>
+<td>Emergency scenario simulator</td>
+<td>&quot;Dengue surge in 3 blocks&quot;</td>
+<td>Nattu (parse, re-run) · Meenachi (burn-down UI)</td>
+</tr>
+<tr>
+<td><strong>P1</strong></td>
+<td>Multilingual alert brief with voice note</td>
+<td>Translation + TTS</td>
+<td>Nattu (agent) · Meenachi (play button)</td>
+</tr>
+<tr>
+<td><strong>P1</strong></td>
+<td>Anomaly flags</td>
+<td>Residual-based, with reasons</td>
+<td>Nattu (detection) · Meenachi (badges)</td>
+</tr>
+<tr>
+<td><strong>P2 (slide only)</strong></td>
+<td>Adapter layer (HMIS, e-Aushadhi-type, ABDM/FHIR), cold chain, citizen &quot;medicine near me&quot;, cyclone pre-positioning</td>
+<td>Shown in architecture and roadmap</td>
+<td>Both (slides only)</td>
+</tr>
+</tbody>
+</table>
+<p>Build rule: anything marked P2 is presented as design, not code.</p>
+<hr>
+<h2>6. Multi-Agent Architecture</h2>
+<p>Adapted from the 8-agent PRYSM orchestration into seven health-supply agents under one orchestrator. Every agent output passes through the review queue (Section 9) where a decision is required.</p>
+<pre><code>AushadhiGrid Orchestrator (Cloud Run)
+ |
+ +-- [1] Capture Agent        --&gt; voice/photo/text -&gt; structured stock, beds, attendance
+ +-- [2] Forecast Agent       --&gt; PHC x drug demand, 2-8 weeks, confidence range
+ +-- [3] Risk Agent           --&gt; days-of-cover, stock-out probability, R/A/G
+ +-- [4] Redistribution Agent --&gt; transfer proposals under constraints
+ +-- [5] Alert Agent          --&gt; escalation + multilingual briefs (WhatsApp/SMS/voice)
+ +-- [6] Copilot Agent        --&gt; NL questions, scenario parsing, explanations
+ +-- [7] Governance Agent     --&gt; validation, anomaly flags, audit log, drug-name mapping
+ |
+ All outputs --&gt; Human Review Queue --&gt; Approve | Reject | Modify | Escalate
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Agent</th>
+<th>Tech</th>
+<th>Confidence handling</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Capture</td>
+<td>Speech-to-Text, Gemini (text + vision), drug master match</td>
+<td>Rows under 85% go to user confirmation</td>
+</tr>
+<tr>
+<td>Forecast</td>
+<td>Vertex AI / Python model, federated</td>
+<td>Always outputs P10-P90 range</td>
+</tr>
+<tr>
+<td>Risk</td>
+<td>Arithmetic on forecast + BigQuery ML delay classifier</td>
+<td>Shows contributing factors</td>
+</tr>
+<tr>
+<td>Redistribution</td>
+<td>OR-Tools; Maps distance matrix</td>
+<td>Ranked proposals with cost, time, buffer left</td>
+</tr>
+<tr>
+<td>Alert</td>
+<td>Rule thresholds + Gemini + Translation + TTS</td>
+<td>Escalates PHC → Block → District → State if unacknowledged</td>
+</tr>
+<tr>
+<td>Copilot</td>
+<td>Gemini function calling, read-only SQL views</td>
+<td>Refuses out-of-scope queries</td>
+</tr>
+<tr>
+<td>Governance</td>
+<td>Rule DSL, Isolation Forest / residuals</td>
+<td>Every flag has a reason string</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Principle:</strong> numbers come from models and SQL. Gemini extracts, explains and translates, and never fabricates stock figures.</p>
+<hr>
+<h2>7. Innovation Highlights (mapped to the 20 ideas)</h2>
+<ol>
+<li><strong>Federated demand forecasting</strong> across state nodes; only weights leave a state (idea 1).</li>
+<li><strong>Outbreak-aware features</strong>: rainfall, temperature, water-body satellite signal, past cases (2).</li>
+<li><strong>Days-of-cover stock-out score</strong> with confidence range (3).</li>
+<li><strong>Equity-weighted redistribution</strong>: tribal, remote and flood-prone PHCs get priority weight so the optimizer does not favour easy-to-serve areas (4, 17).</li>
+<li><strong>Explainable transfers</strong>: each recommendation carries a plain-language &quot;why&quot; from Gemini (4, 12).</li>
+<li><strong>Voice-first and photo-first capture</strong> in Indian languages (6, 7).</li>
+<li><strong>Emergency scenario simulator</strong> (5).</li>
+<li><strong>Expiry-aware transfers</strong>: short-shelf-life batches move first (10).</li>
+<li><strong>Anomaly and leakage flags</strong> with auditor reasons (11).</li>
+<li><strong>Supply Resilience Score</strong> per district, week-over-week drift alert (adapted from PRYSM's compliance-drift metric).</li>
+<li><strong>Supply Evidence Graph</strong> (adapted from PRYSM's audit graph): Warehouse ↔ Transfer ↔ PHC ↔ Stock snapshot ↔ Alert, so every unit moved is traceable.</li>
+<li><strong>Immutable audit log</strong> and human-in-the-loop on all transfers.</li>
+<li><strong>Config-driven rule DSL</strong> so states can change thresholds without code deployment.</li>
+<li><strong>BRICS-ready design</strong>: language packs and drug-ontology packs as configuration (rule 04).</li>
+</ol>
+<hr>
+<h2>8. Risk Intelligence Engine</h2>
+<p><strong>Days of cover</strong> = usable stock ÷ forecast daily demand (P50). A conservative view uses the P90 demand.</p>
+<p><strong>Status rule (configurable):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Condition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Red</td>
+<td>cover &lt; supply lead time + safety buffer</td>
+</tr>
+<tr>
+<td>Amber</td>
+<td>cover &lt; 2 × lead time</td>
+</tr>
+<tr>
+<td>Green</td>
+<td>otherwise</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Priority Score</strong> (used to sort the alert queue):</p>
+<pre><code>Priority = P(stock-out within lead time)
+         × Drug Criticality (1-5)
+         × Population Served (normalised)
+         × Vulnerability Weight (1.0-2.0)
+         × Emergency Multiplier (1.0-1.5)
+</code></pre>
+<p>Example: ORS at a flood-prone tribal PHC, 5 days of cover, 9-day lead time, P(stock-out) 0.82, criticality 4, vulnerability 1.8 → top of the district queue.</p>
+<p><strong>Resilience Score</strong> (0-100 per district): weighted share of PHC × critical-drug pairs that are green, minus penalties for late reporting and expiring stock. Tracked weekly; a drop of more than 5 points raises an alert.</p>
+<hr>
+<h2>9. Rule Engine and Human-in-the-Loop</h2>
+<h3>Rule DSL example</h3>
+<pre><code class="language-json">{
+  &#34;rule_id&#34;: &#34;STOCKOUT_RED_ESSENTIAL&#34;,
+  &#34;domain&#34;: &#34;stock&#34;,
+  &#34;condition&#34;: &#34;drug.is_essential AND cover_days &lt; lead_time_days + safety_buffer&#34;,
+  &#34;severity&#34;: &#34;HIGH&#34;,
+  &#34;exposure&#34;: &#34;forecast_daily_demand * lead_time_days - stock_qty&#34;,
+  &#34;explanation&#34;: &#34;Projected to run out before the next delivery can arrive.&#34;,
+  &#34;action&#34;: &#34;Generate transfer proposal; notify Block MO and DHO.&#34;,
+  &#34;escalate_after_hours&#34;: 24
+}
+</code></pre>
+<p>Additional rules: duplicate indent, consumption over 3× rolling baseline, stock update older than 72 hours, near-expiry (under 60 days) with low forecast demand, staff attendance under threshold, bed occupancy above 90%.</p>
+<h3>Workflow</h3>
+<pre><code>Agent raises finding / proposes transfer
+   |
+   v
+Human Review Queue
+   +-- APPROVE   --&gt; becomes tracked transfer task
+   +-- MODIFY    --&gt; quantity/source edited, then approved
+   +-- REJECT    --&gt; reason logged, fed back to model
+   +-- ESCALATE  --&gt; routed to District/State
+   +-- MARK DONE --&gt; receipt confirmed, ledger updated
+   |
+   All actions --&gt; Immutable Audit Log (who, what, when, comment)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Next</th>
+<th>SLA</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Open</td>
+<td>Under Review</td>
+<td>12 hrs</td>
+</tr>
+<tr>
+<td>Under Review</td>
+<td>Approved / Rejected / Escalated</td>
+<td>24 hrs</td>
+</tr>
+<tr>
+<td>In Transit</td>
+<td>Received</td>
+<td>per route ETA</td>
+</tr>
+<tr>
+<td>Escalated</td>
+<td>Re-assigned</td>
+<td>12 hrs</td>
+</tr>
+<tr>
+<td>Received</td>
+<td>Closed</td>
+<td>n/a</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>10. Federated Learning Design</h2>
+<p><strong>Prototype:</strong> three simulated state nodes (for example Tamil Nadu, Bihar, Maharashtra), each with its own dataset and its own BigQuery dataset. State nodes train locally and share only weights.</p>
+<p>Round flow: coordinator publishes global model → each node trains locally → nodes return weight updates (optionally clipped with noise) → coordinator applies data-weighted federated averaging → new version validated and stored in the model registry.</p>
+<table>
+<thead>
+<tr>
+<th>Design choice</th>
+<th>Decision</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Model</td>
+<td>Small model suited to weight averaging (e.g. Poisson/linear or small MLP on lag, seasonality, weather, footfall features)</td>
+</tr>
+<tr>
+<td>Personalisation</td>
+<td>Global base plus light per-state adjustment layer</td>
+</tr>
+<tr>
+<td>Proof for judges</td>
+<td>Chart: a data-sparse state's forecast error (MAPE) falls after joining federation versus training alone</td>
+</tr>
+<tr>
+<td>Cross-state stock sharing</td>
+<td>Only aggregated facts (drug, quantity range, warehouse) cross states, and only in emergency mode</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Honesty note:</strong> the prototype simulates federation on one project with separate datasets. Production would use separate state cloud projects and a secure aggregation service.</p>
+<hr>
+<h2>11. Gemini Copilot and Guardrails</h2>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ask</td>
+<td>&quot;Which PHCs in my district run out of ORS in 10 days?&quot; → Gemini selects a query template/view → SQL runs read-only → Gemini summarises rows</td>
+</tr>
+<tr>
+<td>Explain</td>
+<td>Structured risk factors → Gemini writes reason from supplied facts only</td>
+</tr>
+<tr>
+<td>Scenario</td>
+<td>&quot;Dengue surge in 3 blocks&quot; → Gemini extracts {disease, blocks, uplift%} → forecast re-run → burn-down + plan</td>
+</tr>
+<tr>
+<td>Brief</td>
+<td>Weekly digest for DHO: top risks, pending approvals, resilience trend</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Guardrails:</strong> approved views only; role- and district-level row filtering enforced in SQL, not in the prompt; no write access; every query logged; answers cite the underlying table and timestamp.</p>
+<hr>
+<h2>12. Redistribution Optimizer</h2>
+<p>Transportation-style optimisation (OR-Tools). It is operations research, not ML, and the pitch should say so.</p>
+<ul>
+<li><strong>Decision variable:</strong> quantity of drug <em>d</em> moved from donor <em>i</em> to PHC <em>j</em>.</li>
+<li><strong>Minimise:</strong> transport cost and delay + λ × priority-weighted unmet demand + expiry-waste penalty.</li>
+<li><strong>Constraints:</strong> donor keeps a safety buffer (e.g. ≥ 14 days cover); vehicle capacity; batch expiry longer than transit time plus expected use time; road-accessibility flag (Maps travel time, with a manual &quot;road cut&quot; toggle in the demo).</li>
+<li><strong>Output:</strong> ranked proposals showing quantity, source, ETA, cost, donor cover remaining, and Gemini's plain-language reason.</li>
+</ul>
+<hr>
+<h2>13. Data Model and Synthetic Data Plan</h2>
+<p><strong>Tables:</strong> <code>facilities</code>, <code>drug_master</code> (with essential flag, shelf life, criticality), <code>stock_snapshots</code>, <code>issues_receipts</code>, <code>opd_footfall</code>, <code>staff_attendance</code>, <code>bed_status</code>, <code>weather_daily</code>, <code>disease_signals</code>, <code>transfers</code>, <code>alerts</code>, <code>audit_log</code>, <code>drug_name_map</code>.</p>
+<p><strong>Data sources:</strong> data.gov.in facility and district lists; IMD weather where available; WHO/NVBDCP-style seasonal disease patterns; Essential Medicines List for drug master. Where live data is missing, generate <strong>realistic synthetic data</strong> with a documented generator: seasonal dengue and diarrhoeal peaks, footfall noise, delivery delays, missing days, and a few injected anomalies and stock-outs. Label synthetic data clearly in the submission. Patient identifiers are never stored.</p>
+<hr>
+<h2>14. Technology Stack (Google-first)</h2>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Technology</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Frontend</td>
+<td>Next.js or React + Tailwind, Maps JS API, Recharts; PWA for offline</td>
+</tr>
+<tr>
+<td>Backend</td>
+<td>FastAPI on Cloud Run</td>
+</tr>
+<tr>
+<td>Offline and auth</td>
+<td>Firebase (auth, Firestore sync queue)</td>
+</tr>
+<tr>
+<td>Warehouse and ML</td>
+<td>BigQuery, BigQuery ML, Vertex AI (training, registry)</td>
+</tr>
+<tr>
+<td>Generative AI</td>
+<td>Gemini API via Vertex AI / AI Studio</td>
+</tr>
+<tr>
+<td>Voice and language</td>
+<td>Speech-to-Text, Text-to-Speech, Translation API</td>
+</tr>
+<tr>
+<td>Geospatial</td>
+<td>Maps Platform (Distance Matrix), Earth Engine (optional feature)</td>
+</tr>
+<tr>
+<td>Optimisation</td>
+<td>OR-Tools</td>
+</tr>
+<tr>
+<td>Jobs</td>
+<td>Cloud Scheduler + Cloud Functions</td>
+</tr>
+<tr>
+<td>CI/CD</td>
+<td>GitHub Actions to Cloud Run</td>
+</tr>
+</tbody>
+</table>
+<p>Fallback: if a Google service is delayed, keep Gemini and BigQuery as the guaranteed pair, since they satisfy the mandatory-AI rule on their own.</p>
+<hr>
+<h2>15. Security, Privacy and Governance</h2>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Approach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Data minimisation</td>
+<td>Operational data only; no patient identifiers</td>
+</tr>
+<tr>
+<td>Sovereignty</td>
+<td>Per-state dataset (production: per-state project in an India region)</td>
+</tr>
+<tr>
+<td>Access</td>
+<td>RBAC: Facility, Block, District, State, Auditor; row-level filtering</td>
+</tr>
+<tr>
+<td>Encryption</td>
+<td>At rest and in transit</td>
+</tr>
+<tr>
+<td>Audit</td>
+<td>Append-only log of every approval, edit and query</td>
+</tr>
+<tr>
+<td>Model governance</td>
+<td>Versioned models, validation before rollout, rollback</td>
+</tr>
+<tr>
+<td>Privacy law</td>
+<td>Designed to align with DPDP Act principles</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>16. Screens</h2>
+<table>
+<thead>
+<tr>
+<th>Screen</th>
+<th>User</th>
+<th>Contents</th>
+<th>Calls (Section 17)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PHC Capture</td>
+<td>Pharmacist</td>
+<td>Big mic button, camera button, confirm-rows list, offline badge</td>
+<td><code>POST /capture/voice</code>, <code>/capture/photo</code>, <code>/capture/confirm</code></td>
+</tr>
+<tr>
+<td>District Map</td>
+<td>DHO</td>
+<td>Colour-coded PHCs, filter by drug, click for detail</td>
+<td><code>GET /facilities</code>, <code>/facilities/{id}/status</code>, <code>/risk</code></td>
+</tr>
+<tr>
+<td>Risk Queue</td>
+<td>DHO / Block MO</td>
+<td>Sorted priority list with reasons</td>
+<td><code>GET /risk</code></td>
+</tr>
+<tr>
+<td>Transfer Review</td>
+<td>DHO</td>
+<td>Proposal, map route, cost, donor impact, approve / modify / reject</td>
+<td><code>POST /optimize</code>, <code>GET /transfers</code>, <code>POST /transfers/{id}/decision</code></td>
+</tr>
+<tr>
+<td>Forecast View</td>
+<td>DHO</td>
+<td>Demand line with P10-P90 band, drivers</td>
+<td><code>GET /forecast</code></td>
+</tr>
+<tr>
+<td>Federation Console</td>
+<td>State / coordinator</td>
+<td>Rounds, per-state error, model versions</td>
+<td><code>POST /federation/round</code>, <code>GET /federation/rounds</code></td>
+</tr>
+<tr>
+<td>Copilot Panel</td>
+<td>All</td>
+<td>Text and voice queries</td>
+<td><code>POST /copilot/ask</code></td>
+</tr>
+<tr>
+<td>Scenario Simulator</td>
+<td>DHO</td>
+<td>Type a surge, see burn-down</td>
+<td><code>POST /scenario/run</code></td>
+</tr>
+<tr>
+<td>Audit Trail</td>
+<td>Auditor</td>
+<td>Filterable log and supply evidence graph (stretch: simple table only)</td>
+<td><code>GET /audit</code></td>
+</tr>
+</tbody>
+</table>
+<p>All screens are built by <strong>Meenachi</strong>.</p>
+<hr>
+<h2>17. API Surface (prototype)</h2>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Purpose</th>
+<th>Used by screen</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>POST /capture/voice</code></td>
+<td>Audio → structured stock rows</td>
+<td>PHC Capture</td>
+</tr>
+<tr>
+<td><code>POST /capture/photo</code></td>
+<td>Image → structured stock rows</td>
+<td>PHC Capture</td>
+</tr>
+<tr>
+<td><code>POST /capture/confirm</code> <em>(added v1.1)</em></td>
+<td>Save user-confirmed rows as a stock snapshot</td>
+<td>PHC Capture</td>
+</tr>
+<tr>
+<td><code>GET /facilities?district</code> <em>(added v1.1)</em></td>
+<td>Facility list with coordinates and current R/A/G</td>
+<td>District Map</td>
+</tr>
+<tr>
+<td><code>GET /facilities/{id}/status</code></td>
+<td>Stock, beds, attendance</td>
+<td>District Map</td>
+</tr>
+<tr>
+<td><code>GET /forecast?facility&amp;drug&amp;horizon</code></td>
+<td>Demand with band</td>
+<td>Forecast View</td>
+</tr>
+<tr>
+<td><code>GET /risk?district</code></td>
+<td>Ranked risk list</td>
+<td>Risk Queue, District Map</td>
+</tr>
+<tr>
+<td><code>POST /optimize</code></td>
+<td>Generate transfer proposals</td>
+<td>Transfer Review</td>
+</tr>
+<tr>
+<td><code>GET /transfers</code> <em>(added v1.1)</em></td>
+<td>Transfers and their states</td>
+<td>Transfer Review</td>
+</tr>
+<tr>
+<td><code>POST /transfers/{id}/decision</code></td>
+<td>Approve, modify, reject</td>
+<td>Transfer Review</td>
+</tr>
+<tr>
+<td><code>POST /copilot/ask</code></td>
+<td>NL question</td>
+<td>Copilot Panel</td>
+</tr>
+<tr>
+<td><code>POST /scenario/run</code></td>
+<td>Surge simulation</td>
+<td>Scenario Simulator</td>
+</tr>
+<tr>
+<td><code>POST /federation/round</code></td>
+<td>Trigger a training round</td>
+<td>Federation Console</td>
+</tr>
+<tr>
+<td><code>GET /federation/rounds</code> <em>(added v1.1)</em></td>
+<td>Per-round, per-state error history for the chart</td>
+<td>Federation Console</td>
+</tr>
+<tr>
+<td><code>GET /audit</code> <em>(added v1.1)</em></td>
+<td>Audit log entries</td>
+<td>Audit Trail</td>
+</tr>
+</tbody>
+</table>
+<p>All endpoints are implemented by <strong>Nattu</strong>. The added endpoints are the ones the screens need but the original list did not cover.</p>
+<hr>
+<h2>18. Team, Roles and 24-Hour Build Plan (submission closes 30/09)</h2>
+<p>Two-person team. <strong>Nattu owns the backend</strong>: data, AI, ML, optimizer, APIs and deployment. <strong>Meenachi owns the frontend</strong>: every screen, the map, charts and capture UX, plus the demo video and deck. They work in parallel against a shared API contract so neither waits for the other. Treat H0 as the kickoff time and make sure H24 lands before the real submission deadline.</p>
+<h3>18.1 Role split</h3>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Nattu (Backend)</th>
+<th>Meenachi (Frontend)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Code ownership</td>
+<td><code>/backend</code> (FastAPI, agents, jobs), <code>/data</code> (generator), <code>/infra</code> (Cloud Run, GitHub Actions)</td>
+<td><code>/frontend</code> (React + Tailwind PWA shell)</td>
+</tr>
+<tr>
+<td>Data</td>
+<td>Synthetic generator, BigQuery datasets and views, <code>drug_master</code>, <code>drug_name_map</code></td>
+<td>Works only through the API; keeps fixtures in step with the contract</td>
+</tr>
+<tr>
+<td>Capture</td>
+<td>Speech-to-Text, Gemini extraction (text + vision), drug matching, confidence scores</td>
+<td>Mic and camera UI, language selector, confirm-rows list (rows under 85% highlighted), offline badge</td>
+</tr>
+<tr>
+<td>Forecast and federation</td>
+<td>Model, 3 state nodes, federated averaging, MAPE comparison, model registry entry</td>
+<td>Forecast View (P10-P90 band), Federation Console (round-by-round chart)</td>
+</tr>
+<tr>
+<td>Risk</td>
+<td>Days-of-cover, Priority Score, R/A/G, rule DSL</td>
+<td>District Map (R/A/G markers, drug filter, PHC drawer), Risk Queue with reason text</td>
+</tr>
+<tr>
+<td>Redistribution</td>
+<td>OR-Tools, Distance Matrix, Gemini explanation, transfer states, audit log</td>
+<td>Transfer Review (route on map, donor impact, approve / modify / reject)</td>
+</tr>
+<tr>
+<td>Copilot and scenario</td>
+<td>Gemini function calling, guarded read-only SQL, scenario parsing</td>
+<td>Copilot panel (text + mic), Scenario Simulator burn-down</td>
+</tr>
+<tr>
+<td>Alerts (P1)</td>
+<td>Alert Agent, Translation, Text-to-Speech</td>
+<td>Alert banner, play-voice-note button</td>
+</tr>
+<tr>
+<td>Delivery</td>
+<td>Cloud Run deploy, secrets, smoke tests, README, architecture and federated-design slides</td>
+<td>UI polish, demo video, pitch deck assembly, final UI walk-through</td>
+</tr>
+<tr>
+<td>Live demo</td>
+<td>Narrates backend and federation; owns the fallback plan</td>
+<td>Drives the screen</td>
+</tr>
+</tbody>
+</table>
+<h3>18.2 Shared contract (what makes parallel work possible)</h3>
+<ul>
+<li>By H3 Nattu publishes the FastAPI OpenAPI schema and fixture JSON for every endpoint in Section 17. Meenachi builds against the fixtures until each real endpoint goes live.</li>
+<li><code>MOCK_MODE=true</code> on Cloud Run returns fixtures, so the deployed frontend works from the first deploy.</li>
+<li>Contract freeze at H3. Any later change is announced in the team chat and committed to <code>/contract</code> together with the code that uses it.</li>
+<li>Prototype access uses a role switcher that sends <code>X-Role</code> and <code>X-District</code> headers; the backend applies the row filter in SQL. Firebase auth stays design-only.</li>
+<li>Git: <code>main</code> is protected and small merges are frequent. Nattu commits to <code>/backend</code>, <code>/data</code>, <code>/infra</code>; Meenachi to <code>/frontend</code>; either may edit <code>/contract</code> after a ping.</li>
+<li>Conventions: ISO-8601 UTC timestamps, confidence as 0-1, errors as <code>{&quot;error&quot;: code, &quot;message&quot;: text}</code>.</li>
+</ul>
+<p>Core response shapes (starting point for the fixtures):</p>
+<pre><code class="language-json">// GET /risk?district=D01 (one item)
+{ &quot;facility_id&quot;: &quot;TN-PHC-014&quot;, &quot;lat&quot;: 10.79, &quot;lng&quot;: 78.70, &quot;drug&quot;: &quot;ORS&quot;,
+  &quot;stock_qty&quot;: 120, &quot;cover_days&quot;: 5.1, &quot;lead_time_days&quot;: 9, &quot;status&quot;: &quot;RED&quot;,
+  &quot;p_stockout&quot;: 0.82, &quot;priority&quot;: 0.91, &quot;reason&quot;: &quot;...&quot;, &quot;as_of&quot;: &quot;2026-09-29T06:30:00Z&quot; }
+
+// POST /capture/voice
+{ &quot;transcript&quot;: &quot;...&quot;, &quot;rows&quot;: [ { &quot;drug&quot;: &quot;ORS&quot;, &quot;qty&quot;: 120, &quot;unit&quot;: &quot;sachets&quot;,
+  &quot;confidence&quot;: 0.93, &quot;needs_confirm&quot;: false } ] }
+
+// POST /optimize
+{ &quot;proposals&quot;: [ { &quot;transfer_id&quot;: &quot;T-001&quot;, &quot;drug&quot;: &quot;ORS&quot;, &quot;qty&quot;: 400, &quot;from&quot;: &quot;...&quot;, &quot;to&quot;: &quot;TN-PHC-014&quot;,
+  &quot;eta_hours&quot;: 6, &quot;cost_inr&quot;: 2400, &quot;donor_cover_after_days&quot;: 16, &quot;route_polyline&quot;: &quot;...&quot;, &quot;reason&quot;: &quot;...&quot; } ] }
+</code></pre>
+<h3>18.3 Hour-by-hour timeline (24 hours, two tracks)</h3>
+<table>
+<thead>
+<tr>
+<th>Hours</th>
+<th>Nattu (Backend)</th>
+<th>Meenachi (Frontend)</th>
+<th>Checkpoint (exit criteria)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>H0-1</strong></td>
+<td>GCP project, BigQuery datasets, Gemini and Maps server keys, Cloud Run service</td>
+<td>Repo layout, React + Tailwind scaffold, routing shell, Maps JS browser key</td>
+<td>Scope frozen to Section 5 P0; both can push and run locally</td>
+</tr>
+<tr>
+<td><strong>H1-3</strong></td>
+<td>OpenAPI schema and fixture JSON for every Section 17 endpoint; FastAPI skeleton with <code>MOCK_MODE</code> deployed to Cloud Run</td>
+<td>App shell, role switcher, typed API client, design tokens, static Capture screen</td>
+<td><strong>C0 (H3) Contract freeze:</strong> deployed mock URL returns fixtures for every endpoint</td>
+</tr>
+<tr>
+<td><strong>H3-6</strong></td>
+<td>Synthetic data generator (3 states, ~60 PHCs, 25 drugs, 24 months, seeded anomalies and stock-outs); load to BigQuery; v0 risk view from trailing 28-day consumption; live <code>/facilities</code> and <code>/risk</code></td>
+<td>District Map: R/A/G markers, drug filter, PHC detail drawer (on fixtures, then switch to live)</td>
+<td><strong>C1 (H6):</strong> map shows real R/A/G from BigQuery</td>
+</tr>
+<tr>
+<td><strong>H6-9</strong></td>
+<td><code>/capture/voice</code>, <code>/capture/photo</code>, <code>/capture/confirm</code>: STT → Gemini JSON → drug-name match → confidence; test on 10 Tamil, Hindi and English phrases</td>
+<td>PHC Capture screen: mic (MediaRecorder), camera/upload, language selector, confirm-rows list, offline badge (UI only)</td>
+<td>Speak → confirm → stock changes on the map (demo step 2)</td>
+</tr>
+<tr>
+<td><strong>H9-13</strong></td>
+<td>Forecast model (lag, seasonality, weather), 3 state nodes, federated averaging, MAPE local-only vs federated; <code>/forecast</code>, <code>/federation/round(s)</code>; risk upgraded to forecast-based days-of-cover and Priority Score</td>
+<td>Risk Queue (sorted, reason text) and Forecast View (Recharts P10-P90 band)</td>
+<td><strong>C2 (H13):</strong> forecast band, risk queue and federation numbers live (demo steps 3-4)</td>
+</tr>
+<tr>
+<td><strong>H13-16</strong></td>
+<td>OR-Tools optimizer, Distance Matrix, road-cut toggle, Gemini &quot;why&quot; text; <code>/optimize</code>, <code>/transfers</code>, <code>/transfers/{id}/decision</code>; audit-log writes and <code>/audit</code></td>
+<td>Federation Console (round chart, per-state MAPE, model versions) and Transfer Review (route on map, cost, donor cover left, approve / modify / reject)</td>
+<td><strong>C3 (H16):</strong> approve flow works end to end and writes an audit row (demo step 5)</td>
+</tr>
+<tr>
+<td><strong>H16-18</strong></td>
+<td><code>/copilot/ask</code> over approved views, read-only SQL, role and district filters enforced in SQL, source and timestamp in answers; <code>/scenario/run</code> if time</td>
+<td>Copilot Panel (text + mic, source footer); Scenario Simulator UI only if the endpoint is ready</td>
+<td><strong>C4 (H18):</strong> copilot answers the demo query. <strong>Feature freeze.</strong></td>
+</tr>
+<tr>
+<td><strong>H18-20</strong></td>
+<td>Turn off <code>MOCK_MODE</code>, seed the emergency scenario (heavy rain, ORS shortfall in one district, surplus in another), fix API bugs, final Cloud Run deploy, quota and secrets check</td>
+<td>Full pass on the deployed URL (phone and laptop), loading / empty / error states, responsive fixes; Audit Trail table if time</td>
+<td><strong>C5 (H20):</strong> demo script runs twice on the live link without intervention</td>
+</tr>
+<tr>
+<td><strong>H20-22</strong></td>
+<td>README (setup, architecture, synthetic-data disclosure, reused-code citations), architecture and federated-design slides, repo cleanup (no keys)</td>
+<td>Record the 3-5 minute demo video (Section 19); assemble the 10-12 slide deck (Section 20)</td>
+<td><strong>C6 (H22):</strong> video, deck and README ready</td>
+</tr>
+<tr>
+<td><strong>H22-24</strong></td>
+<td>Submit repo link, live link and 2-3 line description</td>
+<td>Upload video and deck; run the Section 21 checklist with Nattu</td>
+<td><strong>H24: submitted.</strong> At least 30 minutes of buffer, no new features</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Working rhythm:</strong> a 10-minute sync at every checkpoint (C0-C6) to confirm exit criteria and decide cuts. Plan staggered rest, never both away at once and never during a checkpoint. If the 24 hours span a night, a 60-90 minute rest each is worth more than the same time spent debugging tired.</p>
+<h3>18.4 Overflow and cut order</h3>
+<p>The backend is the critical path. If Nattu is more than 1 hour behind at any checkpoint, Meenachi picks up, in this order: the <code>drug_name_map</code> seed file and 10 test phrases; Gemini prompt templates for extract, explain and scenario (in <code>/backend/prompts</code>, reviewed by Nattu); the README skeleton; fixture updates.</p>
+<p><strong>Cut order if time runs short:</strong> Audit Trail screen → scenario simulator → anomaly flags → alert voice notes → photo capture. Never cut: voice capture, risk score, optimizer, approval, copilot, federation chart.</p>
+<hr>
+<h2>19. Demo Script (3-5 minutes)</h2>
+<ol>
+<li><strong>0:00</strong> Problem in 20 seconds: a PHC runs out of ORS while a neighbouring district holds surplus.</li>
+<li><strong>0:20</strong> Pharmacist speaks stock in Tamil; structured rows appear and are confirmed.</li>
+<li><strong>1:00</strong> District map turns amber/red; forecast band shows rising demand after simulated heavy rain.</li>
+<li><strong>1:40</strong> Risk queue explains &quot;ORS runs out in ~6 days&quot; in plain language.</li>
+<li><strong>2:10</strong> Optimizer proposes a transfer; DHO checks route and donor buffer, then approves.</li>
+<li><strong>2:50</strong> Copilot query: &quot;Which PHCs run out of ORS in 10 days?&quot;</li>
+<li><strong>3:20</strong> Federation console: sparse state's error drops after joining rounds.</li>
+<li><strong>3:50</strong> Architecture slide: adapters, per-state data, scale path, BRICS packs.</li>
+<li><strong>4:30</strong> Impact metrics and close.</li>
+</ol>
+<p><strong>Roles on the day:</strong> Meenachi drives the screen; Nattu narrates the backend and federation steps and switches to the seeded fallback if a live call fails.</p>
+<hr>
+<h2>20. Pitch Deck Outline (10-12 slides)</h2>
+<p>1 Problem · 2 Who suffers · 3 Solution · 4 Live flow (screens) · 5 AI approach (ML vs Gemini split) · 6 Federated design · 7 Equity and explainability · 8 Architecture and Google stack · 9 Scale across states and BRICS · 10 Deployability: pilot in weeks, adapters · 11 Impact and metrics · 12 Roadmap and ask</p>
+<hr>
+<h2>21. Rubric Mapping (GDG evaluation)</h2>
+<table>
+<thead>
+<tr>
+<th>Criterion (weight)</th>
+<th>Where satisfied</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Problem-solution fit (20%)</td>
+<td>Visibility, forecast, early warning, redistribution, federation all built (Sections 5-12)</td>
+</tr>
+<tr>
+<td>AI / technical execution (25%)</td>
+<td>Gemini (voice, vision, copilot, explanations), Vertex/BigQuery ML forecasting, federated rounds, working end to end</td>
+</tr>
+<tr>
+<td>Depth and reach across India (20%)</td>
+<td>3 states, multilingual voice, equity weights, config packs</td>
+</tr>
+<tr>
+<td>Impact potential (15%)</td>
+<td>Fewer stock-out days, less expiry waste, faster emergency response; estimated PHC coverage in deck</td>
+</tr>
+<tr>
+<td>Deployability and scalability (20%)</td>
+<td>Cloud Run, adapters, pilot plan, human approval, DPDP-aligned design</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Mandatory checklist:</strong> ☐ Google AI integrated ☐ End-to-end flow ☐ Real or realistic data (synthetic labelled) ☐ Built for India, multi-state ☐ Multilingual/voice ☐ Public repo ☐ 3-5 min video ☐ 10-12 slide deck ☐ 2-3 line description ☐ Live deployed link ☐ Reused code cited ☐ Cross-border (BRICS) applicability stated</p>
+<hr>
+<h2>22. Success Metrics</h2>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Prototype target</th>
+<th>Pilot target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Forecast error (MAPE)</td>
+<td>Lower with federation than local-only</td>
+<td>Tracked per drug class</td>
+</tr>
+<tr>
+<td>PHCs reporting within 24h</td>
+<td>Demonstrated in simulation</td>
+<td>Above 80%</td>
+</tr>
+<tr>
+<td>Stock-out days per PHC</td>
+<td>Simulated reduction</td>
+<td>Measured reduction vs baseline</td>
+</tr>
+<tr>
+<td>Alert-to-action time</td>
+<td>Under 24 hrs in demo</td>
+<td>Under 24 hrs</td>
+</tr>
+<tr>
+<td>Expiry wastage</td>
+<td>Flags and transfers shown</td>
+<td>Measured reduction</td>
+</tr>
+<tr>
+<td>Voice capture accuracy</td>
+<td>Above 90% on test phrases</td>
+<td>Field-tested</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>23. Risks and Mitigations</h2>
+<table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Backend is the bottleneck (one person owns data, ML, optimizer, Gemini)</td>
+<td>Mock mode and fixtures keep the frontend unblocked; v0 SQL risk view at H6; Meenachi overflow tasks and cut order in Section 18.4</td>
+</tr>
+<tr>
+<td>Only 24 hours left</td>
+<td>Strict P0 scope, cut order in Section 18</td>
+</tr>
+<tr>
+<td>Gemini mis-hears drug names</td>
+<td>Drug master match, confirm step, confidence threshold</td>
+</tr>
+<tr>
+<td>Synthetic data criticised</td>
+<td>Label clearly; document generator and real public sources</td>
+</tr>
+<tr>
+<td>Federation seen as fake</td>
+<td>State honestly it is simulated; show weight-only exchange and the error-drop chart</td>
+</tr>
+<tr>
+<td>Live demo failure</td>
+<td>Pre-recorded video, seeded data, deployed fallback</td>
+</tr>
+<tr>
+<td>Google service quota</td>
+<td>Keep Gemini + BigQuery as guaranteed core</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>24. Post-Prototype Roadmap</h2>
+<p>Real adapters (state inventory, HMIS, ABDM/FHIR) → offline app hardening → district pilot → cold-chain and expiry modules → citizen &quot;medicine available near me&quot; voice service → cyclone pre-positioning → multi-state federation with secure aggregation → open-source release with language and drug-ontology packs.</p>
+<p><em>Prepared for the Build with AI: Code for Communities hackathon · Smart Health &amp; Supply Chain Resilience track</em></p>
+
+</body></html>
