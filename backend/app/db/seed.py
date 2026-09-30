@@ -85,6 +85,7 @@ DRUG_ALIASES = [
 
 
 def seed_database(db: Session, reset: bool = False):
+    db.expire_on_commit = False
     random.seed(42)
 
     if reset:
