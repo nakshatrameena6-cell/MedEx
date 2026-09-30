@@ -39,7 +39,7 @@ class RedistributionOptimizer:
         self.forecast_service = ForecastService(db)
         self.risk_service = RiskService(db)
 
-    def optimize(self, request: OptimizeRequest, ctx: UserContext) -> OptimizeResponse:
+    def optimize(self, request: OptimizeRequest, ctx: UserContext, simulation_mode: bool = False) -> OptimizeResponse:
         # Rule 1: allow_cross_state validation
         if request.allow_cross_state and not request.emergency_mode:
             raise ConstraintViolationError(
@@ -310,23 +310,24 @@ class RedistributionOptimizer:
             )
             proposals.append(proposal_item)
 
-        for tr in db_transfers:
-            self.db.add(tr)
-        self.db.commit()
+        if not simulation_mode:
+            for tr in db_transfers:
+                self.db.add(tr)
+            self.db.commit()
 
-        audit_service.record(
-            ctx,
-            "OPTIMIZE_RUN",
-            "TRANSFER",
-            run_id,
-            details={
-                "district": target_district,
-                "drug": target_drug or "ALL_RED",
-                "proposals_count": len(proposals),
-                "solver_status": "OPTIMAL"
-            },
-            db=self.db
-        )
+            audit_service.record(
+                ctx,
+                "OPTIMIZE_RUN",
+                "TRANSFER",
+                run_id,
+                details={
+                    "district": target_district,
+                    "drug": target_drug or "ALL_RED",
+                    "proposals_count": len(proposals),
+                    "solver_status": "OPTIMAL"
+                },
+                db=self.db
+            )
 
         return OptimizeResponse(
             optimization_id=run_id,

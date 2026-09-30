@@ -208,5 +208,21 @@ class FederationRoundRecord(Base):
     created_by = Column(String(100), nullable=True)
 
 
+class ScenarioRecord(Base):
+    __tablename__ = "scenarios"
+
+    scenario_id = Column(String(100), primary_key=True, index=True)
+    scenario_type = Column(String(100), nullable=False)  # MONSOON_SPIKE, SUPPLY_CHAIN_BREAK, DEMAND_SURGE, CUSTOM
+    district_id = Column(String(50), nullable=False, index=True)
+    status = Column(String(50), default="COMPLETED")  # CREATED, RUNNING, COMPLETED, FAILED
+    projected_shortages_count = Column(Integer, default=0)
+    summary = Column(Text, nullable=True)
+    parameters = Column(JSON, nullable=True)
+    baseline_comparison = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    completed_at = Column(DateTime, nullable=True)
+    created_by = Column(String(100), nullable=True)
+
+
 # Alias StockItem for legacy schema compatibility
 StockItem = StockSnapshot
