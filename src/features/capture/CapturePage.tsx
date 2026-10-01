@@ -1,48 +1,53 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthRole } from '../../context/AuthRoleContext';
 import { Language, CaptureResponse, CaptureConfirmResponse } from '../../types/api';
-import { PageHeader } from '../../components/common/PageHeader';
-import { StatusBadge } from '../../components/common/StatusBadge';
-import { OfflineBadge } from '../../components/common/OfflineBadge';
-import { Button } from '../../components/common/Button';
-import { Card3D } from '../../components/3d/Card3D';
 import { VoiceCapture } from './VoiceCapture';
 import { PhotoCapture } from './PhotoCapture';
 import { CaptureReview } from './CaptureReview';
 import { CaptureStatus } from './CaptureStatus';
-import { COPY } from '../../constants/copy';
-import { Mic, Camera, ShieldAlert, Store, ArrowLeft, Radio } from 'lucide-react';
+import {
+  Camera,
+  Mic,
+  Clock,
+  FileSpreadsheet,
+  BarChart3,
+  Settings,
+  ShieldCheck,
+  Store,
+  ArrowLeft,
+  Pill,
+} from 'lucide-react';
+
+const FACILITIES = [
+  { id: 'TN-PHC-014', name: 'PHC Sample-014 (Block-A)', status: 'RED' },
+  { id: 'TN-PHC-021', name: 'PHC Sample-021 (Block-B)', status: 'AMBER' },
+  { id: 'TN-PHC-042', name: 'PHC Sample-042 (Block-B)', status: 'GREEN' },
+  { id: 'TN-CHC-003', name: 'CHC Sample-003 (Block-A)', status: 'GREEN' },
+];
 
 export const CapturePage: React.FC = () => {
   const navigate = useNavigate();
   const { role, district, user, isMockMode } = useAuthRole();
 
-  // Browser Network Online / Offline Status
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
-  // Facility Context Selection
   const [facilityId, setFacilityId] = useState<string>('TN-PHC-014');
   const [selectedLanguage, setSelectedLanguage] = useState<Language>('en-IN');
+  const [activeTab, setActiveTab] = useState<'scan' | 'voice'>('scan');
 
-  // Mode: 'voice' | 'photo'
-  const [activeTab, setActiveTab] = useState<'voice' | 'photo'>('voice');
-
-  // Workflow State
   const [captureResponse, setCaptureResponse] = useState<CaptureResponse | null>(null);
   const [confirmResponse, setConfirmResponse] = useState<CaptureConfirmResponse | null>(null);
 
@@ -60,236 +65,271 @@ export const CapturePage: React.FC = () => {
     return headers;
   };
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setCaptureResponse(null);
     setConfirmResponse(null);
-  };
+  }, []);
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="space-y-6 text-left font-sans"
-    >
-      <PageHeader
-        title={COPY.headers.phcCaptureTitle}
-        subtitle={COPY.headers.phcCaptureSubtitle}
-        badge={
-          <div className="flex items-center gap-2">
-            <OfflineBadge />
-            <StatusBadge status="CYAN" label="POST /capture" />
-          </div>
-        }
-        breadcrumbs={[{ label: 'MEDEx' }, { label: 'Capture Workflows' }]}
-      />
-
-      {/* Role & Scope Warning for AUDITOR */}
-      {isAuditor && (
-        <div className="p-4 bg-theme-warning-bg/40 border border-theme-warning-text/40 rounded-2xl text-xs text-theme-warning-text flex items-center gap-3 font-mono backdrop-blur-md">
-          <ShieldAlert className="w-5 h-5 shrink-0 text-theme-warning" />
-          <div>
-            <span className="font-bold block">AUDITOR ROLE READ-ONLY NOTICE:</span>
-            The AUDITOR role is restricted to read-only access. Stock entry capture submissions (POST /capture) are disabled.
-          </div>
-        </div>
-      )}
-
-      {/* Facility Context & Tab Switcher Bar */}
-      <Card3D 
-        maxTilt={2}
-        specularColor="rgba(56, 189, 248, 0.12)"
-        className="p-5 bg-theme-surface/85 backdrop-blur-xl border border-theme-border rounded-2xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-xl"
-      >
+    <div className="space-y-4 text-left font-sans select-none max-w-[1440px] mx-auto">
+      {/* =========================================================================
+          TOP NAVBAR: MedScan Brand, Subtitle, Status & Profile
+          ========================================================================= */}
+      <header className="p-3.5 px-5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl flex flex-wrap items-center justify-between gap-4">
+        {/* Left: Brand & Title */}
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-theme-primary/10 text-theme-primary border border-theme-primary/25 shrink-0">
-            <Store className="w-5 h-5" />
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-md">
+            <Pill className="w-5 h-5 -rotate-45" />
           </div>
-          <div className="w-full">
-            <label className="text-[10px] font-mono text-theme-muted uppercase tracking-wider block">
-              ACTIVE FRONTLINE NODE
-            </label>
-            <div className="flex flex-wrap items-center gap-2 mt-1">
-              <select
-                value={facilityId}
-                onChange={(e) => {
-                  setFacilityId(e.target.value);
-                  handleReset();
-                }}
-                disabled={isAuditor}
-                className="min-h-[44px] bg-theme-bg/90 border border-theme-border-control rounded-xl px-3.5 py-2 text-xs font-mono font-bold text-theme-text focus:outline-none focus:border-theme-primary transition-all"
-              >
-                <option value="TN-PHC-014">TN-PHC-014 (PHC Sample-014 · Block-A)</option>
-                <option value="TN-PHC-021">TN-PHC-021 (PHC Sample-021 · Block-B)</option>
-                <option value="TN-PHC-042">TN-PHC-042 (PHC Sample-042 · Block-B)</option>
-                <option value="TN-CHC-003">TN-CHC-003 (CHC Sample-003 · Block-A)</option>
-              </select>
-
-              <span className="text-[11px] font-mono text-theme-muted bg-white/5 px-3 py-2 rounded-xl border border-theme-border">
-                DISTRICT: {district}
-              </span>
-            </div>
+          <div className="flex items-baseline gap-3">
+            <span className="text-lg font-bold text-white tracking-tight">MedEx Stock Capture</span>
+            <span className="hidden sm:inline text-slate-600">|</span>
+            <span className="hidden sm:inline text-xs font-mono text-slate-400">
+              Easy Register Scanner
+            </span>
           </div>
         </div>
 
-        {/* Tab Toggle: Voice vs Photo with Framer Motion layoutId */}
-        {!captureResponse && !confirmResponse && (
-          <div
-            role="tablist"
-            aria-label="Capture Mode"
-            className="flex items-center justify-center rounded-xl bg-black/30 border border-theme-border p-1.5 gap-1.5 w-full md:w-auto backdrop-blur-md"
+        {/* Right: Facility Picker, Online Status, Settings & Avatar */}
+        <div className="flex items-center gap-3">
+          {/* Facility Context Dropdown */}
+          <div className="flex items-center gap-1.5 bg-slate-950/80 border border-slate-700/80 px-2.5 py-1.5 rounded-lg text-xs">
+            <Store className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+            <select
+              value={facilityId}
+              onChange={(e) => {
+                setFacilityId(e.target.value);
+                handleReset();
+              }}
+              disabled={isAuditor}
+              className="bg-transparent text-white font-mono text-xs focus:outline-none cursor-pointer"
+            >
+              {FACILITIES.map((f) => (
+                <option key={f.id} value={f.id} className="bg-slate-900 text-white">
+                  {f.id} ({f.name.split(' ')[0]})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Online Indicator */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-mono font-semibold text-emerald-400">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>{isOnline ? 'Online' : 'Offline'}</span>
+          </div>
+
+          {/* Settings Button */}
+          <button
+            type="button"
+            className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+            title="Settings"
           >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'voice'}
-              onClick={() => setActiveTab('voice')}
-              className={`relative min-h-[44px] px-5 py-2 rounded-lg text-xs font-semibold flex-1 md:flex-initial inline-flex items-center justify-center gap-2 transition-all z-10 ${
-                activeTab === 'voice'
-                  ? 'text-white font-bold'
-                  : 'text-theme-muted hover:text-theme-text'
-              }`}
-            >
-              {activeTab === 'voice' && (
-                <motion.div
-                  layoutId="activeCaptureTab"
-                  className="absolute inset-0 bg-theme-primary rounded-lg shadow-lg shadow-theme-primary/30 z-[-1]"
-                  transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-                />
-              )}
-              <Mic className="w-4 h-4" />
-              <span>Voice Entry</span>
-            </button>
+            <Settings className="w-4 h-4" />
+          </button>
 
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'photo'}
-              onClick={() => setActiveTab('photo')}
-              className={`relative min-h-[44px] px-5 py-2 rounded-lg text-xs font-semibold flex-1 md:flex-initial inline-flex items-center justify-center gap-2 transition-all z-10 ${
-                activeTab === 'photo'
-                  ? 'text-white font-bold'
-                  : 'text-theme-muted hover:text-theme-text'
-              }`}
-            >
-              {activeTab === 'photo' && (
-                <motion.div
-                  layoutId="activeCaptureTab"
-                  className="absolute inset-0 bg-theme-primary rounded-lg shadow-lg shadow-theme-primary/30 z-[-1]"
-                  transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-                />
-              )}
-              <Camera className="w-4 h-4" />
-              <span>Photo Register</span>
-            </button>
+          {/* User Profile Avatar */}
+          <div
+            className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-teal-300 font-mono shadow"
+            title={user}
+          >
+            MC
           </div>
-        )}
-      </Card3D>
-
-      {/* Main Interactive Stage Container */}
-      <Card3D 
-        maxTilt={1.5}
-        specularColor="rgba(56, 189, 248, 0.08)"
-        className="bg-theme-surface/85 backdrop-blur-xl border border-theme-border rounded-2xl p-6 space-y-5 shadow-2xl"
-      >
-        <div className="flex items-center justify-between border-b border-theme-border pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-theme-primary/10 border border-theme-primary/25 flex items-center justify-center text-theme-primary">
-              <Radio className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 className="text-[16px] font-semibold text-theme-text">
-                {confirmResponse
-                  ? 'Stock Update Confirmed'
-                  : captureResponse
-                  ? 'Review & Confirm Extracted Stock Rows'
-                  : activeTab === 'voice'
-                  ? 'Voice Stock Capture'
-                  : 'Photo Register Capture'}
-              </h2>
-              <p className="text-[11px] font-mono text-theme-muted">
-                {confirmResponse
-                  ? 'RECOMPUTED FACILITY RESILIENCE SCORE // BROADCAST TO COMMAND MAP'
-                  : captureResponse
-                  ? 'EDIT LOW-CONFIDENCE ROWS BEFORE SAVING SNAPSHOT'
-                  : activeTab === 'voice'
-                  ? 'MULTILINGUAL AUDIO PIPELINE // THREE.JS 3D FREQUENCY SPECTRUM'
-                  : 'MULTIMODAL REGISTER OCR & DRUG MATCHING'}
-              </p>
-            </div>
-          </div>
-
-          {(captureResponse || confirmResponse) && (
-            <Button variant="secondary" size="sm" onClick={handleReset} className="min-h-[44px]">
-              <ArrowLeft className="w-4 h-4 mr-1.5" />
-              <span>New Capture</span>
-            </Button>
-          )}
         </div>
+      </header>
 
-        <AnimatePresence mode="wait">
-          {confirmResponse ? (
-            <motion.div
-              key="status"
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
+      {/* =========================================================================
+          WORKSPACE BODY: Left Sidebar + Center Stage
+          ========================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        {/* Left Sub-Navigation Sidebar (2 Cols) */}
+        <nav className="lg:col-span-2 space-y-4">
+          <div className="p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-1 text-xs font-medium">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('scan');
+                handleReset();
+              }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all ${
+                activeTab === 'scan' && !captureResponse && !confirmResponse
+                  ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40 font-bold shadow-[0_0_12px_rgba(45,212,191,0.2)]'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
             >
-              <CaptureStatus
-                confirmResponse={confirmResponse}
-                onReset={handleReset}
-                onGoToMap={() => navigate(`/map?facility_id=${facilityId}`)}
-              />
-            </motion.div>
-          ) : captureResponse ? (
-            <motion.div
-              key="review"
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
+              <Camera className="w-4 h-4 shrink-0" />
+              <span>Scan Register</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('voice');
+                handleReset();
+              }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all ${
+                activeTab === 'voice' && !captureResponse && !confirmResponse
+                  ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40 font-bold shadow-[0_0_12px_rgba(45,212,191,0.2)]'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
             >
-              <CaptureReview
-                captureData={captureResponse}
-                onConfirmSuccess={(res) => setConfirmResponse(res)}
-                headers={getAuthHeaders()}
-                disabled={isAuditor || !isOnline}
-              />
-            </motion.div>
-          ) : activeTab === 'voice' ? (
-            <motion.div
-              key="voice"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
+              <Mic className="w-4 h-4 shrink-0" />
+              <span>Voice Note</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate('/audit')}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all"
             >
-              <VoiceCapture
-                facilityId={facilityId}
-                selectedLanguage={selectedLanguage}
-                onLanguageChange={setSelectedLanguage}
-                onCaptureSuccess={(res) => setCaptureResponse(res)}
-                headers={getAuthHeaders()}
-                disabled={isAuditor || !isOnline}
-              />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="photo"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
+              <Clock className="w-4 h-4 shrink-0" />
+              <span>History</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate('/risk')}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all"
             >
-              <PhotoCapture
-                facilityId={facilityId}
-                onCaptureSuccess={(res) => setCaptureResponse(res)}
-                headers={getAuthHeaders()}
-                disabled={isAuditor || !isOnline}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </Card3D>
-    </motion.div>
+              <FileSpreadsheet className="w-4 h-4 shrink-0" />
+              <span>Stock Watch</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate('/forecast')}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all"
+            >
+              <BarChart3 className="w-4 h-4 shrink-0" />
+              <span>Forecast</span>
+            </button>
+
+            <button
+              type="button"
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all"
+            >
+              <Settings className="w-4 h-4 shrink-0" />
+              <span>Settings</span>
+            </button>
+          </div>
+
+          {/* Bottom Trust Badge Card */}
+          <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 shadow-xl space-y-2 hidden lg:block">
+            <div className="w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <div className="text-xs font-bold text-white">Fast, Simple & Local</div>
+            <p className="text-[11px] text-slate-400 leading-tight">
+              Scan or speak to update medicine stock in seconds.
+            </p>
+          </div>
+        </nav>
+
+        {/* Center Main Stage (10 Cols) */}
+        <main className="lg:col-span-10">
+          <AnimatePresence mode="wait">
+            {confirmResponse ? (
+              <motion.div
+                key="status"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                className="p-6 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-2xl"
+              >
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                  <h3 className="text-base font-bold text-white">Stock Updated Successfully</h3>
+                  <button
+                    type="button"
+                    onClick={handleReset}
+                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 flex items-center gap-1.5 transition-colors"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>Record More Stock</span>
+                  </button>
+                </div>
+                <CaptureStatus
+                  confirmResponse={confirmResponse}
+                  onReset={handleReset}
+                  onGoToMap={() => navigate(`/map?facility_id=${facilityId}`)}
+                />
+              </motion.div>
+            ) : captureResponse ? (
+              <motion.div
+                key="review"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                className="p-6 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-2xl space-y-4"
+              >
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div>
+                    <h3 className="text-base font-bold text-white">Review Scanned Stock</h3>
+                    <p className="text-xs text-slate-400">
+                      Check and adjust medicine quantities before saving to district records
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleReset}
+                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 flex items-center gap-1.5 transition-colors"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>Back to Scanner</span>
+                  </button>
+                </div>
+
+                <CaptureReview
+                  captureData={captureResponse}
+                  onConfirmSuccess={(res) => setConfirmResponse(res)}
+                  headers={getAuthHeaders()}
+                  disabled={isAuditor || !isOnline}
+                />
+              </motion.div>
+            ) : activeTab === 'scan' ? (
+              <motion.div
+                key="photo"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <PhotoCapture
+                  facilityId={facilityId}
+                  onCaptureSuccess={(res) => setCaptureResponse(res)}
+                  headers={getAuthHeaders()}
+                  disabled={isAuditor || !isOnline}
+                />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="voice"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="p-6 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-2xl"
+              >
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                  <h3 className="text-base font-bold text-white">Voice Stock Recording</h3>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('scan')}
+                    className="px-3 py-1.5 rounded-lg bg-teal-500/20 text-teal-300 border border-teal-500/40 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                    <span>Switch to Camera Scanner</span>
+                  </button>
+                </div>
+                <VoiceCapture
+                  facilityId={facilityId}
+                  selectedLanguage={selectedLanguage}
+                  onLanguageChange={setSelectedLanguage}
+                  onCaptureSuccess={(res) => setCaptureResponse(res)}
+                  headers={getAuthHeaders()}
+                  disabled={isAuditor || !isOnline}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </main>
+      </div>
+    </div>
   );
 };
-
-

@@ -233,24 +233,24 @@ export const AlertsPage: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* Card 1: High Severity (Hero Card) */}
+          {/* Card 1: High Severity */}
           <Card3D 
             specularColor="rgba(239, 68, 68, 0.28)" 
             className="p-6 rounded-2xl border border-theme-critical/40 bg-theme-surface/90 backdrop-blur-xl relative overflow-hidden shadow-xl"
           >
             <div className="flex items-center justify-between text-[13px] text-theme-muted">
-              <span className="font-mono text-[10px] tracking-wider text-theme-critical uppercase font-bold">[01] HIGH SEVERITY</span>
-              <StatusBadge status="RED" label="Critical" size="sm" />
+              <span className="font-mono text-[10px] tracking-wider text-theme-critical uppercase font-bold">[01] URGENT ALERTS</span>
+              <StatusBadge status="RED" label="Urgent" size="sm" />
             </div>
             <div className="mt-4 flex items-baseline gap-2">
               <span className="text-[42px] font-bold text-theme-critical leading-none tracking-tight font-mono">
                 {highCount}
               </span>
-              <span className="text-[12px] text-theme-muted font-medium">unresolved alerts</span>
+              <span className="text-[12px] text-theme-muted font-medium">unresolved</span>
             </div>
             <div className="mt-3 text-[11px] text-theme-muted font-mono flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-theme-critical animate-ping" />
-              Immediate escalation protocol
+              Needs immediate action
             </div>
           </Card3D>
 
@@ -260,8 +260,8 @@ export const AlertsPage: React.FC = () => {
             className="p-6 rounded-2xl border border-theme-border bg-theme-surface/90 backdrop-blur-xl relative overflow-hidden shadow-xl"
           >
             <div className="flex items-center justify-between text-[13px] text-theme-muted">
-              <span className="font-mono text-[10px] tracking-wider text-theme-warning-text uppercase font-bold">[02] PENDING REVIEW</span>
-              <StatusBadge status="AMBER" label="Watch" size="sm" />
+              <span className="font-mono text-[10px] tracking-wider text-theme-warning-text uppercase font-bold">[02] WAITING FOR REVIEW</span>
+              <StatusBadge status="AMBER" label="New" size="sm" />
             </div>
             <div className="mt-4">
               <span className="text-[42px] font-bold text-theme-text leading-none tracking-tight font-mono">
@@ -269,7 +269,7 @@ export const AlertsPage: React.FC = () => {
               </span>
             </div>
             <p className="mt-3 text-[11px] text-theme-muted font-mono">
-              Requiring supervisor acknowledgment
+              Pending review by supervisor
             </p>
           </Card3D>
 
@@ -288,7 +288,7 @@ export const AlertsPage: React.FC = () => {
               </span>
             </div>
             <p className="mt-3 text-[11px] text-theme-muted font-mono">
-              Aggregated across all facilities
+              Across all district health centres
             </p>
           </Card3D>
         </div>
@@ -298,13 +298,13 @@ export const AlertsPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-theme-border bg-theme-surface/70 backdrop-blur-xl">
         <div className="flex items-center gap-2 text-xs font-mono text-theme-muted">
           <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-          <span>SWIPE ROW ACTIVE: SWIPE ALERT LEFT OR RIGHT TO ACTION / ACKNOWLEDGE</span>
+          <span>TIP: SWIPE AN ALERT LEFT OR RIGHT TO MARK AS REVIEWED</span>
         </div>
         <JellyRadio
           items={[
             { value: 'ALL', label: `All (${alerts.length})` },
-            { value: 'FALSE', label: `Pending (${activeCount})` },
-            { value: 'TRUE', label: `Ack'd (${alerts.length - activeCount})` },
+            { value: 'FALSE', label: `Unreviewed (${activeCount})` },
+            { value: 'TRUE', label: `Reviewed (${alerts.length - activeCount})` },
           ]}
           value={acknowledgedFilter}
           onChange={(val: string) => setAcknowledgedFilter(val)}

@@ -150,14 +150,14 @@ export const FederationView: React.FC = () => {
       <PageHeader
         title={COPY.headers.federationTitle}
         subtitle={COPY.headers.federationSubtitle}
-        badge={<StatusBadge status="CYAN" label="GET /federation/rounds" />}
-        breadcrumbs={[{ label: 'MEDEx' }, { label: 'Federated Learning' }]}
+        badge={<StatusBadge status="CYAN" label="Network Learning" />}
+        breadcrumbs={[{ label: 'MEDEx' }, { label: 'Network Learning' }]}
         actionSlot={
           <Button
             variant="primary"
             onClick={() => setIsModalOpen(true)}
             disabled={isAuditor}
-            title={isAuditor ? 'AUDITOR role is read-only (403 Forbidden)' : 'Run new federated training round'}
+            title={isAuditor ? 'Auditors have read-only access' : 'Run shared network learning update'}
           >
             <Play className="w-4 h-4 mr-2" />
             <span>{COPY.actions.startRound}</span>
@@ -170,7 +170,7 @@ export const FederationView: React.FC = () => {
         height="380px"
         interactive={true}
         showHUD={true}
-        activeNodeName={`FEDERATION ROUND #${latestRound?.round_number ?? 7}`}
+        activeNodeName={`LEARNING ROUND #${latestRound?.round_number ?? 7}`}
       />
 
       {/* KPI Row - Max 3 Cards */}
@@ -211,12 +211,12 @@ export const FederationView: React.FC = () => {
             </div>
             <div>
               <span className="font-semibold text-theme-text block font-mono text-xs">
-                DATA-SPARSE NODE BOOST: {sparseState.state_code}
+                RURAL STATE ACCURACY BOOST: {sparseState.state_code}
               </span>
               <p className="text-2xs text-theme-muted mt-0.5 max-w-2xl">
-                Node <strong className="text-theme-text font-mono">{sparseState.state_code}</strong> ({sparseState.n_samples.toLocaleString()} samples) accuracy improved from{' '}
+                Health centres in <strong className="text-theme-text font-mono">{sparseState.state_code}</strong> ({sparseState.n_samples.toLocaleString()} records) improved forecast accuracy from{' '}
                 <strong className="text-theme-warning font-mono">{(100 - sparseState.local_only_mape).toFixed(1)}%</strong> to{' '}
-                <strong className="text-theme-healthy font-mono">{(100 - sparseState.federated_mape).toFixed(1)}%</strong> via federated aggregation.
+                <strong className="text-theme-healthy font-mono">{(100 - sparseState.federated_mape).toFixed(1)}%</strong> by learning together across states.
               </p>
             </div>
           </div>
@@ -226,7 +226,7 @@ export const FederationView: React.FC = () => {
             aria-label="View versions registry"
           >
             <Layers className="w-4 h-4 mr-1.5" />
-            <span>View versions ({federationData?.models.length || 0})</span>
+            <span>View models ({federationData?.models.length || 0})</span>
           </Button>
         </div>
       )}
@@ -235,15 +235,15 @@ export const FederationView: React.FC = () => {
       <div className="bg-theme-surface border border-theme-border rounded-xl p-6 space-y-4">
         <div className="flex items-center justify-between border-b border-theme-border pb-4">
           <div>
-            <h2 className="text-base font-semibold text-theme-text">Model Accuracy Comparison</h2>
-            <p className="text-xs text-theme-muted">Local-only MAPE error vs Global federated model MAPE error by state node</p>
+            <h2 className="text-base font-semibold text-theme-text">Prediction Error by State</h2>
+            <p className="text-xs text-theme-muted">Comparing local health records alone vs network-wide learning (Lower error is better)</p>
           </div>
           <Button
             variant="secondary"
             onClick={() => setIsVersionDrawerOpen(true)}
           >
             <Layers className="w-4 h-4 mr-1.5" />
-            <span>View versions</span>
+            <span>View models</span>
           </Button>
         </div>
 
@@ -343,12 +343,12 @@ export const FederationView: React.FC = () => {
         </div>
       )}
 
-      {/* Run Federation Round Modal Dialog (POST /federation/round) */}
+      {/* Run Federation Round Modal Dialog */}
       <Dialog
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Run Federated Training Round"
-        subtitle="POST /federation/round (Restricted to STATE role)"
+        title="Start Shared Learning Update"
+        subtitle="Share anonymous demand patterns across states to improve predictions"
       >
         <div className="space-y-4 font-sans text-xs">
           {submitError && (
@@ -359,7 +359,7 @@ export const FederationView: React.FC = () => {
 
           <div>
             <label className="text-2xs font-mono font-semibold uppercase tracking-wider text-theme-muted block mb-1">
-              Participating State Codes
+              Participating States
             </label>
             <div className="flex items-center gap-3">
               {['TN', 'BR', 'MH'].map((code) => (
@@ -384,7 +384,7 @@ export const FederationView: React.FC = () => {
 
           <div>
             <label className="text-2xs font-mono font-semibold uppercase tracking-wider text-theme-muted block mb-1">
-              Local Training Epochs (1 - 10)
+              Training Rounds (1 - 10)
             </label>
             <input
               type="number"
@@ -404,12 +404,12 @@ export const FederationView: React.FC = () => {
                 onChange={(e) => setDpNoise(e.target.checked)}
                 className="rounded border-theme-border-control bg-theme-surface text-theme-primary focus:ring-0"
               />
-              <span>Enable Differential Privacy (DP Noise) Clipping</span>
+              <span>Enable Extra Privacy Protection</span>
             </label>
           </div>
 
           <div className="p-3 bg-theme-bg rounded-lg border border-theme-border text-2xs text-theme-muted">
-            Round runs data-weighted federated averaging. No raw patient or stock records leave state nodes.
+            Shared learning averages trend patterns only. No patient names or local medicine records ever leave your health centre.
           </div>
 
           <div className="flex justify-end gap-3 pt-3 border-t border-theme-border">

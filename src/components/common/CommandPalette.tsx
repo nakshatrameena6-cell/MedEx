@@ -34,15 +34,15 @@ interface CommandItem {
 
 const COMMAND_ITEMS: CommandItem[] = [
   // Pages
-  { id: 'page-map', category: 'Pages', title: COPY.nav.districtMap, subtitle: 'Geospatial facility map & redistribution polylines', icon: MapPin, path: '/map' },
-  { id: 'page-capture', category: 'Pages', title: COPY.nav.phcCapture, subtitle: 'Frontline stock entry via voice & photo', icon: Camera, path: '/capture' },
-  { id: 'page-risk', category: 'Pages', title: COPY.nav.riskQueue, subtitle: 'Prioritized facility stock-out risk queue', icon: AlertOctagon, path: '/risk' },
-  { id: 'page-forecast', category: 'Pages', title: COPY.nav.forecast, subtitle: 'Demand projections & uncertainty corridors', icon: TrendingUp, path: '/forecast' },
-  { id: 'page-transfers', category: 'Pages', title: COPY.nav.transfers, subtitle: 'Stock reallocation proposals', icon: ArrowRightLeft, path: '/transfers' },
-  { id: 'page-federation', category: 'Pages', title: COPY.nav.federationConsole, subtitle: 'Federated ML training across state nodes', icon: Share2, path: '/federation' },
-  { id: 'page-scenario', category: 'Pages', title: COPY.nav.scenarioSimulator, subtitle: 'Surge simulation & burn-down planner', icon: Sliders, path: '/scenario' },
-  { id: 'page-alerts', category: 'Pages', title: COPY.nav.alerts, subtitle: 'Operational alerts & voice notes', icon: BellRing, path: '/alerts' },
-  { id: 'page-audit', category: 'Pages', title: COPY.nav.auditTrail, subtitle: 'Immutable governance activity log', icon: FileText, path: '/audit' },
+  { id: 'page-map', category: 'Pages', title: COPY.nav.districtMap, subtitle: 'View all health centres and stock status on map', icon: MapPin, path: '/map' },
+  { id: 'page-capture', category: 'Pages', title: COPY.nav.phcCapture, subtitle: 'Record medicine stock by photo or voice', icon: Camera, path: '/capture' },
+  { id: 'page-risk', category: 'Pages', title: COPY.nav.riskQueue, subtitle: 'Health centres running low on medicine', icon: AlertOctagon, path: '/risk' },
+  { id: 'page-forecast', category: 'Pages', title: COPY.nav.forecast, subtitle: 'Predicted medicine demand and usage trends', icon: TrendingUp, path: '/forecast' },
+  { id: 'page-transfers', category: 'Pages', title: COPY.nav.transfers, subtitle: 'Move surplus stock to centres in need', icon: ArrowRightLeft, path: '/transfers' },
+  { id: 'page-federation', category: 'Pages', title: COPY.nav.federationConsole, subtitle: 'Shared learning across districts and states', icon: Share2, path: '/federation' },
+  { id: 'page-scenario', category: 'Pages', title: COPY.nav.scenarioSimulator, subtitle: 'Simulate outbreaks and test emergency supply plans', icon: Sliders, path: '/scenario' },
+  { id: 'page-alerts', category: 'Pages', title: COPY.nav.alerts, subtitle: 'Urgent stock warnings and messages', icon: BellRing, path: '/alerts' },
+  { id: 'page-audit', category: 'Pages', title: COPY.nav.auditTrail, subtitle: 'History of all stock updates and transfers', icon: FileText, path: '/audit' },
   
   // Facilities
   { id: 'fac-014', category: 'Facilities', title: 'TN-PHC-014 (PHC Sample-014)', subtitle: 'Block-A · Population: 24,500', icon: Building2, path: '/map?facility_id=TN-PHC-014' },
@@ -51,13 +51,13 @@ const COMMAND_ITEMS: CommandItem[] = [
   { id: 'fac-003', category: 'Facilities', title: 'TN-CHC-003 (CHC Sample-003)', subtitle: 'Block-A · Population: 62,000', icon: Building2, path: '/map?facility_id=TN-CHC-003' },
 
   // Drugs
-  { id: 'drug-ors', category: 'Drugs', title: 'ORS (Oral Rehydration Salts)', subtitle: 'Essential Drug · Unit: sachets', icon: Pill, path: '/forecast?drug_code=ORS' },
-  { id: 'drug-para', category: 'Drugs', title: 'PARA500 (Paracetamol 500mg)', subtitle: 'Essential Drug · Unit: tablets', icon: Pill, path: '/forecast?drug_code=PARA500' },
+  { id: 'drug-ors', category: 'Drugs', title: 'ORS (Oral Rehydration Salts)', subtitle: 'Essential Medicine · Unit: sachets', icon: Pill, path: '/forecast?drug_code=ORS' },
+  { id: 'drug-para', category: 'Drugs', title: 'PARA500 (Paracetamol 500mg)', subtitle: 'Essential Medicine · Unit: tablets', icon: Pill, path: '/forecast?drug_code=PARA500' },
   { id: 'drug-amox', category: 'Drugs', title: 'AMOX500 (Amoxicillin 500mg)', subtitle: 'Antibiotic · Unit: capsules', icon: Pill, path: '/forecast?drug_code=AMOX500' },
 
   // Transfers
-  { id: 'tr-101', category: 'Transfers', title: 'Transfer Proposal #TR-101', subtitle: 'TN-CHC-003 → TN-PHC-014 (ORS 400 sachets)', icon: ArrowRightLeft, path: '/transfers' },
-  { id: 'tr-102', category: 'Transfers', title: 'Transfer Proposal #TR-102', subtitle: 'TN-CHC-003 → TN-PHC-021 (PARA500 800 tabs)', icon: ArrowRightLeft, path: '/transfers' },
+  { id: 'tr-101', category: 'Transfers', title: 'Transfer Suggestion #TR-101', subtitle: 'TN-CHC-003 → TN-PHC-014 (ORS 400 sachets)', icon: ArrowRightLeft, path: '/transfers' },
+  { id: 'tr-102', category: 'Transfers', title: 'Transfer Suggestion #TR-102', subtitle: 'TN-CHC-003 → TN-PHC-021 (PARA500 800 tabs)', icon: ArrowRightLeft, path: '/transfers' },
 ];
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose }) => {
@@ -147,7 +147,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
               setSelectedIndex(0);
             }}
             onKeyDown={handleKeyDown}
-            placeholder="Search pages, facilities, drugs, transfers (Press Esc to close)..."
+            placeholder="Search pages, health centres, medicines, or transfers (Press Esc to close)..."
             className="w-full bg-transparent text-[14px] text-theme-text placeholder-theme-muted focus:outline-none"
           />
           {query && (

@@ -5,28 +5,30 @@
 @layer base {
   :root {
     color-scheme: light;
-    --color-bg: #edf2f8;
+    --color-bg: #f4f6f4;
     --color-surface: #ffffff;
-    --color-surface-elevated: #f4f7fc;
-    --color-border: #dce4ef;
-    --color-border-control: #b7c6da;
-    --color-text: #16243a;
-    --color-muted: #566a85;
-    --color-muted-on-bg: #566a85;
-    --color-primary: #245ec7;
-    --color-primary-hover: #174aab;
-    --color-primary-tint: #e6eeff;
+    --color-surface-elevated: #eaf0eb;
+    --color-border: #d2ddd5;
+    --color-border-control: #9fb5a7;
+    --color-text: #13221a;
+    --color-muted: #53695d;
+    --color-muted-on-bg: #53695d;
+    --color-primary: #407151;
+    --color-primary-hover: #2e543b;
+    --color-primary-tint: #e6efe8;
     --color-on-primary: #ffffff;
     --color-critical: #dc535b;
     --color-critical-bg: #fff0f0;
     --color-critical-text: #b52e3a;
-    --color-warning-bg: #fff4df;
-    --color-warning-text: #916013;
-    --color-healthy-bg: #e2f5ef;
-    --color-healthy-text: #18755e;
+    --color-warning-bg: #fef3c7;
+    --color-warning-text: #b45309;
+    --color-healthy-bg: #d8f3dc;
+    --color-healthy-text: #2d6a4f;
+    --color-ochre: #d97706;
+    --color-sage: #407151;
     --color-row-critical: #fff7f7;
     --color-row-warning: #fffcf4;
-    --panel-shadow: 0 4px 28px -12px #233f6320;
+    --panel-shadow: 0 4px 28px -12px rgba(35, 63, 45, 0.15);
     --palette-lime: var(--color-primary);
     --palette-coffee: var(--color-on-primary);
     --palette-porcelain: var(--color-text);
@@ -35,28 +37,30 @@
   }
   .dark {
     color-scheme: dark;
-    --color-bg: #080f1c;
-    --color-surface: #101c2d;
-    --color-surface-elevated: #16243a;
-    --color-border: #213149;
-    --color-border-control: #3a506c;
-    --color-text: #edf3fc;
-    --color-muted: #95a9c4;
-    --color-muted-on-bg: #95a9c4;
-    --color-primary: #8cbfff;
-    --color-primary-hover: #b3d5ff;
-    --color-primary-tint: #1b3354;
-    --color-on-primary: #0a1b33;
+    --color-bg: #090e0c;
+    --color-surface: #111a16;
+    --color-surface-elevated: #18241f;
+    --color-border: #21322a;
+    --color-border-control: #314a3e;
+    --color-text: #f0f7f3;
+    --color-muted: #889e93;
+    --color-muted-on-bg: #889e93;
+    --color-primary: #82a890;
+    --color-primary-hover: #9ec2ab;
+    --color-primary-tint: #192a21;
+    --color-on-primary: #09140e;
     --color-critical: #ff807b;
     --color-critical-bg: #37232e;
     --color-critical-text: #ff9b97;
-    --color-warning-bg: #332d25;
-    --color-warning-text: #edc47d;
-    --color-healthy-bg: #15352f;
-    --color-healthy-text: #80d7ba;
+    --color-warning-bg: #2e1f0e;
+    --color-warning-text: #e09f3e;
+    --color-healthy-bg: #142d20;
+    --color-healthy-text: #74c69d;
+    --color-ochre: #e09f3e;
+    --color-sage: #82a890;
     --color-row-critical: #271e2b;
-    --color-row-warning: #23252a;
-    --panel-shadow: 0 8px 32px -18px #0009;
+    --color-row-warning: #2b2518;
+    --panel-shadow: 0 8px 32px -18px rgba(0, 0, 0, 0.6);
   }
   body {
     margin: 0;
@@ -280,6 +284,216 @@
 .medex-marker-green { background: var(--color-healthy-text); box-shadow: 0 0 8px var(--color-healthy-text); }
 .medex-marker-selected { outline: 3px solid var(--color-primary); outline-offset: 3px; }
 
+/* =========================================================================
+   Realistic 3D Glass Beacons & MapLibre Visuals
+   ========================================================================= */
+.medex-beacon-container {
+  position: relative;
+  width: 38px;
+  height: 54px;
+  cursor: pointer;
+  transform: translate(-50%, -100%);
+  transform-origin: bottom center;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+.medex-beacon-container:hover {
+  transform: translate(-50%, -108%) scale(1.12);
+  z-index: 50 !important;
+}
+.medex-beacon-container.is-selected {
+  transform: translate(-50%, -114%) scale(1.22);
+  z-index: 60 !important;
+}
+
+.medex-beacon-ground-shadow {
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 8px;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.medex-beacon-ground-dot {
+  position: absolute;
+  bottom: 0px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+  pointer-events: none;
+}
+
+.medex-beacon-stalk {
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 20px;
+  background: linear-gradient(to top, currentColor 0%, rgba(255, 255, 255, 0.7) 70%, rgba(255, 255, 255, 0.95) 100%);
+  box-shadow: 0 0 5px currentColor;
+  pointer-events: none;
+}
+
+.medex-beacon-pulse {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  opacity: 0;
+  animation: beaconSonar 2.2s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+  pointer-events: none;
+}
+.medex-beacon-pulse-delayed {
+  animation-delay: 1.1s;
+}
+
+@keyframes beaconSonar {
+  0% {
+    transform: translateX(-50%) scale(0.2);
+    opacity: 0.95;
+  }
+  60% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateX(-50%) scale(2.8);
+    opacity: 0;
+  }
+}
+
+.medex-beacon-head {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.78) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 10px 25px -3px rgba(0, 0, 0, 0.6),
+    0 4px 6px -2px rgba(0, 0, 0, 0.4),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.4);
+  transition: all 0.2s ease;
+}
+
+.medex-beacon-container.is-critical {
+  color: #ff5252;
+}
+.medex-beacon-container.is-critical .medex-beacon-head {
+  border-color: rgba(255, 82, 82, 0.75);
+  box-shadow:
+    0 0 18px rgba(255, 82, 82, 0.5),
+    0 10px 25px -3px rgba(0, 0, 0, 0.6),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.medex-beacon-container.is-warning {
+  color: #f59e0b;
+}
+.medex-beacon-container.is-warning .medex-beacon-head {
+  border-color: rgba(245, 158, 11, 0.75);
+  box-shadow:
+    0 0 14px rgba(245, 158, 11, 0.4),
+    0 10px 25px -3px rgba(0, 0, 0, 0.6),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.medex-beacon-container.is-healthy {
+  color: #10b981;
+}
+.medex-beacon-container.is-healthy .medex-beacon-head {
+  border-color: rgba(16, 185, 129, 0.65);
+  box-shadow:
+    0 0 12px rgba(16, 185, 129, 0.35),
+    0 10px 25px -3px rgba(0, 0, 0, 0.6),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.medex-beacon-container.is-selected .medex-beacon-head {
+  border-color: #38bdf8;
+  box-shadow:
+    0 0 26px rgba(56, 189, 248, 0.8),
+    0 0 45px rgba(56, 189, 248, 0.35),
+    inset 0 1px 2px 0 rgba(255, 255, 255, 0.85);
+}
+
+.medex-beacon-status-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background-color: currentColor;
+  border: 1.5px solid #0f172a;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.medex-beacon-label-tag {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #f1f5f9;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 1.5px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.02em;
+}
+
+/* MapLibre Popup Custom Glassmorphic Styling */
+.maplibregl-popup-content {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 14px !important;
+}
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+  border-top-color: rgba(15, 23, 42, 0.95) !important;
+}
+.maplibregl-popup-anchor-top .maplibregl-popup-tip {
+  border-bottom-color: rgba(15, 23, 42, 0.95) !important;
+}
+.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: rgba(15, 23, 42, 0.95) !important;
+}
+.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: rgba(15, 23, 42, 0.95) !important;
+}
+.maplibregl-popup-close-button {
+  display: none !important;
+}
+
+
 .duration-fast { transition-duration: 150ms; }
 .duration-base { transition-duration: 250ms; }
 .duration-slow { transition-duration: 400ms; }
@@ -301,6 +515,257 @@
 .stagger-8 { animation-delay: 320ms; }
 .stagger-9 { animation-delay: 360ms; }
 .stagger-10 { animation-delay: 400ms; }
+
+/* =========================================================================
+   Voice Capture Studio & Holographic Microphone Orb
+   ========================================================================= */
+.voice-orb-glow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.voice-orb-idle {
+  background: radial-gradient(circle at 35% 35%, rgba(56, 189, 248, 0.4) 0%, rgba(14, 165, 233, 0.15) 50%, rgba(15, 23, 42, 0.8) 100%);
+  border: 2px solid rgba(56, 189, 248, 0.35);
+  box-shadow: 0 0 35px -5px rgba(56, 189, 248, 0.3), inset 0 0 20px rgba(56, 189, 248, 0.2);
+  animation: orbBreathe 4s ease-in-out infinite;
+}
+.voice-orb-recording {
+  background: radial-gradient(circle at 35% 35%, rgba(239, 68, 68, 0.45) 0%, rgba(220, 38, 38, 0.2) 50%, rgba(15, 23, 42, 0.85) 100%);
+  border: 2px solid rgba(239, 68, 68, 0.65);
+  box-shadow: 0 0 50px rgba(239, 68, 68, 0.45), inset 0 0 25px rgba(239, 68, 68, 0.3);
+  animation: orbRecordPulse 1.4s ease-in-out infinite alternate;
+}
+.voice-orb-processing {
+  background: radial-gradient(circle at 35% 35%, rgba(168, 85, 247, 0.45) 0%, rgba(147, 51, 234, 0.2) 50%, rgba(15, 23, 42, 0.85) 100%);
+  border: 2px solid rgba(168, 85, 247, 0.6);
+  box-shadow: 0 0 45px rgba(168, 85, 247, 0.4), inset 0 0 25px rgba(168, 85, 247, 0.3);
+}
+
+@keyframes orbBreathe {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 30px -5px rgba(56, 189, 248, 0.25), inset 0 0 15px rgba(56, 189, 248, 0.15);
+  }
+  50% {
+    transform: scale(1.04);
+    box-shadow: 0 0 45px 0px rgba(56, 189, 248, 0.45), inset 0 0 25px rgba(56, 189, 248, 0.3);
+  }
+}
+
+@keyframes orbRecordPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 35px rgba(239, 68, 68, 0.35);
+  }
+  100% {
+    transform: scale(1.08);
+    box-shadow: 0 0 65px rgba(239, 68, 68, 0.6);
+  }
+}
+
+.voice-acoustic-wave {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px solid rgba(239, 68, 68, 0.5);
+  pointer-events: none;
+  animation: acousticExpand 2.2s cubic-bezier(0.1, 0.8, 0.2, 1) infinite;
+}
+.voice-acoustic-wave-2 {
+  animation-delay: 1.1s;
+}
+
+@keyframes acousticExpand {
+  0% {
+    width: 90px;
+    height: 90px;
+    opacity: 0.9;
+    transform: scale(0.9);
+  }
+  100% {
+    width: 240px;
+    height: 240px;
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+.transcript-entity-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+.transcript-entity-drug {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+}
+.transcript-entity-qty {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+}
+.transcript-entity-batch {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+}
+
+
+
+/* =========================================================================
+   MedScan Medicine Stock Register OCR Studio
+   ========================================================================= */
+.medscan-scanner-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #0b1120;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+}
+
+.medscan-laser-beam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3.5px;
+  background: linear-gradient(90deg, transparent 0%, #2dd4bf 20%, #38bdf8 50%, #2dd4bf 80%, transparent 100%);
+  box-shadow: 0 0 18px 4px rgba(45, 212, 191, 0.8), 0 0 35px 8px rgba(56, 189, 248, 0.5);
+  z-index: 30;
+  pointer-events: none;
+  animation: medscanLaserSweep 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+}
+
+@keyframes medscanLaserSweep {
+  0% {
+    top: 6%;
+    opacity: 0.95;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    top: 92%;
+    opacity: 0.95;
+  }
+}
+
+.medscan-corner-bracket {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-color: #2dd4bf;
+  z-index: 25;
+  pointer-events: none;
+}
+.medscan-corner-tl {
+  top: 14px;
+  left: 14px;
+  border-top-width: 3.5px;
+  border-left-width: 3.5px;
+  border-top-left-radius: 8px;
+}
+.medscan-corner-tr {
+  top: 14px;
+  right: 14px;
+  border-top-width: 3.5px;
+  border-right-width: 3.5px;
+  border-top-right-radius: 8px;
+}
+.medscan-corner-bl {
+  bottom: 14px;
+  left: 14px;
+  border-bottom-width: 3.5px;
+  border-left-width: 3.5px;
+  border-bottom-left-radius: 8px;
+}
+.medscan-corner-br {
+  bottom: 14px;
+  right: 14px;
+  border-bottom-width: 3.5px;
+  border-right-width: 3.5px;
+  border-bottom-right-radius: 8px;
+}
+
+.medscan-radar-reticle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(45, 212, 191, 0.4);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.medscan-radar-sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(45, 212, 191, 0.6) 0deg, transparent 90deg, transparent 360deg);
+  animation: radarSpin 2.5s linear infinite;
+}
+@keyframes radarSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.medscan-paper-sheet {
+  background: #ede8dc;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.4) 0%, rgba(220, 213, 198, 0.6) 100%),
+    linear-gradient(to right, rgba(0, 0, 0, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.025) 1px, transparent 1px);
+  color: #1e293b;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 40px rgba(180, 160, 130, 0.25);
+  font-family: 'DM Sans', sans-serif;
+  transform: perspective(1000px) rotateX(1deg);
+  transform-origin: center top;
+}
+
+.medscan-paper-enhanced {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  filter: contrast(125%) brightness(102%);
+}
+
+/* Fiery Glowing Slider Thumb */
+.slider-fiery::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2.5px solid #ef4444;
+  box-shadow: 0 0 14px 4px rgba(239, 68, 68, 0.85);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.slider-fiery::-webkit-slider-thumb:hover {
+  transform: scale(1.18);
+  box-shadow: 0 0 18px 6px rgba(239, 68, 68, 0.95);
+}
+
+.slider-fiery::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2.5px solid #ef4444;
+  box-shadow: 0 0 14px 4px rgba(239, 68, 68, 0.85);
+  cursor: pointer;
+}
+
 
 @media (max-width: 1200px) {
   .risk-overview { grid-template-columns: minmax(0, 1fr); }

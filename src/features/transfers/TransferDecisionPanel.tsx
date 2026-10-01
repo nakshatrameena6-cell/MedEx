@@ -97,16 +97,16 @@ export const TransferDecisionPanel: React.FC<TransferDecisionPanelProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-medex-border">
         <div>
           <h4 className="text-xs font-bold text-medex-primary font-mono uppercase tracking-wider">
-            Human Decision Governance
+            Review & Actions
           </h4>
           <span className="text-2xs font-mono text-medex-secondary">
-            Transfer {transfer.transfer_id} · Current State: <strong className="text-medex-cyan">{currentState}</strong>
+            Transfer {transfer.transfer_id} · Status: <strong className="text-medex-cyan">{currentState}</strong>
           </span>
         </div>
 
         {isReadOnly && (
           <span className="text-2xs font-mono text-medex-amber bg-medex-amber/15 px-2 py-0.5 rounded border border-medex-amber/30">
-            {isAuditor ? 'AUDITOR READ-ONLY' : 'FACILITY NO WRITE'}
+            {isAuditor ? 'AUDITOR READ-ONLY' : 'VIEW ONLY'}
           </span>
         )}
       </div>
@@ -120,7 +120,7 @@ export const TransferDecisionPanel: React.FC<TransferDecisionPanelProps> = ({
               className="px-3 py-1.5 rounded-lg bg-medex-green/15 border border-medex-green/40 text-medex-green-light font-bold text-xs inline-flex items-center gap-1.5 hover:bg-medex-green/25 transition-all"
             >
               <Check className="w-3.5 h-3.5" />
-              <span>APPROVE</span>
+              <span>Approve</span>
             </button>
           )}
 
@@ -131,7 +131,7 @@ export const TransferDecisionPanel: React.FC<TransferDecisionPanelProps> = ({
               className="px-3 py-1.5 rounded-lg bg-medex-amber/15 border border-medex-amber/40 text-medex-amber-light font-bold text-xs inline-flex items-center gap-1.5 hover:bg-medex-amber/25 transition-all"
             >
               <Edit2 className="w-3.5 h-3.5" />
-              <span>MODIFY</span>
+              <span>Edit Amount</span>
             </button>
           )}
 
@@ -142,7 +142,7 @@ export const TransferDecisionPanel: React.FC<TransferDecisionPanelProps> = ({
               className="px-3 py-1.5 rounded-lg bg-medex-red/15 border border-medex-red/40 text-medex-red-light font-bold text-xs inline-flex items-center gap-1.5 hover:bg-medex-red/25 transition-all"
             >
               <X className="w-3.5 h-3.5" />
-              <span>REJECT</span>
+              <span>Decline</span>
             </button>
           )}
 
@@ -153,7 +153,7 @@ export const TransferDecisionPanel: React.FC<TransferDecisionPanelProps> = ({
               className="px-3 py-1.5 rounded-lg bg-medex-surface border border-medex-border text-medex-secondary font-bold text-xs inline-flex items-center gap-1.5 hover:text-medex-primary transition-all"
             >
               <ArrowUpRight className="w-3.5 h-3.5" />
-              <span>ESCALATE</span>
+              <span>Escalate to District</span>
             </button>
           )}
 
@@ -164,7 +164,7 @@ export const TransferDecisionPanel: React.FC<TransferDecisionPanelProps> = ({
               className="px-3 py-1.5 rounded-lg bg-medex-cyan/15 border border-medex-cyan/40 text-medex-cyan font-bold text-xs inline-flex items-center gap-1.5 hover:bg-medex-cyan/25 transition-all"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>MARK DONE (CLOSE)</span>
+              <span>Mark Delivered</span>
             </button>
           )}
         </div>

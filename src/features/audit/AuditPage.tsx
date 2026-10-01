@@ -164,8 +164,8 @@ export const AuditPage: React.FC = () => {
       <PageHeader
         title={COPY.headers.auditTitle}
         subtitle={COPY.headers.auditSubtitle}
-        badge={<StatusBadge status="CYAN" label="GET /audit" />}
-        breadcrumbs={[{ label: 'MEDEx' }, { label: 'Audit Trail' }]}
+        badge={<StatusBadge status="CYAN" label="Activity Log" />}
+        breadcrumbs={[{ label: 'MEDEx' }, { label: 'Activity History' }]}
         actionSlot={
           <div className="flex items-center gap-3">
             <FiltersPopover
@@ -178,7 +178,7 @@ export const AuditPage: React.FC = () => {
               }}
             >
               <div>
-                <label className="text-[12px] font-medium text-theme-muted block mb-1">Actor / User ID</label>
+                <label className="text-[12px] font-medium text-theme-muted block mb-1">Staff / User ID</label>
                 <input
                   type="text"
                   value={actorFilter}
@@ -189,40 +189,40 @@ export const AuditPage: React.FC = () => {
               </div>
 
               <Select
-                label="Audit Action"
+                label="Action Type"
                 value={actionFilter}
                 onChange={setActionFilter}
                 options={[
                   { value: 'ALL', label: 'All Actions' },
-                  { value: 'CAPTURE_CONFIRM', label: 'CAPTURE_CONFIRM' },
-                  { value: 'OPTIMIZE_RUN', label: 'OPTIMIZE_RUN' },
-                  { value: 'TRANSFER_APPROVE', label: 'TRANSFER_APPROVE' },
-                  { value: 'TRANSFER_MODIFY', label: 'TRANSFER_MODIFY' },
-                  { value: 'TRANSFER_REJECT', label: 'TRANSFER_REJECT' },
-                  { value: 'TRANSFER_ESCALATE', label: 'TRANSFER_ESCALATE' },
-                  { value: 'TRANSFER_DONE', label: 'TRANSFER_DONE' },
-                  { value: 'COPILOT_QUERY', label: 'COPILOT_QUERY' },
-                  { value: 'FEDERATION_ROUND', label: 'FEDERATION_ROUND' },
+                  { value: 'CAPTURE_CONFIRM', label: 'Stock Saved' },
+                  { value: 'OPTIMIZE_RUN', label: 'Transfers Calculated' },
+                  { value: 'TRANSFER_APPROVE', label: 'Transfer Approved' },
+                  { value: 'TRANSFER_MODIFY', label: 'Transfer Modified' },
+                  { value: 'TRANSFER_REJECT', label: 'Transfer Declined' },
+                  { value: 'TRANSFER_ESCALATE', label: 'Transfer Escalated' },
+                  { value: 'TRANSFER_DONE', label: 'Transfer Delivered' },
+                  { value: 'COPILOT_QUERY', label: 'AI Assistant Query' },
+                  { value: 'FEDERATION_ROUND', label: 'Network Learning Round' },
                 ]}
               />
 
               <Select
-                label="Entity Type"
+                label="Category"
                 value={entityTypeFilter}
                 onChange={setEntityTypeFilter}
                 options={[
-                  { value: 'ALL', label: 'All Entity Types' },
-                  { value: 'FACILITY', label: 'FACILITY' },
-                  { value: 'CAPTURE', label: 'CAPTURE' },
-                  { value: 'TRANSFER', label: 'TRANSFER' },
-                  { value: 'QUERY', label: 'QUERY' },
-                  { value: 'ALERT', label: 'ALERT' },
-                  { value: 'MODEL', label: 'MODEL' },
+                  { value: 'ALL', label: 'All Categories' },
+                  { value: 'FACILITY', label: 'Health Centre' },
+                  { value: 'CAPTURE', label: 'Stock Record' },
+                  { value: 'TRANSFER', label: 'Medicine Transfer' },
+                  { value: 'QUERY', label: 'Search / AI Query' },
+                  { value: 'ALERT', label: 'Stock Alert' },
+                  { value: 'MODEL', label: 'Learning Model' },
                 ]}
               />
 
               <Select
-                label="Max Limit"
+                label="Show"
                 value={limitFilter}
                 onChange={setLimitFilter}
                 options={[
@@ -256,19 +256,19 @@ export const AuditPage: React.FC = () => {
           className="border-theme-primary/40 border-2"
           status="GREEN"
           icon={ShieldCheck}
-          subtext="Append-only log records"
+          subtext="Logged activity events"
         />
 
         <KpiCard
-          title="Unique Actors"
+          title="Active Staff"
           value={uniqueActors}
-          unit="actors"
+          unit="users"
           status="NEUTRAL"
           icon={User}
         />
 
         <KpiCard
-          title="Governed Actions"
+          title="Action Types"
           value={uniqueActions}
           unit="types"
           status="NEUTRAL"
@@ -284,8 +284,8 @@ export const AuditPage: React.FC = () => {
               <Terminal className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-[16px] font-semibold text-theme-text">Read-Only Audit Log</h2>
-              <p className="text-[11px] font-mono text-theme-muted">IMMUTABLE CRYPTOGRAPHIC EVENT LEDGER // NEWEST FIRST</p>
+              <h2 className="text-[16px] font-semibold text-theme-text">Activity History Log</h2>
+              <p className="text-[11px] font-mono text-theme-muted">VERIFIED RECORDS // NEWEST FIRST</p>
             </div>
           </div>
           <Button variant="secondary" size="sm" onClick={() => loadAuditData(true)}>
@@ -310,13 +310,13 @@ export const AuditPage: React.FC = () => {
             <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
                 <tr className="border-b border-theme-border bg-white/[0.02] text-theme-muted text-[11px] font-mono uppercase tracking-wider">
-                  <th scope="col" className="py-3 px-4">Audit ID</th>
-                  <th scope="col" className="py-3 px-4">Timestamp (UTC)</th>
-                  <th scope="col" className="py-3 px-4">Actor & Role</th>
+                  <th scope="col" className="py-3 px-4">Event ID</th>
+                  <th scope="col" className="py-3 px-4">Date & Time</th>
+                  <th scope="col" className="py-3 px-4">Staff & Role</th>
                   <th scope="col" className="py-3 px-4">Action</th>
-                  <th scope="col" className="py-3 px-4">Entity Target</th>
-                  <th scope="col" className="py-3 px-4">Comment</th>
-                  <th scope="col" className="py-3 px-4 text-right">Actions</th>
+                  <th scope="col" className="py-3 px-4">Item / Centre</th>
+                  <th scope="col" className="py-3 px-4">Details / Note</th>
+                  <th scope="col" className="py-3 px-4 text-right">View Data</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-xs">
@@ -349,7 +349,7 @@ export const AuditPage: React.FC = () => {
                         </td>
                         <td className="py-2.5 px-4">
                           <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-theme-primary/10 text-theme-primary border border-theme-primary/25">
-                            {entry.action}
+                            {entry.action.replace(/_/g, ' ')}
                           </span>
                         </td>
                         <td className="py-2.5 px-4">
@@ -375,8 +375,8 @@ export const AuditPage: React.FC = () => {
                               type="button"
                               onClick={(e) => handleCopyJson(entry, e)}
                               className="p-1.5 rounded-md text-theme-muted hover:text-theme-text hover:bg-white/10 transition-colors"
-                              title="Copy raw JSON payload"
-                              aria-label="Copy raw JSON"
+                              title="Copy raw data"
+                              aria-label="Copy raw data"
                             >
                               {isCopied ? <Check className="w-4 h-4 text-theme-healthy" /> : <Copy className="w-4 h-4" />}
                             </button>
@@ -384,8 +384,8 @@ export const AuditPage: React.FC = () => {
                               type="button"
                               onClick={() => toggleExpand(entry.audit_id)}
                               className="p-1.5 rounded-md text-theme-muted hover:text-theme-text hover:bg-white/10 transition-colors"
-                              title={isExpanded ? 'Collapse JSON' : 'Expand JSON payload'}
-                              aria-label="Toggle JSON drawer"
+                              title={isExpanded ? 'Collapse' : 'Expand record'}
+                              aria-label="Toggle details"
                             >
                               {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                             </button>
@@ -405,8 +405,8 @@ export const AuditPage: React.FC = () => {
                             >
                               <div className="flex items-center justify-between">
                                 <span className="text-[11px] font-mono font-bold uppercase text-theme-muted flex items-center gap-2">
-                                  <span>Raw Audit Record Payload ({entry.audit_id})</span>
-                                  <span className="px-2 py-0.5 rounded bg-theme-primary/10 text-theme-primary text-[10px] font-semibold border border-theme-primary/20">Syntax Highlighted</span>
+                                  <span>Event Details ({entry.audit_id})</span>
+                                  <span className="px-2 py-0.5 rounded bg-theme-primary/10 text-theme-primary text-[10px] font-semibold border border-theme-primary/20">Full Event Record</span>
                                 </span>
                                 <Button
                                   variant="secondary"
@@ -414,7 +414,7 @@ export const AuditPage: React.FC = () => {
                                   onClick={(e) => handleCopyJson(entry, e)}
                                 >
                                   {isCopied ? <Check className="w-3.5 h-3.5 mr-1" /> : <Copy className="w-3.5 h-3.5 mr-1" />}
-                                  <span>{isCopied ? 'Copied!' : 'Copy Payload'}</span>
+                                  <span>{isCopied ? 'Copied!' : 'Copy Data'}</span>
                                 </Button>
                               </div>
                               <pre className="text-2xs font-mono bg-[#090D14] p-4 rounded-xl border border-theme-border text-slate-100 overflow-x-auto max-h-72 scrollbar-thin shadow-inner leading-relaxed">

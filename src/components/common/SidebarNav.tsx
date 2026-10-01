@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  Activity,
   Camera,
   MapPin,
   AlertOctagon,
@@ -115,8 +114,8 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
       {/* Top Header: Logo & Brand */}
       <div className="px-5 h-[92px] shrink-0 flex items-center justify-between">
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="brand-mark flex items-center justify-center shrink-0">
-            <Activity className="w-5 h-5" strokeWidth={1.8} />
+          <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0 border border-slate-700/60 shadow-[0_0_10px_rgba(56,189,248,0.25)] bg-[#070e1c]">
+            <img src="/medex_logo.jpg" alt="MedEx" className="w-full h-full object-cover" />
           </div>
           {!isCollapsed && (
             <div className="truncate">

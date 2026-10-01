@@ -144,7 +144,7 @@ export const MapView: React.FC = () => {
             className="absolute right-0 top-12 z-30 w-80 bg-theme-surface border border-theme-border rounded-xl shadow-xl p-4 space-y-4 font-sans animate-fade-in text-theme-text"
           >
             <div className="flex items-center justify-between border-b border-theme-border pb-2">
-              <h3 className="text-[14px] font-semibold text-theme-text">Filter Map Facilities</h3>
+              <h3 className="text-[14px] font-semibold text-theme-text">Filter Health Centres</h3>
               <button
                 type="button"
                 onClick={() => setIsFilterPopoverOpen(false)}
@@ -156,38 +156,38 @@ export const MapView: React.FC = () => {
 
             <div className="space-y-3">
               <Select
-                label="Risk Status"
+                label="Stock Status"
                 value={statusFilter}
                 onChange={(val) => updateFilters(val, typeFilter, drugFilter)}
                 options={[
-                  { value: 'ALL', label: 'All Statuses (RED / AMBER / GREEN)' },
-                  { value: 'RED', label: 'RED (Critical Risk)' },
-                  { value: 'AMBER', label: 'AMBER (Low Cover Watch)' },
-                  { value: 'GREEN', label: 'GREEN (Cover Stable)' },
+                  { value: 'ALL', label: 'All Statuses (Critical / Low / Stable)' },
+                  { value: 'RED', label: 'Critical (Under 7 days stock)' },
+                  { value: 'AMBER', label: 'Low Stock (7–14 days stock)' },
+                  { value: 'GREEN', label: 'Stable (Over 14 days stock)' },
                 ]}
               />
 
               <Select
-                label="Facility Type"
+                label="Centre Type"
                 value={typeFilter}
                 onChange={(val) => updateFilters(statusFilter, val, drugFilter)}
                 options={[
-                  { value: 'ALL', label: 'All Facility Types' },
-                  { value: 'PHC', label: 'PHC (Primary Health Centre)' },
-                  { value: 'CHC', label: 'CHC (Community Health Centre)' },
-                  { value: 'WAREHOUSE', label: 'WAREHOUSE (Depot)' },
+                  { value: 'ALL', label: 'All Types' },
+                  { value: 'PHC', label: 'Primary Health Centre (PHC)' },
+                  { value: 'CHC', label: 'Community Health Centre (CHC)' },
+                  { value: 'WAREHOUSE', label: 'District Warehouse' },
                 ]}
               />
 
               <Select
-                label="Drug Code"
+                label="Medicine"
                 value={drugFilter}
                 onChange={(val) => updateFilters(statusFilter, typeFilter, val)}
                 options={[
-                  { value: 'ALL', label: 'All Essential Drugs' },
-                  { value: 'ORS', label: 'ORS' },
-                  { value: 'PARA500', label: 'PARA500' },
-                  { value: 'AMOX500', label: 'AMOX500' },
+                  { value: 'ALL', label: 'All Medicines' },
+                  { value: 'ORS', label: 'ORS (Oral Rehydration Salts)' },
+                  { value: 'PARA500', label: 'Paracetamol 500mg' },
+                  { value: 'AMOX500', label: 'Amoxicillin 500mg' },
                 ]}
               />
             </div>
@@ -219,13 +219,13 @@ export const MapView: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* Card 1: Critical Stockouts (Hero Card) */}
+          {/* Card 1: Critical Stockouts */}
           <Card3D glowColor="rgba(239, 68, 68, 0.28)">
             <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-[10px] text-theme-critical font-bold tracking-wider">[01]</span>
-                  <span className="text-[13px] font-medium text-theme-muted">Critical Stockouts</span>
+                  <span className="text-[13px] font-medium text-theme-muted">Critical Shortages</span>
                 </div>
                 <StatusBadge status="RED" label="Critical" size="sm" />
               </div>
@@ -233,27 +233,27 @@ export const MapView: React.FC = () => {
                 <span className="metric-value text-[40px] font-medium text-theme-critical leading-none tracking-tight font-mono">
                   {redCount}
                 </span>
-                <span className="text-[12px] font-mono text-theme-muted">facilities</span>
+                <span className="text-[12px] font-mono text-theme-muted">centres</span>
               </div>
               <div className="pt-2 border-t border-theme-border flex items-center justify-between text-[11px] text-theme-muted">
-                <span>Under emergency replenishment</span>
+                <span>Need urgent replenishment</span>
                 <span className="font-mono text-[9px] text-theme-critical font-bold uppercase tracking-wider">
-                  HIGH ALERT
+                  URGENT
                 </span>
               </div>
             </div>
           </Card3D>
 
-          {/* Card 2: Resilience */}
+          {/* Card 2: District Supply Health */}
           <Card3D glowColor="rgba(45, 212, 191, 0.28)">
             <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-[10px] text-theme-primary font-bold tracking-wider">[02]</span>
-                  <span className="text-[13px] font-medium text-theme-muted">District Resilience</span>
+                  <span className="text-[13px] font-medium text-theme-muted">Supply Health</span>
                 </div>
                 <span className="font-mono text-[10px] text-theme-muted bg-white/[0.05] px-2 py-0.5 rounded border border-theme-border">
-                  AI INDEX
+                  SCORE
                 </span>
               </div>
               <div className="flex items-baseline justify-between gap-2 pt-1">
@@ -268,21 +268,21 @@ export const MapView: React.FC = () => {
                 )}
               </div>
               <div className="pt-2 border-t border-theme-border flex items-center justify-between text-[11px] text-theme-muted">
-                <span>District supply resilience score</span>
+                <span>Overall district supply health</span>
                 <span className="font-mono text-[9px] text-theme-healthy-text font-bold uppercase tracking-wider">
-                  STABLE
+                  HEALTHY
                 </span>
               </div>
             </div>
           </Card3D>
 
-          {/* Card 3: Healthy Facilities */}
+          {/* Card 3: Well-Stocked Centres */}
           <Card3D glowColor="rgba(16, 185, 129, 0.25)">
             <div className="p-5 font-sans flex flex-col justify-between h-full space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-[10px] text-theme-healthy-text font-bold tracking-wider">[03]</span>
-                  <span className="text-[13px] font-medium text-theme-muted">Sufficient Cover</span>
+                  <span className="text-[13px] font-medium text-theme-muted">Sufficient Stock</span>
                 </div>
                 <StatusBadge status="GREEN" label="Stable" size="sm" />
               </div>
@@ -290,12 +290,12 @@ export const MapView: React.FC = () => {
                 <span className="metric-value text-[40px] font-medium text-theme-text leading-none tracking-tight font-mono">
                   {greenCount}
                 </span>
-                <span className="text-[13px] font-mono text-theme-muted">facilities</span>
+                <span className="text-[13px] font-mono text-theme-muted">centres</span>
               </div>
               <div className="pt-2 border-t border-theme-border flex items-center justify-between text-[11px] text-theme-muted">
-                <span>Stock levels above safety thresholds</span>
+                <span>Safe stock for 14+ days</span>
                 <span className="font-mono text-[9px] text-theme-healthy-text font-bold uppercase tracking-wider">
-                  OPTIMAL
+                  SAFE
                 </span>
               </div>
             </div>
@@ -303,8 +303,8 @@ export const MapView: React.FC = () => {
         </div>
       )}
 
-      {/* Main Visual Centerpiece: Map Container */}
-      <div className="rounded-lg border border-theme-border bg-theme-surface overflow-hidden min-h-[480px]">
+      {/* Main Visual Centerpiece: Ultra-Realistic Geospatial Map Container */}
+      <div className="rounded-xl border border-theme-border bg-theme-surface overflow-hidden min-h-[540px] shadow-lg">
         <MedExHealthMap
           facilities={facilities}
           selectedFacilityId={selectedFacilityId}
@@ -312,6 +312,7 @@ export const MapView: React.FC = () => {
           isLoading={isLoading}
           isError={isError}
           onRetry={loadMapData}
+          initial3D={true}
         />
       </div>
 
@@ -320,14 +321,14 @@ export const MapView: React.FC = () => {
         <TableSkeleton rows={5} columns={4} />
       ) : isError ? (
         <ErrorState
-          title="Couldn't load facility directory"
+          title="Couldn't load health centres"
           message={errorMessage}
           onRetry={loadMapData}
         />
       ) : facilities.length === 0 ? (
         <EmptyState
-          title="No facilities found"
-          description="No facilities match the selected filters."
+          title="No health centres found"
+          description="No centres match the selected filters."
           action={
             activeFilterCount > 0 ? (
               <Button variant="secondary" size="sm" onClick={handleResetFilters}>
@@ -340,10 +341,10 @@ export const MapView: React.FC = () => {
         <div className="rounded-lg border border-theme-border bg-theme-surface overflow-hidden shadow-sm">
           <div className="px-5 py-3.5 border-b border-theme-border flex items-center justify-between">
             <h2 className="text-[17px] font-semibold text-theme-text">
-              District Facility Directory
+              Health Centres in District
             </h2>
             <span className="text-[12px] font-mono text-theme-muted">
-              {facilities.length} Records
+              {facilities.length} Centres
             </span>
           </div>
 
@@ -351,10 +352,10 @@ export const MapView: React.FC = () => {
             <table className="w-full text-left border-collapse font-sans">
               <thead>
                 <tr className="bg-theme-surface border-b border-theme-border text-theme-muted text-[13px] font-semibold sticky top-0 z-10">
-                  <th className="px-5 py-3.5 w-5/12">Facility</th>
+                  <th className="px-5 py-3.5 w-5/12">Health Centre</th>
                   <th className="px-5 py-3.5 w-2/12">Type</th>
                   <th className="px-5 py-3.5 w-2/12">Population</th>
-                  <th className="px-5 py-3.5 w-2/12">Status</th>
+                  <th className="px-5 py-3.5 w-2/12">Stock Status</th>
                   <th className="px-3 py-3.5 w-10 text-right"></th>
                 </tr>
               </thead>

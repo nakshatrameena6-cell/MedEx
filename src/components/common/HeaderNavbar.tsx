@@ -5,14 +5,14 @@ import {
   ChevronDown,
   Code2,
   Bot,
+  Bell,
+  Sun,
 } from 'lucide-react';
 import { useAuthRole } from '../../context/AuthRoleContext';
 import { useDevMode } from '../../context/DevModeContext';
 import { Role } from '../../types/api';
-import { ThemeToggle } from './ThemeToggle';
 import { DevOnly } from './DevOnly';
 import { OfflineBadge, MockBadge } from './OfflineBadge';
-import { BellToggle } from '../reactbits';
 
 interface HeaderNavbarProps {
   onToggleSidebar?: () => void;
@@ -47,8 +47,17 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
 
   return (
     <header className="workspace-header border-b border-theme-border px-3 md:px-8 flex items-center justify-between gap-1.5 sticky top-0 z-30 font-sans">
-      {/* Left: Mobile Sidebar Hamburger */}
-      <div className="flex items-center gap-1 sm:gap-3">
+      {/* Left: Brand Icon + Mobile Toggle + Global Search */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* MedEx Brand Logo */}
+        <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0 border border-slate-700/60 shadow-[0_0_10px_rgba(56,189,248,0.25)] bg-[#070e1c]">
+          <img
+            src="/medex_logo.jpg"
+            alt="MedEx Logo"
+            className="w-full h-full object-cover"
+          />
+        </div>
+
         <button
           type="button"
           onClick={onToggleSidebar}
@@ -63,13 +72,13 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
           type="button"
           onClick={onOpenCommandPalette}
           aria-label="Search pages, drugs and facilities"
-          className="flex items-center justify-between w-9 sm:w-44 xl:w-72 h-9 sm:px-3 rounded-lg text-[12px] text-theme-muted hover:text-theme-primary transition-colors focus-visible:outline-2 focus-visible:outline-theme-primary"
+          className="flex items-center justify-between w-9 sm:w-48 xl:w-64 h-9 px-3 rounded-lg border border-slate-800 bg-[#070e1c] text-[12px] text-slate-400 hover:text-white hover:border-slate-700 transition-colors focus-visible:outline-2 focus-visible:outline-theme-primary"
         >
           <div className="flex items-center gap-2 truncate">
-            <Search className="w-4 h-4 shrink-0 text-theme-muted" strokeWidth={1.8} />
-            <span className="hidden sm:inline truncate">Search your workspace...</span>
+            <Search className="w-4 h-4 shrink-0 text-slate-400" strokeWidth={1.8} />
+            <span className="hidden sm:inline truncate">Search anything...</span>
           </div>
-          <span className="hidden sm:inline-flex text-[11px] font-mono px-1.5 py-0.5 rounded bg-theme-surface border border-theme-border text-theme-muted shrink-0">
+          <span className="hidden sm:inline-flex text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400 shrink-0">
             ⌘K
           </span>
         </button>
@@ -77,20 +86,20 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
 
       {/* Right Controls */}
       <div className="flex items-center gap-1.5 lg:gap-3">
-        {/* District Selector with Chevron */}
-        <div className="relative inline-flex items-center gap-1.5 px-2 lg:px-3 py-2 rounded-lg border border-theme-border bg-theme-bg text-[11px] lg:text-[12px] text-theme-text font-medium">
+        {/* District / Facility Selector with Chevron */}
+        <div className="relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 bg-[#070e1c] text-[12px] text-slate-200 font-medium">
           <select
             value={district}
             onChange={(e) => setDistrict(e.target.value)}
-            className="bg-transparent font-medium text-theme-text focus:outline-none cursor-pointer pr-4 appearance-none"
+            className="bg-transparent font-medium text-slate-200 focus:outline-none cursor-pointer pr-4 appearance-none text-[12px]"
             aria-label="Select Active District Scope"
           >
-            <option value="TN-D01" className="bg-theme-surface">TN-D01</option>
-            <option value="TN-D02" className="bg-theme-surface">TN-D02</option>
-            <option value="TN-D03" className="bg-theme-surface">TN-D03</option>
-            <option value="ALL" className="bg-theme-surface">All districts</option>
+            <option value="TN-D01" className="bg-[#0b1324] text-white">Facility: TN-PHC-014 (TN-D01)</option>
+            <option value="TN-D02" className="bg-[#0b1324] text-white">Facility: TN-PHC-022 (TN-D02)</option>
+            <option value="TN-D03" className="bg-[#0b1324] text-white">Facility: TN-PHC-031 (TN-D03)</option>
+            <option value="ALL" className="bg-[#0b1324] text-white">All facilities (State)</option>
           </select>
-          <ChevronDown className="w-4 h-4 text-theme-muted pointer-events-none absolute right-2" strokeWidth={1.8} />
+          <ChevronDown className="w-3.5 h-3.5 text-slate-400 pointer-events-none absolute right-2.5" strokeWidth={1.8} />
         </div>
 
         {/* Active Scope Chip */}
@@ -103,52 +112,56 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
           </div>
         </DevOnly>
 
-        {/* Gemini Copilot Trigger Button */}
+        {/* Copilot Trigger Button */}
         <button
           type="button"
           onClick={onOpenCopilot}
-          aria-label="Open AI Copilot"
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-theme-primary bg-theme-primary-tint/30 text-[13px] font-semibold text-theme-primary hover:bg-theme-primary-tint/50 transition-colors focus-visible:outline-2 focus-visible:outline-theme-primary"
+          aria-label="Open AI Assistant"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 bg-[#070e1c] text-[12px] font-semibold text-slate-200 hover:text-white hover:border-slate-700 transition-colors focus-visible:outline-2 focus-visible:outline-theme-primary cursor-pointer"
         >
-          <Bot className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-          <span className="hidden sm:inline">Copilot</span>
+          <Bot className="w-3.5 h-3.5 text-cyan-400" strokeWidth={1.8} />
+          <span className="hidden sm:inline">AI Assistant</span>
         </button>
 
-        {/* ReactBits Physics BellToggle */}
-        <div className="hidden sm:flex items-center">
-          <BellToggle
-            size="sm"
-            count={unreadAlertsCount}
-            badge={true}
-            defaultPressed={true}
-            offLabel="Muted"
-            onLabel="Alerts"
-            color="var(--color-text)"
-            background="var(--color-bg)"
-            onColor="var(--color-primary)"
-            onBackground="var(--color-primary-tint)"
-          />
-        </div>
+        {/* Alerts Button with Red Dot Badge */}
+        <button
+          type="button"
+          onClick={onToggleSidebar}
+          aria-label="View Alerts"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-900/60 bg-[#071329] text-[12px] font-semibold text-blue-200 hover:bg-blue-950/80 transition-colors focus-visible:outline-2 focus-visible:outline-theme-primary cursor-pointer"
+        >
+          <div className="relative flex items-center justify-center">
+            <Bell className="w-3.5 h-3.5 text-blue-300" strokeWidth={1.8} />
+            <span className="absolute -top-1.5 -right-2 px-1 min-w-[13px] h-[13px] rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+              {unreadAlertsCount}
+            </span>
+          </div>
+          <span className="hidden sm:inline pl-1">Alerts</span>
+        </button>
 
-        {/* Theme Toggle Button */}
-        <ThemeToggle />
-
-        {/* Avatar Menu with Developer Mode Switch */}
+        {/* User Profile & Theme with Avatar Image */}
         <div className="relative" ref={avatarMenuRef}>
           <button
             type="button"
             onClick={() => setAvatarMenuOpen(!avatarMenuOpen)}
             aria-label="Open user profile menu"
             aria-expanded={avatarMenuOpen}
-            className="flex items-center gap-2 p-1.5 rounded-lg border border-theme-border-control text-theme-text hover:bg-theme-primary-tint/20 transition-colors focus-visible:outline-2 focus-visible:outline-theme-primary"
+            className="flex items-center gap-2 px-2.5 py-1 rounded-lg border border-slate-800 bg-[#070e1c] text-slate-200 hover:border-slate-700 transition-colors focus-visible:outline-2 focus-visible:outline-theme-primary cursor-pointer"
           >
-            <div className="w-6 h-6 rounded-full bg-theme-primary text-theme-on-primary flex items-center justify-center font-bold text-[12px]">
-              {user.charAt(0).toUpperCase()}
-            </div>
-            <span className="hidden lg:inline text-[13px] font-medium max-w-[90px] truncate">
+            <Sun className="w-3.5 h-3.5 text-amber-400" strokeWidth={1.8} />
+            <span className="hidden lg:inline text-[12px] font-medium font-mono text-slate-200">
               {user}
             </span>
-            <ChevronDown className="hidden sm:block w-3.5 h-3.5 text-theme-muted" strokeWidth={1.8} />
+            <div className="w-6 h-6 rounded-full overflow-hidden border border-slate-700 bg-slate-800 flex items-center justify-center shrink-0">
+              <img
+                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&q=80"
+                alt={user}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                }}
+              />
+            </div>
           </button>
 
           {/* Avatar Dropdown Menu */}

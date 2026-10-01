@@ -1,7 +1,6 @@
 import React from 'react';
 import { Facility } from '../../types/api';
 import { FacilityMap } from './FacilityMap';
-import { FacilityDrawer } from './FacilityDrawer';
 import { Skeleton } from '../common/Skeleton';
 import { ErrorState } from '../common/ErrorState';
 
@@ -14,6 +13,7 @@ interface MedExHealthMapProps {
   isError?: boolean;
   onRetry?: () => void;
   className?: string;
+  initial3D?: boolean;
 }
 
 export const MedExHealthMap: React.FC<MedExHealthMapProps> = ({
@@ -25,20 +25,21 @@ export const MedExHealthMap: React.FC<MedExHealthMapProps> = ({
   isError = false,
   onRetry,
   className = '',
+  initial3D = false,
 }) => {
   if (isLoading) {
     return (
-      <div className={`medex-panel p-6 flex flex-col items-center justify-center min-h-[420px] ${className}`}>
-        <Skeleton className="w-full h-full min-h-[380px] rounded-lg" />
+      <div className={`p-6 flex flex-col items-center justify-center min-h-[520px] rounded-xl border border-slate-800 bg-slate-950 ${className}`}>
+        <Skeleton className="w-full h-full min-h-[480px] rounded-xl" />
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className={`medex-panel p-6 flex flex-col items-center justify-center min-h-[420px] ${className}`}>
+      <div className={`p-6 flex flex-col items-center justify-center min-h-[520px] rounded-xl border border-slate-800 bg-slate-950 ${className}`}>
         <ErrorState
-          title="Failed to Load Facility Map"
+          title="Failed to Load Realistic Facility Map"
           message="Could not load facility geographic positions from GET /facilities."
           onRetry={onRetry}
         />
@@ -47,8 +48,8 @@ export const MedExHealthMap: React.FC<MedExHealthMapProps> = ({
   }
 
   return (
-    <div className={`medex-panel relative overflow-hidden rounded-lg min-h-[480px] border-medex-border ${className}`}>
-      {/* Keyless MapLibre Facility Map */}
+    <div className={`relative overflow-hidden rounded-xl min-h-[540px] border border-slate-800 shadow-2xl bg-slate-950 ${className}`}>
+      {/* Ultra-Realistic HD Satellite & 3D Facility Map */}
       <FacilityMap
         facilities={facilities}
         selectedFacilityId={selectedFacilityId}
@@ -56,12 +57,7 @@ export const MedExHealthMap: React.FC<MedExHealthMapProps> = ({
         activePolyline={activePolyline}
         showControls={true}
         showLegend={true}
-      />
-
-      {/* Facility Detail Drawer */}
-      <FacilityDrawer
-        facilityId={selectedFacilityId}
-        onClose={() => onSelectFacility(null)}
+        initial3D={initial3D}
       />
     </div>
   );

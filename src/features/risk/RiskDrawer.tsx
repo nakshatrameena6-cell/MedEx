@@ -50,15 +50,15 @@ export const RiskDrawer: React.FC<RiskDrawerProps> = ({ item, onClose, triggerRe
   const humanizeFlagCode = (code: string): string => {
     switch (code.toUpperCase()) {
       case 'LOW_COVER':
-        return 'Low Cover';
+        return 'Low Stock';
       case 'LEAD_TIME_BREACH':
-        return 'Lead Time Breach';
+        return 'Delivery Delay Risk';
       case 'P90_RISK':
-        return 'P90 Risk';
+        return 'High Shortage Risk';
       case 'VULNERABLE_POP':
-        return 'Vulnerable Population';
+        return 'High Patient Demand';
       case 'SPARSE_DATA':
-        return 'Sparse Data';
+        return 'Limited Past Records';
       default:
         return code.replace(/_/g, ' ');
     }
@@ -84,7 +84,7 @@ export const RiskDrawer: React.FC<RiskDrawerProps> = ({ item, onClose, triggerRe
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[11px] font-mono uppercase tracking-[0.05em] text-theme-muted">
-                Why this is flagged
+                Why this needs attention
               </span>
               <StatusBadge status={item.status} size="sm" />
             </div>
@@ -115,7 +115,7 @@ export const RiskDrawer: React.FC<RiskDrawerProps> = ({ item, onClose, triggerRe
           {/* Stock Left Hero Box */}
           <div className="p-4 rounded-lg border border-theme-border bg-theme-bg flex items-center justify-between">
             <div>
-              <span className="text-[12px] text-theme-muted font-normal block">Stock Left</span>
+              <span className="text-[12px] text-theme-muted font-normal block">Stock on Hand</span>
               <span className="text-[28px] font-semibold text-theme-text leading-none tracking-tight">
                 {item.cover_days} days
               </span>
@@ -131,40 +131,40 @@ export const RiskDrawer: React.FC<RiskDrawerProps> = ({ item, onClose, triggerRe
             </div>
           </div>
 
-          {/* Compact Metrics Grid (Mapped strictly from API fields, hiding undefined fields) */}
+          {/* Compact Metrics Grid */}
           <div className="space-y-2 border-t border-b border-theme-border py-4 text-[13px]">
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.05em] text-theme-muted mb-2">
-              Calculated Risk Factors
+              Key Stock Numbers
             </h3>
 
             <div className="grid grid-cols-2 gap-3 font-mono">
               <div className="p-2.5 rounded bg-theme-bg border border-theme-border">
-                <span className="text-[11px] text-theme-muted block">Stock Cover P50</span>
+                <span className="text-[11px] text-theme-muted block">Days of Stock</span>
                 <span className="font-semibold text-theme-text">{item.cover_days} days</span>
               </div>
 
               {typeof item.cover_days_p90 === 'number' && (
                 <div className="p-2.5 rounded bg-theme-bg border border-theme-border">
-                  <span className="text-[11px] text-theme-muted block">P90 Cover</span>
+                  <span className="text-[11px] text-theme-muted block">Worst-Case Days</span>
                   <span className="font-semibold text-theme-text">{item.cover_days_p90} days</span>
                 </div>
               )}
 
               <div className="p-2.5 rounded bg-theme-bg border border-theme-border">
-                <span className="text-[11px] text-theme-muted block">Lead Time</span>
+                <span className="text-[11px] text-theme-muted block">Delivery Time Needed</span>
                 <span className="font-semibold text-theme-text">{item.lead_time_days} days</span>
               </div>
 
               {typeof item.safety_buffer_days === 'number' && (
                 <div className="p-2.5 rounded bg-theme-bg border border-theme-border">
-                  <span className="text-[11px] text-theme-muted block">Safety Buffer</span>
+                  <span className="text-[11px] text-theme-muted block">Safety Stock Target</span>
                   <span className="font-semibold text-theme-text">{item.safety_buffer_days} days</span>
                 </div>
               )}
 
               {typeof item.drug_criticality === 'number' && (
                 <div className="p-2.5 rounded bg-theme-bg border border-theme-border">
-                  <span className="text-[11px] text-theme-muted block">Criticality Score</span>
+                  <span className="text-[11px] text-theme-muted block">Importance Level</span>
                   <span className="font-semibold text-theme-text">
                     {(item.drug_criticality * 100).toFixed(0)}%
                   </span>
@@ -173,7 +173,7 @@ export const RiskDrawer: React.FC<RiskDrawerProps> = ({ item, onClose, triggerRe
 
               {typeof item.vulnerability_weight === 'number' && (
                 <div className="p-2.5 rounded bg-theme-bg border border-theme-border">
-                  <span className="text-[11px] text-theme-muted block">Vulnerability Weight</span>
+                  <span className="text-[11px] text-theme-muted block">Population Need</span>
                   <span className="font-semibold text-theme-text">
                     {item.vulnerability_weight}x
                   </span>
@@ -187,7 +187,7 @@ export const RiskDrawer: React.FC<RiskDrawerProps> = ({ item, onClose, triggerRe
             <div className="p-4 rounded-lg bg-theme-primary-tint/15 border border-theme-primary-tint/40 text-[13px] text-theme-text space-y-1.5">
               <span className="font-semibold text-theme-primary flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-                Risk Intelligence Explanation
+                Why this is at risk
               </span>
               <p className="leading-relaxed">{item.reason}</p>
             </div>
@@ -197,7 +197,7 @@ export const RiskDrawer: React.FC<RiskDrawerProps> = ({ item, onClose, triggerRe
           {item.flags && item.flags.length > 0 && (
             <div className="space-y-1.5">
               <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-theme-muted block">
-                Triggered Risk Flags
+                Active Warnings
               </span>
               <div className="flex flex-wrap gap-2">
                 {item.flags.map((flag, idx) => (
@@ -226,7 +226,7 @@ export const RiskDrawer: React.FC<RiskDrawerProps> = ({ item, onClose, triggerRe
             }}
             className="flex-1"
           >
-            View Facility
+            View on Map
           </Button>
 
           <Button

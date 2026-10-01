@@ -54,7 +54,7 @@ export const OptimizerForm: React.FC<OptimizerFormProps> = ({
       <div className="flex items-center gap-2 pb-2 border-b border-medex-border">
         <Cpu className="w-4 h-4 text-medex-cyan" />
         <h4 className="text-xs font-bold text-medex-primary font-mono uppercase tracking-wider">
-          OR-Tools Optimizer Parameters
+          Transfer Finder Settings
         </h4>
       </div>
 
@@ -62,7 +62,7 @@ export const OptimizerForm: React.FC<OptimizerFormProps> = ({
         {/* District ID */}
         <div>
           <label className="text-2xs font-mono text-medex-muted block mb-1">
-            Target District
+            District
           </label>
           <select
             value={districtId}
@@ -79,7 +79,7 @@ export const OptimizerForm: React.FC<OptimizerFormProps> = ({
         {/* Drug Filter */}
         <div>
           <label className="text-2xs font-mono text-medex-muted block mb-1">
-            Drug Filter (Omit for All RED Drugs)
+            Medicine Filter
           </label>
           <select
             value={drugCode}
@@ -87,10 +87,10 @@ export const OptimizerForm: React.FC<OptimizerFormProps> = ({
             disabled={disabled}
             className="w-full bg-medex-bg border border-medex-border rounded px-2.5 py-1.5 font-mono text-medex-primary focus:outline-none focus:border-medex-cyan"
           >
-            <option value="">All Critical / RED Drugs</option>
+            <option value="">All Low Stock Medicines</option>
             <option value="ORS">ORS (Oral Rehydration Salts)</option>
-            <option value="PARA500">PARA500 (Paracetamol 500 mg)</option>
-            <option value="AMOX500">AMOX500 (Amoxicillin 500mg)</option>
+            <option value="PARA500">Paracetamol 500 mg</option>
+            <option value="AMOX500">Amoxicillin 500mg</option>
           </select>
         </div>
       </div>
@@ -110,7 +110,7 @@ export const OptimizerForm: React.FC<OptimizerFormProps> = ({
               Emergency Mode
             </span>
             <span className="text-2xs text-medex-muted block">
-              Relaxes standard transport rules for surge
+              Allows longer routes during shortages
             </span>
           </div>
         </label>
@@ -131,10 +131,10 @@ export const OptimizerForm: React.FC<OptimizerFormProps> = ({
           />
           <div>
             <span className="text-xs font-bold text-medex-primary block font-mono">
-              Allow Cross-State
+              From Other States
             </span>
             <span className="text-2xs text-medex-muted block">
-              Requires Emergency Mode = true
+              Available in emergency mode
             </span>
           </div>
         </label>
@@ -143,7 +143,7 @@ export const OptimizerForm: React.FC<OptimizerFormProps> = ({
       {/* Blocked Facilities Selection (Road-cut toggle) */}
       <div>
         <label className="text-2xs font-mono text-medex-muted block mb-1">
-          Blocked Facilities (Excluded as Donors & Recipients)
+          Excluded Health Centres (e.g. road closures)
         </label>
         <div className="flex flex-wrap gap-2">
           {['TN-PHC-021', 'TN-PHC-042', 'TN-CHC-003'].map((facId) => {
@@ -160,7 +160,7 @@ export const OptimizerForm: React.FC<OptimizerFormProps> = ({
                     : 'bg-medex-bg border-medex-border text-medex-secondary hover:text-medex-primary'
                 }`}
               >
-                {isBlocked ? `✕ ${facId} (Blocked)` : `+ ${facId}`}
+                {isBlocked ? `✕ ${facId} (Excluded)` : `+ ${facId}`}
               </button>
             );
           })}
@@ -171,7 +171,7 @@ export const OptimizerForm: React.FC<OptimizerFormProps> = ({
       <div>
         <div className="flex justify-between items-center mb-1">
           <label className="text-2xs font-mono text-medex-muted">
-            Max Proposals: <strong className="text-medex-cyan">{maxProposals}</strong>
+            Maximum Suggested Transfers: <strong className="text-medex-cyan">{maxProposals}</strong>
           </label>
         </div>
         <input
@@ -196,12 +196,12 @@ export const OptimizerForm: React.FC<OptimizerFormProps> = ({
         {isLoading ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Solving OR-Tools Optimization Model...</span>
+            <span>Calculating Best Routes...</span>
           </>
         ) : (
           <>
             <Cpu className="w-4 h-4" />
-            <span>Generate Optimization Proposals (POST /optimize)</span>
+            <span>Find Best Transfers</span>
           </>
         )}
       </button>
@@ -209,7 +209,7 @@ export const OptimizerForm: React.FC<OptimizerFormProps> = ({
       {disabled && (
         <div className="text-2xs text-medex-amber flex items-center gap-1 font-mono">
           <AlertCircle className="w-3.5 h-3.5" />
-          <span>Role scope read-only or restricted for optimization calls.</span>
+          <span>Your user role is view-only.</span>
         </div>
       )}
     </form>

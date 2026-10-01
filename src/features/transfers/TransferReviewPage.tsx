@@ -153,22 +153,22 @@ export const TransferReviewPage: React.FC = () => {
     <div className="space-y-6 font-sans text-theme-text">
       <div className="relative">
         <PageHeader
-          title="Transfer command"
-          subtitle="Direct critical stock where it creates the greatest protection."
+          title="Stock Transfers"
+          subtitle="Move surplus medicines from well-stocked centres to health centres in need."
           activeFilterCount={activeFilterCount}
           onToggleFilters={() => setIsFilterPopoverOpen((open) => !open)}
           actionSlot={<>
-            <Button variant="secondary" size="sm" icon={RefreshCw} onClick={() => fetchTransfersData(true)} isLoading={isLoadingTransfers}>Sync network</Button>
-            <Button size="sm" icon={SlidersHorizontal} onClick={() => setIsOptimizerOpen(true)}>New optimization</Button>
+            <Button variant="secondary" size="sm" icon={RefreshCw} onClick={() => fetchTransfersData(true)} isLoading={isLoadingTransfers}>Refresh</Button>
+            <Button size="sm" icon={SlidersHorizontal} onClick={() => setIsOptimizerOpen(true)}>Find Transfers</Button>
           </>}
         />
         {isFilterPopoverOpen && (
           <div ref={popoverRef} className="absolute right-0 top-full z-30 w-80 max-w-full surface-card p-4 space-y-4 animate-slide-up">
-            <div className="flex items-center justify-between"><h3 className="text-sm font-medium">Mission filter</h3><button aria-label="Close transfer filters" onClick={() => setIsFilterPopoverOpen(false)}><X size={16} /></button></div>
-            <Select label="Transfer state" value={filterState} onChange={(value) => setFilterState(value as TransferState | 'ALL')} options={[
-              { value: 'ALL', label: 'All missions' }, { value: 'OPEN', label: 'Open' },
-              { value: 'APPROVED', label: 'Approved' }, { value: 'REJECTED', label: 'Rejected' },
-              { value: 'ESCALATED', label: 'Escalated' }, { value: 'CLOSED', label: 'Closed' },
+            <div className="flex items-center justify-between"><h3 className="text-sm font-medium">Filter Transfers</h3><button aria-label="Close transfer filters" onClick={() => setIsFilterPopoverOpen(false)}><X size={16} /></button></div>
+            <Select label="Transfer status" value={filterState} onChange={(value) => setFilterState(value as TransferState | 'ALL')} options={[
+              { value: 'ALL', label: 'All transfers' }, { value: 'OPEN', label: 'Open' },
+              { value: 'APPROVED', label: 'Approved' }, { value: 'REJECTED', label: 'Declined' },
+              { value: 'ESCALATED', label: 'Escalated' }, { value: 'CLOSED', label: 'Completed' },
             ]} />
             <div className="flex justify-between"><Button variant="ghost" size="sm" onClick={() => setFilterState('ALL')}>Reset</Button><Button size="sm" onClick={() => setIsFilterPopoverOpen(false)}>Apply</Button></div>
           </div>
@@ -181,64 +181,64 @@ export const TransferReviewPage: React.FC = () => {
             onSelectFacility={() => {}} activePolyline={selectedTransfer?.route?.polyline || null}
             transferRoute={route} showControls showLegend={false} />
           <div className="transfer-theater-top">
-            <div><span className="eyebrow !text-[#a9bdd8]">Live network theater</span><p className="text-xs text-white mt-2">District {district} / synchronized now</p></div>
-            <span className="transfer-live"><i /> Command online</span>
+            <div><span className="eyebrow !text-[#a9bdd8]">District Transfer Map</span><p className="text-xs text-white mt-2">District {district} · Live updates</p></div>
+            <span className="transfer-live"><i /> Live</span>
           </div>
           {selectedTransfer && <div className="transfer-route-card">
-            <div className="flex items-center justify-between gap-3"><span className="eyebrow !text-[#a9bdd8]">Active mission / {selectedTransfer.transfer_id}</span><StatusBadge status={selectedTransfer.state === 'OPEN' ? 'CYAN' : selectedTransfer.state === 'APPROVED' ? 'GREEN' : 'AMBER'} label={selectedTransfer.state} size="sm" /></div>
+            <div className="flex items-center justify-between gap-3"><span className="eyebrow !text-[#a9bdd8]">Transfer {selectedTransfer.transfer_id}</span><StatusBadge status={selectedTransfer.state === 'OPEN' ? 'CYAN' : selectedTransfer.state === 'APPROVED' ? 'GREEN' : 'AMBER'} label={selectedTransfer.state} size="sm" /></div>
             <div className="transfer-route-nodes">
-              <div><span>ORIGIN</span><strong>{selectedTransfer.from.name}</strong><small>{selectedTransfer.from.cover_days_before}d cover</small></div>
+              <div><span>FROM</span><strong>{selectedTransfer.from.name}</strong><small>{selectedTransfer.from.cover_days_before}d stock</small></div>
               <div className="transfer-route-line"><Truck size={16} /><i /></div>
-              <div className="text-right"><span>DESTINATION</span><strong>{selectedTransfer.to.name}</strong><small>{selectedTransfer.to.cover_days_before}d → {selectedTransfer.to.cover_days_after}d</small></div>
+              <div className="text-right"><span>TO</span><strong>{selectedTransfer.to.name}</strong><small>{selectedTransfer.to.cover_days_before}d → {selectedTransfer.to.cover_days_after}d stock</small></div>
             </div>
             <div className="grid grid-cols-3 gap-3 pt-4 border-t border-white/10">
-              <div><span>ETA</span><strong>{selectedTransfer.eta_hours} hr</strong></div>
+              <div><span>ARRIVAL TIME</span><strong>{selectedTransfer.eta_hours} hr</strong></div>
               <div><span>DISTANCE</span><strong>{selectedTransfer.distance_km} km</strong></div>
-              <div><span>LOAD</span><strong>{selectedTransfer.qty} {selectedTransfer.unit}</strong></div>
+              <div><span>QUANTITY</span><strong>{selectedTransfer.qty} {selectedTransfer.unit}</strong></div>
             </div>
           </div>}
         </div>
         <div className="transfer-telemetry">
           {isLoadingTransfers ? <><Skeleton className="h-32" /><Skeleton className="h-32" /><Skeleton className="h-32" /></> : <>
-            <div className="transfer-stat"><span>Open missions</span><Command /><strong>{String(openCount).padStart(2, '0')}</strong><small>Awaiting command decision</small></div>
-            <div className="transfer-stat"><span>Mean arrival</span><Clock3 /><strong>{avgEta}<em> hr</em></strong><small>Across the active route set</small></div>
-            <div className="transfer-stat"><span>Stock mobilized</span><Boxes /><strong>{totalQty.toLocaleString()}</strong><small>Essential units in proposed moves</small></div>
+            <div className="transfer-stat"><span>Pending transfers</span><Command /><strong>{String(openCount).padStart(2, '0')}</strong><small>Waiting for approval</small></div>
+            <div className="transfer-stat"><span>Average delivery</span><Clock3 /><strong>{avgEta}<em> hr</em></strong><small>Across active routes</small></div>
+            <div className="transfer-stat"><span>Total units</span><Boxes /><strong>{totalQty.toLocaleString()}</strong><small>Medicines in proposed moves</small></div>
           </>}
         </div>
       </section>
 
       <div className="transfer-signal-strip">
-        <div><Activity size={16} /><span>Solver status</span><strong>{solverStatus || 'READY'}</strong></div>
-        <div><ShieldCheck size={16} /><span>Donor floor</span><strong>14 DAYS</strong></div>
-        <div><Route size={16} /><span>Routes monitored</span><strong>{transfers.length}</strong></div>
-        <div><MapPin size={16} /><span>Facilities online</span><strong>{facilities.length}</strong></div>
+        <div><Activity size={16} /><span>Status</span><strong>{solverStatus || 'READY'}</strong></div>
+        <div><ShieldCheck size={16} /><span>Minimum sender stock</span><strong>14 DAYS</strong></div>
+        <div><Route size={16} /><span>Routes available</span><strong>{transfers.length}</strong></div>
+        <div><MapPin size={16} /><span>Centres online</span><strong>{facilities.length}</strong></div>
       </div>
 
-      {errorMsg && <ErrorState title="Command link interrupted" message={errorMsg} onRetry={fetchTransfersData} />}
+      {errorMsg && <ErrorState title="Unable to load transfers" message={errorMsg} onRetry={fetchTransfersData} />}
 
       <section className="surface-card overflow-hidden">
         <div className="p-5 md:p-6 flex flex-wrap items-end justify-between gap-4 border-b border-theme-border">
-          <div><span className="eyebrow">Ranked operations</span><h2 className="text-xl mt-2">Recommended missions</h2><p className="text-xs text-theme-muted mt-1">Select a route to inspect its operational impact and authorize movement.</p></div>
-          <span className="font-mono text-[10px] text-theme-muted">{transfers.length} ACTIVE RECOMMENDATIONS</span>
+          <div><span className="eyebrow">Recommendations</span><h2 className="text-xl mt-2">Suggested Transfers</h2><p className="text-xs text-theme-muted mt-1">Select a transfer to view details and approve movement.</p></div>
+          <span className="font-mono text-[10px] text-theme-muted">{transfers.length} RECOMMENDATIONS</span>
         </div>
         <div className="p-4 md:p-6">
           {isLoadingTransfers ? <div className="space-y-3"><Skeleton className="h-36" /><Skeleton className="h-36" /></div>
-          : transfers.length === 0 ? <EmptyState title={solverStatus === 'INFEASIBLE' ? 'No feasible missions' : 'No transfer missions'} description={solverStatus === 'INFEASIBLE' ? 'No route meets donor cover and fleet constraints.' : 'No proposals match this command filter.'} />
+          : transfers.length === 0 ? <EmptyState title={solverStatus === 'INFEASIBLE' ? 'No transfers possible' : 'No transfers found'} description={solverStatus === 'INFEASIBLE' ? 'No centres have extra medicine to share safely right now.' : 'No transfers match this filter.'} />
           : <div className="grid xl:grid-cols-[minmax(0,1.2fr)_minmax(350px,.8fr)] gap-6 items-start">
               <div className="space-y-3">{transfers.map((transfer) => <ProposalCard key={transfer.transfer_id} transfer={transfer} isSelected={selectedTransfer?.transfer_id === transfer.transfer_id} onSelect={setSelectedTransfer} />)}</div>
               <div className="xl:sticky xl:top-24">
-                {selectedTransfer ? <TransferDecisionPanel transfer={selectedTransfer} onDecisionSuccess={() => fetchTransfersData()} userRole={role} headers={getAuthHeaders()} /> : <EmptyState title="Select a mission" description="Choose a transfer route to review command actions." />}
+                {selectedTransfer ? <TransferDecisionPanel transfer={selectedTransfer} onDecisionSuccess={() => fetchTransfersData()} userRole={role} headers={getAuthHeaders()} /> : <EmptyState title="Select a transfer" description="Choose a transfer on the left to review details and actions." />}
               </div>
             </div>}
         </div>
       </section>
 
-      {isOptimizerOpen && <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label="Optimization command panel">
-        <button className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-label="Close optimization panel" onClick={() => setIsOptimizerOpen(false)} />
+      {isOptimizerOpen && <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label="Transfer finder panel">
+        <button className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-label="Close transfer finder" onClick={() => setIsOptimizerOpen(false)} />
         <div className="relative w-full max-w-xl h-full bg-theme-bg border-l border-theme-border p-5 md:p-7 overflow-y-auto animate-slide-up">
-          <div className="flex items-start justify-between mb-7"><div><span className="eyebrow">Optimization command</span><h2 className="text-2xl mt-2">Build a mission set</h2><p className="text-xs text-theme-muted mt-2">Define operational limits, then let the solver rank safe stock movements.</p></div><button className="p-2 rounded-lg border border-theme-border" aria-label="Close optimizer" onClick={() => setIsOptimizerOpen(false)}><X size={17} /></button></div>
+          <div className="flex items-start justify-between mb-7"><div><span className="eyebrow">Transfer Finder</span><h2 className="text-2xl mt-2">Find Best Transfers</h2><p className="text-xs text-theme-muted mt-2">Set your preferences and let the system find safe medicine transfers.</p></div><button className="p-2 rounded-lg border border-theme-border" aria-label="Close transfer finder" onClick={() => setIsOptimizerOpen(false)}><X size={17} /></button></div>
           <OptimizerForm currentDistrict={queryDistrict || district} onRunOptimizer={(request) => { handleRunOptimizer(request); setIsOptimizerOpen(false); }} isLoading={isOptimizing} disabled={isReadOnly} />
-          <div className="mt-5 p-4 rounded-xl border border-theme-border bg-theme-surface text-xs text-theme-muted flex gap-3"><Sparkles size={17} className="text-theme-primary shrink-0" /><p>Every mission preserves the configured donor safety floor before ranking recipient impact, time, and cost.</p></div>
+          <div className="mt-5 p-4 rounded-xl border border-theme-border bg-theme-surface text-xs text-theme-muted flex gap-3"><Sparkles size={17} className="text-theme-primary shrink-0" /><p>Every transfer ensures the sender keeps at least 14 days of safety stock before moving medicines.</p></div>
         </div>
       </div>}
     </div>

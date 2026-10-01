@@ -88,7 +88,7 @@ export const RiskView: React.FC = () => {
   return (
     <div className="space-y-6 pb-4">
       <div className="relative">
-        <PageHeader title="Risk intelligence" subtitle="A clearer view of supply risk. Prioritize today to protect tomorrow."
+        <PageHeader title="Low Stock Alerts" subtitle="Health centres and medicines at highest risk of running out soonest."
           activeFilterCount={activeFilterCount} onToggleFilters={() => setIsFilterPopoverOpen((open) => !open)}
           actionSlot={<>
             <Button variant="secondary" size="sm" icon={Globe2} aria-pressed={showGlobe} onClick={() => setShowGlobe((show) => !show)}>{showGlobe ? 'Hide globe' : 'Show globe'}</Button>
@@ -119,15 +119,15 @@ export const RiskView: React.FC = () => {
         </AnimatePresence>
         <div className={`risk-metrics ${!showGlobe ? '!grid-cols-1 sm:!grid-cols-3' : ''}`}>
           <div className="surface-card risk-metric animate-page-enter stagger-1">
-            <div className="flex items-center justify-between gap-2 text-xs text-theme-muted"><span>Needs attention</span><AlertTriangle size={16} className="text-theme-critical" /></div>
+            <div className="flex items-center justify-between gap-2 text-xs text-theme-muted"><span>Needs Attention</span><AlertTriangle size={16} className="text-theme-critical" /></div>
             <div className="flex items-end justify-between">
               <div><span className="metric-value text-theme-critical">{unavailable ? '--' : redCount.toString().padStart(2, '0')}</span><span className="ml-2 text-xs text-theme-muted">items</span></div>
               <span className="text-[10px] rounded-full px-2 py-1 bg-theme-critical-bg text-theme-critical-text">Critical</span>
             </div>
-            <div className="risk-metric-footer">Critical risk or under 7 days of stock</div>
+            <div className="risk-metric-footer">Critical stock or under 7 days left</div>
           </div>
           <div className="surface-card risk-metric animate-page-enter stagger-2">
-            <div className="flex items-center justify-between text-xs text-theme-muted"><span>Network resilience</span><ShieldCheck size={16} className="text-theme-primary" /></div>
+            <div className="flex items-center justify-between text-xs text-theme-muted"><span>Supply Health Score</span><ShieldCheck size={16} className="text-theme-primary" /></div>
             <div className="flex items-end justify-between gap-2">
               <div><span className="metric-value">{unavailable ? '--' : resilience?.score ?? '--'}</span><span className="ml-2 text-xs text-theme-muted">/ 100</span></div>
               {!unavailable && resilience && <RiskSparkline data={[resilience.previous_week_score, resilience.score]} />}
@@ -135,9 +135,9 @@ export const RiskView: React.FC = () => {
             <div className="risk-metric-footer flex items-center justify-between"><span>Against previous week</span>{!unavailable && resilience && <DeltaChip value={resilience.delta} unit="pts" />}</div>
           </div>
           <div className="surface-card risk-metric animate-page-enter stagger-3">
-            <div className="flex items-center justify-between text-xs text-theme-muted"><span>Average lead time</span><Clock3 size={16} className="text-theme-healthy-text" /></div>
+            <div className="flex items-center justify-between text-xs text-theme-muted"><span>Average Restock Time</span><Clock3 size={16} className="text-theme-healthy-text" /></div>
             <div><span className="metric-value">{unavailable ? '--' : avgLeadTime}</span><span className="ml-2 text-xs text-theme-muted">days</span></div>
-            <div className="risk-metric-footer">Delivery time across the current queue</div>
+            <div className="risk-metric-footer">Typical delivery time for new stock</div>
           </div>
         </div>
       </div>
@@ -146,29 +146,29 @@ export const RiskView: React.FC = () => {
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-theme-border bg-theme-warning-bg px-5 py-4">
           <div className="flex items-center gap-3">
             <span className="p-2 rounded-lg text-theme-warning-text bg-theme-surface"><AlertTriangle size={17} /></span>
-            <div><p className="text-[12px] font-medium text-theme-text">A shift in network resilience</p>
-              <p className="text-[11px] text-theme-muted mt-1">Down {Math.abs(resilience.delta)} points this week. Review critical supplies before the next delivery cycle.</p></div>
+            <div><p className="text-[12px] font-medium text-theme-text">Supply Health Dip</p>
+              <p className="text-[11px] text-theme-muted mt-1">Down {Math.abs(resilience.delta)} points this week. Check critical supplies before next delivery.</p></div>
           </div>
-          <a href="#risk-queue" className="inline-flex items-center gap-2 text-xs text-theme-warning-text">Review queue <ArrowUpRight size={15} /></a>
+          <a href="#risk-queue" className="inline-flex items-center gap-2 text-xs text-theme-warning-text">Review items <ArrowUpRight size={15} /></a>
         </div>
       )}
 
       <section id="risk-queue" className="surface-card risk-queue scroll-mt-4">
         <div className="p-5 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3"><h2 className="text-[18px] font-medium tracking-tight">Priority queue</h2>
+          <div className="flex items-center gap-3"><h2 className="text-[18px] font-medium tracking-tight">Priority List</h2>
             {!unavailable && <span className="text-[10px] font-mono text-theme-muted bg-theme-bg px-2 py-1 rounded-md">{items.length} ITEMS</span>}
           </div>
           <div className="flex flex-wrap items-center gap-1" aria-label="Filter priorities">
             {FILTERS.map((filter) => <button key={filter.value} type="button" className="filter-pill" aria-pressed={statusFilter === filter.value} onClick={() => updateFilters(filter.value, drugFilter, limitFilter)}>{filter.label}</button>)}
           </div>
         </div>
-        {isLoading ? <div className="p-5" role="status" aria-label="Loading risk queue"><TableSkeleton rows={4} columns={5} /></div>
+        {isLoading ? <div className="p-5" role="status" aria-label="Loading priority list"><TableSkeleton rows={4} columns={5} /></div>
           : errorMessage ? <ErrorState message={errorMessage} onRetry={() => setRefreshKey((key) => key + 1)} />
           : !items.length ? <EmptyState title="No matching risks" description="No supply risks match the current filters." action={activeFilterCount > 0 ? <Button variant="secondary" size="sm" onClick={() => setSearchParams({})}>Clear filters</Button> : undefined} />
           : <>
             <div className="hidden md:block overflow-x-auto">
               <table className="risk-table">
-                <thead><tr><th scope="col">Medicine / facility</th><th scope="col">Stock coverage</th><th scope="col">Priority</th><th scope="col">Recommended focus</th><th scope="col"><span className="sr-only">Details</span></th></tr></thead>
+                <thead><tr><th scope="col">Medicine & Health Centre</th><th scope="col">Stock Left</th><th scope="col">Priority</th><th scope="col">Reason / Recommendation</th><th scope="col"><span className="sr-only">Details</span></th></tr></thead>
                 <tbody>{items.map((item, index) => {
                   const color = item.status === 'RED' ? 'var(--color-critical)' : item.status === 'AMBER' ? 'var(--color-warning-text)' : 'var(--color-healthy-text)';
                   return <tr key={`${item.facility_id}:${item.drug_code}`} className="animate-page-enter" style={{ animationDelay: `${Math.min(index, 8) * 35}ms` }}

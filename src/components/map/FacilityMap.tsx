@@ -1,12 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { decode } from '@googlemaps/polyline-codec';
 import { Facility } from '../../types/api';
-import { MapControls } from './MapControls';
+import { MapControls, MapTileLayer } from './MapControls';
 import { MapLegend } from './MapLegend';
-import { Skeleton } from '../common/Skeleton';
-import { WifiOff } from 'lucide-react';
+import { WifiOff, Loader2 } from 'lucide-react';
 
 export interface FacilityMapProps {
   facilities: Facility[];
@@ -21,20 +20,127 @@ export interface FacilityMapProps {
   className?: string;
   showControls?: boolean;
   showLegend?: boolean;
+  initial3D?: boolean;
 }
 
-const DARK_RASTER_STYLE: maplibregl.StyleSpecification = {
+// 1. Ultra-Realistic High-Res Satellite + Hybrid Road Network & Place Labels
+const SATELLITE_HYBRID_STYLE: maplibregl.StyleSpecification = {
+  version: 8,
+  sources: {
+    'esri-satellite': {
+      type: 'raster',
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      ],
+      tileSize: 256,
+      maxzoom: 19,
+      attribution: 'Tiles &copy; Esri &mdash; High-Resolution Earth Imagery',
+    },
+    'esri-roads': {
+      type: 'raster',
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
+      ],
+      tileSize: 256,
+      maxzoom: 19,
+    },
+    'esri-places': {
+      type: 'raster',
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+      ],
+      tileSize: 256,
+      maxzoom: 19,
+    },
+  },
+  layers: [
+    {
+      id: 'esri-satellite-layer',
+      type: 'raster',
+      source: 'esri-satellite',
+      minzoom: 0,
+      maxzoom: 19,
+    },
+    {
+      id: 'esri-roads-layer',
+      type: 'raster',
+      source: 'esri-roads',
+      minzoom: 0,
+      maxzoom: 19,
+      paint: {
+        'raster-opacity': 0.85,
+      },
+    },
+    {
+      id: 'esri-places-layer',
+      type: 'raster',
+      source: 'esri-places',
+      minzoom: 0,
+      maxzoom: 19,
+      paint: {
+        'raster-opacity': 0.95,
+      },
+    },
+  ],
+};
+
+// 2. Topographical Shaded Relief Basemap
+const TOPO_RELIEF_STYLE: maplibregl.StyleSpecification = {
+  version: 8,
+  sources: {
+    'esri-topo': {
+      type: 'raster',
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+      ],
+      tileSize: 256,
+      maxzoom: 19,
+      attribution: 'Tiles &copy; Esri &mdash; Topographic Relief',
+    },
+    'esri-hillshade': {
+      type: 'raster',
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}',
+      ],
+      tileSize: 256,
+      maxzoom: 18,
+    },
+  },
+  layers: [
+    {
+      id: 'esri-topo-layer',
+      type: 'raster',
+      source: 'esri-topo',
+      minzoom: 0,
+      maxzoom: 19,
+    },
+    {
+      id: 'esri-hillshade-layer',
+      type: 'raster',
+      source: 'esri-hillshade',
+      minzoom: 0,
+      maxzoom: 18,
+      paint: {
+        'raster-opacity': 0.45,
+      },
+    },
+  ],
+};
+
+// 3. Tactical Dark Navigation
+const DARK_TACTICAL_STYLE: maplibregl.StyleSpecification = {
   version: 8,
   sources: {
     'carto-dark': {
       type: 'raster',
       tiles: [
-        'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-        'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-        'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
       ],
       tileSize: 256,
       attribution: '&copy; OpenStreetMap &copy; CARTO',
+      maxzoom: 19,
     },
   },
   layers: [
@@ -48,24 +154,17 @@ const DARK_RASTER_STYLE: maplibregl.StyleSpecification = {
   ],
 };
 
-const SATELLITE_RASTER_STYLE: maplibregl.StyleSpecification = {
-  version: 8,
-  sources: {
-    'esri-satellite': {
-      type: 'raster',
-      tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
-      tileSize: 256,
-    },
-  },
-  layers: [
-    {
-      id: 'esri-satellite-layer',
-      type: 'raster',
-      source: 'esri-satellite',
-      minzoom: 0,
-      maxzoom: 19,
-    },
-  ],
+// Facility Icons as SVGs for Beacon Heads
+const getFacilityIconSvg = (type: string) => {
+  switch (type) {
+    case 'WAREHOUSE':
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z"/><path d="M6 18h12"/><path d="M6 14h12"/><rect width="12" height="12" x="6" y="10"/></svg>`;
+    case 'CHC':
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>`;
+    case 'PHC':
+    default:
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2v6"/><path d="M8 5h6"/><path d="M2 13a6 6 0 0 0 12 0V9a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v4Z"/><path d="M18 10a4 4 0 0 1 4 4v2a2 2 0 0 1-2 2h-2"/></svg>`;
+  }
 };
 
 export const FacilityMap: React.FC<FacilityMapProps> = ({
@@ -77,83 +176,215 @@ export const FacilityMap: React.FC<FacilityMapProps> = ({
   className = '',
   showControls = true,
   showLegend = true,
+  initial3D = false,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const outerWrapperRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
 
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
-  const [isOffline, setIsOffline] = useState<boolean>(!navigator.onLine);
-  const [tileLayerType, setTileLayerType] = useState<'dark' | 'satellite'>('dark');
+  const [isOffline, setIsOffline] = useState<boolean>(false);
+  const [tileLayerType, setTileLayerType] = useState<MapTileLayer>('satellite');
+  const [is3D, setIs3D] = useState<boolean>(initial3D);
+  const [bearing, setBearing] = useState<number>(0);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [currentCoordinates, setCurrentCoordinates] = useState<[number, number]>([78.70, 10.80]);
 
-  // Fallback timeout trigger (~4s timeout if tiles don't initialize)
+  // Fullscreen change listener
   useEffect(() => {
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    const timeout = setTimeout(() => {
-      if (isInitializing) {
-        // If maplibre hasn't finished loading in 4s, trigger fallback
-        setIsOffline(true);
-        setIsInitializing(false);
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+      if (mapRef.current) {
+        setTimeout(() => mapRef.current?.resize(), 200);
       }
-    }, 4000);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      clearTimeout(timeout);
     };
-  }, [isInitializing]);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
-  // Initialize MapLibre GL Map
+  // Compute District Bounding Box or Center
+  const getMapCenter = useCallback((): [number, number] => {
+    if (facilities.length === 0) return [78.70, 10.80];
+    const avgLng = facilities.reduce((sum, f) => sum + f.lng, 0) / facilities.length;
+    const avgLat = facilities.reduce((sum, f) => sum + f.lat, 0) / facilities.length;
+    return [avgLng, avgLat];
+  }, [facilities]);
+
+  // Initialize MapLibre GL instance
   useEffect(() => {
-    if (!mapContainerRef.current || isOffline) return undefined;
+    if (!mapContainerRef.current) return undefined;
+
+    let styleSpec: maplibregl.StyleSpecification = SATELLITE_HYBRID_STYLE;
+    if (tileLayerType === 'topo') styleSpec = TOPO_RELIEF_STYLE;
+    if (tileLayerType === 'dark') styleSpec = DARK_TACTICAL_STYLE;
+
+    let initTimer: any = null;
 
     try {
-      const defaultCenter: [number, number] = [78.70, 10.80]; // [lng, lat] for MapLibre
+      const center = getMapCenter();
 
       const map = new maplibregl.Map({
         container: mapContainerRef.current,
-        style: tileLayerType === 'satellite' ? SATELLITE_RASTER_STYLE : DARK_RASTER_STYLE,
-        center: defaultCenter,
-        zoom: 10.5,
+        style: styleSpec,
+        center: center,
+        zoom: 10.6,
+        pitch: is3D ? 52 : 0,
+        bearing: is3D ? -16 : 0,
+        maxPitch: 82,
+        dragRotate: true,
+        touchPitch: true,
         attributionControl: false,
       });
 
       mapRef.current = map;
+
+      // Fail-safe: Always hide loading spinner after 600ms
+      initTimer = setTimeout(() => {
+        setIsInitializing(false);
+        map.resize();
+      }, 600);
 
       map.on('load', () => {
         setIsInitializing(false);
         map.resize();
       });
 
-      map.on('error', (e: any) => {
-        console.warn('MapLibre GL tile error detected, switching to offline SVG schematic:', e);
-        setIsOffline(true);
+      map.on('render', () => {
         setIsInitializing(false);
       });
 
+      map.on('rotate', () => {
+        setBearing(map.getBearing());
+      });
+
+      map.on('pitch', () => {
+        setIs3D(map.getPitch() > 18);
+      });
+
+      map.on('mousemove', (e) => {
+        setCurrentCoordinates([
+          parseFloat(e.lngLat.lng.toFixed(4)),
+          parseFloat(e.lngLat.lat.toFixed(4)),
+        ]);
+      });
+
+      map.on('error', (e: any) => {
+        console.warn('MapLibre event notification (non-fatal):', e);
+        setIsInitializing(false);
+      });
+
+      // Periodic resize check to guarantee correct canvas layout
+      const resizeTimer1 = setTimeout(() => map.resize(), 150);
+      const resizeTimer2 = setTimeout(() => map.resize(), 500);
+
+      // ResizeObserver on the container to auto-resize on layout changes
+      let ro: ResizeObserver | null = null;
+      if (typeof ResizeObserver !== 'undefined' && mapContainerRef.current) {
+        ro = new ResizeObserver(() => {
+          map.resize();
+        });
+        ro.observe(mapContainerRef.current);
+      }
+
       return () => {
+        clearTimeout(initTimer);
+        clearTimeout(resizeTimer1);
+        clearTimeout(resizeTimer2);
+        ro?.disconnect();
         map.remove();
         mapRef.current = null;
       };
     } catch (err) {
-      console.warn('MapLibre initialization exception, using fallback SVG:', err);
+      console.warn('MapLibre initialization exception, falling back:', err);
       setIsOffline(true);
       setIsInitializing(false);
       return undefined;
     }
-  }, [isOffline, tileLayerType]);
+  }, [tileLayerType]);
 
-  // Render / Update Facility Markers & Popups
+  // Handle Layer style updates
+  const handleLayerChange = (layer: MapTileLayer) => {
+    setTileLayerType(layer);
+  };
+
+  // Toggle 3D Camera Tilt
+  const handleToggle3D = () => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+    const targetPitch = is3D ? 0 : 54;
+    const targetBearing = is3D ? 0 : -18;
+
+    map.easeTo({
+      pitch: targetPitch,
+      bearing: targetBearing,
+      duration: 1200,
+    });
+    setIs3D(!is3D);
+  };
+
+  // Reset Compass Bearing to North
+  const handleResetBearing = () => {
+    if (!mapRef.current) return;
+    mapRef.current.easeTo({
+      bearing: 0,
+      duration: 800,
+    });
+    setBearing(0);
+  };
+
+  // Recenter Map to District Overview
+  const handleRecenter = () => {
+    if (!mapRef.current) return;
+    const center = getMapCenter();
+    mapRef.current.flyTo({
+      center: center,
+      zoom: 10.6,
+      pitch: is3D ? 45 : 0,
+      bearing: 0,
+      essential: true,
+      duration: 1400,
+    });
+    if (onSelectFacility) {
+      onSelectFacility(null);
+    }
+  };
+
+  // Fullscreen Toggle
+  const handleToggleFullscreen = () => {
+    if (!outerWrapperRef.current) return;
+    if (!document.fullscreenElement) {
+      outerWrapperRef.current.requestFullscreen?.().catch((err) => {
+        console.warn('Fullscreen request denied:', err);
+      });
+    } else {
+      document.exitFullscreen?.().catch(() => {});
+    }
+  };
+
+  // Smooth Fly-To when a facility is selected externally (e.g. from directory table)
+  useEffect(() => {
+    if (!mapRef.current || !selectedFacilityId) return;
+    const target = facilities.find((f) => f.facility_id === selectedFacilityId);
+    if (target) {
+      mapRef.current.flyTo({
+        center: [target.lng, target.lat],
+        zoom: 14.2,
+        pitch: 52,
+        bearing: -15,
+        essential: true,
+        duration: 1500,
+      });
+    }
+  }, [selectedFacilityId, facilities]);
+
+  // Render Realistic 3D Glass Beacons with Micro-Pulse
   useEffect(() => {
     if (!mapRef.current || isOffline) return;
 
-    // Clear existing markers
+    // Clear previous markers
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
@@ -161,37 +392,109 @@ export const FacilityMap: React.FC<FacilityMapProps> = ({
 
     facilities.forEach((facility) => {
       const isSelected = facility.facility_id === selectedFacilityId;
+      const status = facility.status;
 
+      let statusClass = 'is-healthy';
+      let statusColor = '#10B981';
+      let statusText = 'STABLE COVER';
+      if (status === 'RED') {
+        statusClass = 'is-critical';
+        statusColor = '#EF4444';
+        statusText = 'CRITICAL RISK';
+      } else if (status === 'AMBER') {
+        statusClass = 'is-warning';
+        statusColor = '#F59E0B';
+        statusText = 'LOW COVER WATCH';
+      }
+
+      const selectedClass = isSelected ? 'is-selected' : '';
+      const iconSvg = getFacilityIconSvg(facility.type);
+
+      // Create beacon DOM element
       const el = document.createElement('div');
-      const statusColorClass =
-        facility.status === 'RED'
-          ? 'medex-marker-red'
-          : facility.status === 'AMBER'
-          ? 'medex-marker-amber'
-          : 'medex-marker-green';
-      const selectedClass = isSelected ? 'medex-marker-selected' : '';
+      el.className = `medex-beacon-container ${statusClass} ${selectedClass}`;
+      el.innerHTML = `
+        <div class="medex-beacon-ground-shadow"></div>
+        <div class="medex-beacon-ground-dot"></div>
+        <div class="medex-beacon-stalk"></div>
+        ${
+          status === 'RED'
+            ? '<div class="medex-beacon-pulse"></div><div class="medex-beacon-pulse medex-beacon-pulse-delayed"></div>'
+            : status === 'AMBER'
+            ? '<div class="medex-beacon-pulse"></div>'
+            : ''
+        }
+        <div class="medex-beacon-head">
+          ${iconSvg}
+          <span class="medex-beacon-status-dot"></span>
+        </div>
+        <div class="medex-beacon-label-tag">
+          ${facility.name.split(' ')[0]}
+        </div>
+      `;
 
-      el.className = `${statusColorClass} ${selectedClass}`;
-      el.style.width = isSelected ? '18px' : '14px';
-      el.style.height = isSelected ? '18px' : '14px';
-      el.style.cursor = 'pointer';
+      // Rich Contextual Glassmorphic Popup
+      const popupHtml = `
+        <div class="bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-xl p-3.5 text-slate-100 font-sans shadow-2xl min-w-[240px] max-w-[280px]">
+          <div class="flex items-start justify-between gap-2 pb-2 border-b border-slate-800">
+            <div>
+              <div class="text-[13px] font-bold text-white leading-tight">${facility.name}</div>
+              <div class="text-[10px] font-mono text-cyan-400 mt-0.5">${facility.facility_id} · ${facility.block || 'District'}</div>
+            </div>
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider ${
+              status === 'RED'
+                ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                : status === 'AMBER'
+                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+            }">
+              ${facility.type}
+            </span>
+          </div>
 
-      // Popup Content
-      const popupHTML = `
-        <div style="font-family: sans-serif; padding: 4px; text-align: left;">
-          <strong style="color: #F1F5F9; font-size: 12px; display: block;">${facility.name}</strong>
-          <span style="color: #67E8F9; font-family: monospace; font-size: 10px; display: block; margin-top: 2px;">
-            ID: ${facility.facility_id} · ${facility.block || 'District'}
-          </span>
-          <div style="margin-top: 4px; font-size: 10px; color: #94A3B8;">
-            Top Risk: <strong style="color: ${
-              facility.status === 'RED' ? '#FCA5A5' : facility.status === 'AMBER' ? '#FDE68A' : '#6EE7B7'
-            }">${facility.status === 'RED' ? 'ORS (5.1d cover)' : facility.status === 'AMBER' ? 'PARA500 (6.8d)' : 'Normal Stock'}</strong>
+          <div class="pt-2.5 pb-2 space-y-1.5 text-[11px]">
+            <div class="flex items-center justify-between text-slate-300">
+              <span>Risk Status:</span>
+              <span class="font-bold font-mono" style="color: ${statusColor};">${statusText}</span>
+            </div>
+            <div class="flex items-center justify-between text-slate-300">
+              <span>Population:</span>
+              <span class="font-mono font-medium text-slate-200">${(facility.population_served || 45000).toLocaleString()} residents</span>
+            </div>
+            <div class="flex items-center justify-between text-slate-300">
+              <span>Top Stock Metric:</span>
+              <span class="font-mono font-medium ${status === 'RED' ? 'text-red-400 font-bold' : 'text-slate-200'}">
+                ${status === 'RED' ? 'ORS (5.1d cover)' : status === 'AMBER' ? 'PARA500 (6.8d)' : 'Optimal (>15d)'}
+              </span>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
+            <button
+              id="btn-inspect-${facility.facility_id}"
+              class="w-full py-1.5 px-2 rounded-lg bg-cyan-600/30 hover:bg-cyan-600/50 border border-cyan-500/40 text-cyan-300 font-medium text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <span>Inspect Facility</span>
+            </button>
           </div>
         </div>
       `;
 
-      const popup = new maplibregl.Popup({ offset: 15, closeButton: false }).setHTML(popupHTML);
+      const popup = new maplibregl.Popup({
+        offset: [0, -42],
+        closeButton: false,
+        className: 'medex-glass-popup',
+      }).setHTML(popupHtml);
+
+      // Add popup open event listener to bind the inspect button
+      popup.on('open', () => {
+        const btn = document.getElementById(`btn-inspect-${facility.facility_id}`);
+        if (btn) {
+          btn.onclick = () => {
+            if (onSelectFacility) onSelectFacility(facility.facility_id);
+          };
+        }
+      });
 
       const marker = new maplibregl.Marker({ element: el })
         .setLngLat([facility.lng, facility.lat])
@@ -200,22 +503,35 @@ export const FacilityMap: React.FC<FacilityMapProps> = ({
 
       el.addEventListener('click', () => {
         if (onSelectFacility) onSelectFacility(facility.facility_id);
+        map.flyTo({
+          center: [facility.lng, facility.lat],
+          zoom: 14.2,
+          pitch: 52,
+          bearing: -15,
+          essential: true,
+          duration: 1500,
+        });
       });
 
       markersRef.current.push(marker);
     });
   }, [facilities, selectedFacilityId, onSelectFacility, isOffline]);
 
-  // Render Transfer Polyline Route on Map
+  // Render Transfer Route Polyline (High-precision dashed neon arc)
   useEffect(() => {
     if (!mapRef.current || isOffline) return;
     const map = mapRef.current;
 
     const polylineStr = activePolyline || transferRoute?.polyline;
-    if (!polylineStr) return;
+    if (!polylineStr) {
+      if (map.getLayer('transfer-route-line')) map.removeLayer('transfer-route-line');
+      if (map.getLayer('transfer-route-glow')) map.removeLayer('transfer-route-glow');
+      if (map.getSource('transfer-route-source')) map.removeSource('transfer-route-source');
+      return;
+    }
 
     try {
-      const decodedPoints = decode(polylineStr); // Returns [lat, lng][]
+      const decodedPoints = decode(polylineStr);
       const lngLats: [number, number][] = decodedPoints.map((p) => [p[1], p[0]]);
 
       const geojson: GeoJSON.Feature = {
@@ -227,189 +543,136 @@ export const FacilityMap: React.FC<FacilityMapProps> = ({
         },
       };
 
-      const addRouteLayer = () => {
-        if (map.getSource('transfer-route-source')) {
-          (map.getSource('transfer-route-source') as maplibregl.GeoJSONSource).setData(geojson);
-        } else {
-          map.addSource('transfer-route-source', {
-            type: 'geojson',
-            data: geojson,
-          });
-
-          map.addLayer({
-            id: 'transfer-route-line',
-            type: 'line',
-            source: 'transfer-route-source',
-            layout: {
-              'line-join': 'round',
-              'line-cap': 'round',
-            },
-            paint: {
-              'line-color': '#06B6D4',
-              'line-width': 4,
-              'line-dasharray': [2, 2],
-            },
-          });
-        }
-
-        // Fit bounds to route
-        const bounds = lngLats.reduce(
-          (b, coord) => b.extend(coord as [number, number]),
-          new maplibregl.LngLatBounds(lngLats[0], lngLats[0])
-        );
-        map.fitBounds(bounds, { padding: 60 });
-      };
-
-      if (map.isStyleLoaded()) {
-        addRouteLayer();
+      if (map.getSource('transfer-route-source')) {
+        (map.getSource('transfer-route-source') as maplibregl.GeoJSONSource).setData(geojson);
       } else {
-        map.once('load', addRouteLayer);
+        map.addSource('transfer-route-source', {
+          type: 'geojson',
+          data: geojson,
+        });
+
+        // Outer neon glow
+        map.addLayer({
+          id: 'transfer-route-glow',
+          type: 'line',
+          source: 'transfer-route-source',
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: {
+            'line-color': '#06B6D4',
+            'line-width': 8,
+            'line-opacity': 0.45,
+            'line-blur': 4,
+          },
+        });
+
+        // Sharp core artery line
+        map.addLayer({
+          id: 'transfer-route-line',
+          type: 'line',
+          source: 'transfer-route-source',
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: {
+            'line-color': '#38BDF8',
+            'line-width': 3.5,
+            'line-dasharray': [2, 2],
+          },
+        });
       }
     } catch (err) {
-      console.warn('MapLibre route decoding error:', err);
+      console.warn('Failed to parse and render route polyline:', err);
     }
   }, [activePolyline, transferRoute, isOffline]);
 
-  // Calculation for Static Dark SVG Schematic Fallback
-  const getSvgCoordinates = () => {
-    if (facilities.length === 0) return [];
-
-    let minLat = Math.min(...facilities.map((f) => f.lat));
-    let maxLat = Math.max(...facilities.map((f) => f.lat));
-    let minLng = Math.min(...facilities.map((f) => f.lng));
-    let maxLng = Math.max(...facilities.map((f) => f.lng));
-
-    // Prevent division by zero
-    if (minLat === maxLat) {
-      minLat -= 0.05;
-      maxLat += 0.05;
-    }
-    if (minLng === maxLng) {
-      minLng -= 0.05;
-      maxLng += 0.05;
-    }
-
-    return facilities.map((f) => {
-      // Map lat/lng to percentage bounds (15% to 85%)
-      const x = 15 + ((f.lng - minLng) / (maxLng - minLng)) * 70;
-      const y = 85 - ((f.lat - minLat) / (maxLat - minLat)) * 70;
-      return { ...f, svgX: x, svgY: y };
-    });
-  };
-
-  const svgFacilities = getSvgCoordinates();
+  // Counts for legend
+  const redCount = facilities.filter((f) => f.status === 'RED').length;
+  const amberCount = facilities.filter((f) => f.status === 'AMBER').length;
+  const greenCount = facilities.filter((f) => f.status === 'GREEN').length;
 
   return (
-    <div className={`relative w-full h-full min-h-[420px] rounded-lg overflow-hidden bg-medex-bg border border-medex-border ${className}`}>
-      {/* Skeleton Loading State */}
-      {isInitializing && !isOffline && (
-        <div className="absolute inset-0 z-30 p-4 bg-medex-bg flex flex-col items-center justify-center">
-          <Skeleton className="w-full h-full rounded-lg" />
-          <span className="absolute text-2xs font-mono text-medex-cyan font-bold bg-medex-sidebar px-3 py-1 rounded border border-medex-border shadow-md">
-            Initializing Keyless MapLibre Engine...
+    <div
+      ref={outerWrapperRef}
+      className={`relative w-full h-full min-h-[520px] rounded-xl overflow-hidden bg-slate-950 border border-slate-800 ${className}`}
+    >
+      {/* Top HUD Telemetry Banner */}
+      <div className="absolute top-4 left-4 z-20 pointer-events-none flex flex-wrap items-center gap-2 select-none">
+        <div className="bg-slate-900/90 backdrop-blur-md border border-slate-700/60 shadow-xl rounded-lg px-3 py-1.5 flex items-center gap-2 pointer-events-auto">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]"></span>
+          <span className="text-[11px] font-mono font-semibold text-slate-200">
+            {tileLayerType === 'satellite'
+              ? 'ESRI HD Satellite Hybrid'
+              : tileLayerType === 'topo'
+              ? 'Topographic Shaded Relief'
+              : 'Tactical GIS Dark'}
+          </span>
+          <span className="text-slate-500 font-mono text-[10px]">|</span>
+          <span className="text-[10px] font-mono text-cyan-400">
+            {currentCoordinates[1]}° N, {currentCoordinates[0]}° E
           </span>
         </div>
-      )}
 
-      {/* Main MapLibre Container (Online) */}
+        {is3D && (
+          <div className="bg-cyan-500/20 backdrop-blur-md border border-cyan-500/40 text-cyan-300 shadow-lg rounded-lg px-2.5 py-1.5 text-[10px] font-mono font-bold flex items-center gap-1.5">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+            <span>3D PERSPECTIVE (52° PITCH)</span>
+          </div>
+        )}
+      </div>
+
+      {/* MapLibre WebGL Canvas Container */}
       {!isOffline ? (
-        <div ref={mapContainerRef} className="w-full h-full z-10" />
+        <div ref={mapContainerRef} className="w-full h-full min-h-[520px] z-10" />
       ) : (
-        /* Static Dark SVG Schematic Offline Fallback */
-        <div className="relative w-full h-full min-h-[420px] bg-medex-bg p-4 flex flex-col justify-between select-none">
-          {/* Top Offline Chip */}
+        /* Fallback Offline View if completely disconnected or WebGL unavail */
+        <div className="relative w-full h-full min-h-[520px] bg-slate-950 p-6 flex flex-col justify-between select-none">
           <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
-            <span className="px-3 py-1 rounded-md bg-medex-amber/20 border border-medex-amber/40 text-medex-amber-light font-mono text-2xs font-bold flex items-center gap-1.5 shadow-md backdrop-blur-md">
-              <WifiOff className="w-3.5 h-3.5 text-medex-amber" />
-              <span>Offline map view</span>
+            <span className="px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono text-[11px] font-bold flex items-center gap-2 shadow-xl backdrop-blur-md">
+              <WifiOff className="w-4 h-4 text-amber-400" />
+              <span>Offline Schematic Mode</span>
             </span>
           </div>
-
-          {/* SVG Map Canvas */}
-          <svg className="w-full h-full absolute inset-0 z-10 pointer-events-auto" viewBox="0 0 100 100" preserveAspectRatio="none">
-            {/* Grid Pattern */}
-            <defs>
-              <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-                <path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255, 255, 255, 0.04)" strokeWidth="0.5" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" />
-
-            {/* Render Transfer Route Line if present */}
-            {transferRoute && (
-              <line
-                x1={15 + ((transferRoute.from.lng - 78.6) / 0.3) * 70}
-                y1={85 - ((transferRoute.from.lat - 10.7) / 0.3) * 70}
-                x2={15 + ((transferRoute.to.lng - 78.6) / 0.3) * 70}
-                y2={85 - ((transferRoute.to.lat - 10.7) / 0.3) * 70}
-                stroke="#06B6D4"
-                strokeWidth="1"
-                strokeDasharray="2,2"
-                className="animate-pulse"
-              />
-            )}
-
-            {/* Facilities Colored Dots */}
-            {svgFacilities.map((f) => {
-              const isSelected = f.facility_id === selectedFacilityId;
-              const color = f.status === 'RED' ? '#EF4444' : f.status === 'AMBER' ? '#F59E0B' : '#10B981';
-
-              return (
-                <g key={f.facility_id} className="cursor-pointer" onClick={() => onSelectFacility && onSelectFacility(f.facility_id)}>
-                  {isSelected && (
-                    <circle cx={`${f.svgX}%`} cy={`${f.svgY}%`} r="3.5" fill="none" stroke="#06B6D4" strokeWidth="0.8" className="animate-ping" />
-                  )}
-                  <circle
-                    cx={`${f.svgX}%`}
-                    cy={`${f.svgY}%`}
-                    r={isSelected ? '2.5' : '1.8'}
-                    fill={color}
-                    stroke="#FFFFFF"
-                    strokeWidth="0.5"
-                    className="transition-all hover:scale-125"
-                  />
-                  <text
-                    x={`${f.svgX}%`}
-                    y={`${f.svgY + 4}%`}
-                    fill="#F1F5F9"
-                    fontSize="2.5"
-                    fontFamily="monospace"
-                    textAnchor="middle"
-                    className="pointer-events-none"
-                  >
-                    {f.name.split(' ')[0]}
-                  </text>
-                </g>
-              );
-            })}
-          </svg>
+          <div className="flex-1 flex items-center justify-center text-slate-400 font-sans text-sm">
+            Map tiles unavailable while offline. Facilities remain tracked locally.
+          </div>
         </div>
       )}
 
-      {/* Map Controls (Top Right) */}
+      {/* Floating Interactive Controls (Top Right) */}
       {showControls && (
         <div className="absolute top-4 right-4 z-20">
           <MapControls
-            onZoomIn={() => {
-              if (mapRef.current) mapRef.current.zoomIn();
-            }}
-            onZoomOut={() => {
-              if (mapRef.current) mapRef.current.zoomOut();
-            }}
-            onRecenter={() => {
-              if (onSelectFacility) onSelectFacility(null);
-              if (mapRef.current) mapRef.current.flyTo({ center: [78.70, 10.80], zoom: 10.5 });
-            }}
+            onZoomIn={() => mapRef.current?.zoomIn()}
+            onZoomOut={() => mapRef.current?.zoomOut()}
+            onRecenter={handleRecenter}
             tileLayer={tileLayerType}
-            onToggleTileLayer={() => setTileLayerType(tileLayerType === 'dark' ? 'satellite' : 'dark')}
+            onChangeTileLayer={handleLayerChange}
+            is3D={is3D}
+            onToggle3D={handleToggle3D}
+            bearing={bearing}
+            onResetBearing={handleResetBearing}
+            isFullscreen={isFullscreen}
+            onToggleFullscreen={handleToggleFullscreen}
           />
         </div>
       )}
 
-      {/* Map Legend (Bottom Right) */}
+      {/* Floating Legend (Bottom Left) */}
       {showLegend && (
-        <div className="absolute bottom-4 right-4 z-20">
-          <MapLegend />
+        <div className="absolute bottom-4 left-4 z-20">
+          <MapLegend
+            redCount={redCount}
+            amberCount={amberCount}
+            greenCount={greenCount}
+          />
+        </div>
+      )}
+
+      {/* Loading Overlay */}
+      {isInitializing && !isOffline && (
+        <div className="absolute inset-0 z-30 bg-slate-950/70 backdrop-blur-sm flex flex-col items-center justify-center gap-3">
+          <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
+          <span className="text-[12px] font-mono text-cyan-300 font-semibold tracking-wider uppercase">
+            Loading High-Res Geospatial Tiles...
+          </span>
         </div>
       )}
     </div>

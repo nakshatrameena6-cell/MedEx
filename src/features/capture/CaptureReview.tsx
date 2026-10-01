@@ -17,6 +17,13 @@ const DRUG_MASTER_OPTIONS = [
   { code: 'ORS', name: 'ORS Packets', unit: 'sachets' },
   { code: 'AMOX', name: 'Amoxicillin 500mg', unit: 'capsules' },
   { code: 'PARA', name: 'Paracetamol 500mg', unit: 'tablets' },
+  { code: 'MET', name: 'Metformin 500mg', unit: 'tablets' },
+  { code: 'CET', name: 'Cetirizine 10mg', unit: 'tablets' },
+  { code: 'AZI', name: 'Azithromycin 500mg', unit: 'tablets' },
+  { code: 'VITC', name: 'Vitamin C 500mg', unit: 'tablets' },
+  { code: 'IBU', name: 'Ibuprofen 400mg', unit: 'tablets' },
+  { code: 'DEX5', name: 'Dextrose 5% 100ml', unit: 'units' },
+  { code: 'CEF', name: 'Cefixime 200mg', unit: 'tablets' },
   { code: 'ZINC', name: 'Zinc Tablets 20mg', unit: 'tablets' },
   { code: 'ALBEN', name: 'Albendazole 400mg', unit: 'tablets' },
   { code: 'IFA', name: 'Iron Folic Acid', unit: 'tablets' },
@@ -158,13 +165,13 @@ export const CaptureReview: React.FC<CaptureReviewProps> = ({
       <div className="p-4 bg-theme-bg/80 border border-theme-border rounded-xl space-y-2">
         <label className="text-2xs font-mono font-bold text-theme-primary uppercase flex items-center gap-1.5">
           <Sparkles className="w-3.5 h-3.5" />
-          STT Transcript / OCR Evidence (Editable)
+          Scanned Text / Spoken Words (You can edit this)
         </label>
         <textarea
           rows={2}
           value={transcript}
           onChange={(e) => setTranscript(e.target.value)}
-          placeholder="Speech transcript or OCR text..."
+          placeholder="Words detected from voice or scanned register..."
           className="w-full bg-theme-surface border border-theme-border-control rounded-lg p-2.5 text-xs text-theme-text font-mono min-h-[56px] focus:outline-none focus:border-theme-primary"
         />
       </div>
@@ -174,7 +181,7 @@ export const CaptureReview: React.FC<CaptureReviewProps> = ({
         <div className="p-3 bg-theme-warning-bg border border-theme-warning/40 rounded-lg text-xs text-theme-warning-text space-y-1 font-mono">
           <span className="font-semibold flex items-center gap-1.5">
             <AlertTriangle className="w-4 h-4" />
-            Backend Parsing Warnings:
+            Please check the following details:
           </span>
           <ul className="list-disc list-inside text-2xs space-y-0.5 pl-1">
             {captureData.warnings.map((w, idx) => (
@@ -188,7 +195,7 @@ export const CaptureReview: React.FC<CaptureReviewProps> = ({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h4 className="text-xs font-bold text-theme-text font-mono uppercase tracking-wider">
-            Parsed Stock Rows ({editableRows.length})
+            Recognized Medicines ({editableRows.length})
           </h4>
           <Button
             variant="secondary"
@@ -197,7 +204,7 @@ export const CaptureReview: React.FC<CaptureReviewProps> = ({
             className="min-h-[44px]"
           >
             <Plus className="w-4 h-4 mr-1" />
-            <span>Add Stock Row</span>
+            <span>Add Medicine</span>
           </Button>
         </div>
 
@@ -220,11 +227,11 @@ export const CaptureReview: React.FC<CaptureReviewProps> = ({
               <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-3 border-b border-theme-border">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold font-mono text-theme-text">
-                    Row #{idx + 1}
+                    Medicine #{idx + 1}
                   </span>
                   {originalRow?.drug_heard && (
                     <span className="text-2xs font-mono text-theme-muted bg-theme-bg px-2 py-0.5 rounded border border-theme-border">
-                      Heard: "{originalRow.drug_heard}"
+                      Detected: "{originalRow.drug_heard}"
                     </span>
                   )}
                 </div>
@@ -238,14 +245,14 @@ export const CaptureReview: React.FC<CaptureReviewProps> = ({
                           : 'bg-theme-warning-bg text-theme-warning-text border border-theme-warning/30'
                       }`}
                     >
-                      Confidence: {(confidence * 100).toFixed(0)}%
+                      Accuracy: {(confidence * 100).toFixed(0)}%
                     </span>
                   )}
 
                   {isLowConfidence && (
                     <span className="text-2xs font-mono font-bold px-2 py-0.5 rounded bg-theme-warning-bg text-theme-warning-text flex items-center gap-1">
                       <ShieldAlert className="w-3 h-3" />
-                      NEEDS CONFIRMATION
+                      PLEASE CHECK
                     </span>
                   )}
                 </div>
@@ -256,14 +263,14 @@ export const CaptureReview: React.FC<CaptureReviewProps> = ({
                 {/* Drug Master Select */}
                 <div className="lg:col-span-2">
                   <label className="text-2xs font-mono text-theme-muted block mb-1">
-                    Matched Medicine Code
+                    Medicine Name
                   </label>
                   <select
                     value={currentEdit.drug_code}
                     onChange={(e) => handleDrugSelect(idx, e.target.value)}
                     className="w-full bg-theme-surface border border-theme-border-control rounded-lg px-2.5 py-2 text-xs text-theme-text font-mono min-h-[44px] focus:outline-none focus:border-theme-primary"
                   >
-                    <option value="">-- Select Drug Master --</option>
+                    <option value="">-- Select Medicine --</option>
                     {DRUG_MASTER_OPTIONS.map((d) => (
                       <option key={d.code} value={d.code}>
                         {d.code} ({d.name})
@@ -302,7 +309,7 @@ export const CaptureReview: React.FC<CaptureReviewProps> = ({
                 {/* Batch No (Optional) */}
                 <div>
                   <label className="text-2xs font-mono text-theme-muted block mb-1">
-                    Batch No (Opt)
+                    Batch Number (Optional)
                   </label>
                   <input
                     type="text"
@@ -346,7 +353,7 @@ export const CaptureReview: React.FC<CaptureReviewProps> = ({
           className="w-full sm:w-auto min-h-[44px]"
         >
           <Plus className="w-4 h-4 mr-1.5" />
-          <span>Add Row</span>
+          <span>Add Medicine</span>
         </Button>
 
         <Button
@@ -358,12 +365,12 @@ export const CaptureReview: React.FC<CaptureReviewProps> = ({
           {isSubmitting ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              <span>Saving Snapshot...</span>
+              <span>Saving Stock Update...</span>
             </>
           ) : (
             <>
               <CheckCircle2 className="w-4 h-4 mr-2" />
-              <span>Confirm & Submit</span>
+              <span>Save Stock Update</span>
             </>
           )}
         </Button>
