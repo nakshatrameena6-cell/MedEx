@@ -2,5 +2,11 @@ node_modules
 dist
 .DS_Store
 *.local
+__pycache__/
+*.pyc
+.pytest_cache/
+*.db
+.env
+.venv/
 test-results/
 playwright-report/

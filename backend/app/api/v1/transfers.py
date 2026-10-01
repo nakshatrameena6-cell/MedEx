@@ -9,14 +9,14 @@ from app.core.security import check_read_access, check_transfer_decision_access
 from app.db.database import get_db
 from app.fixtures.mock_data import MOCK_TRANSFERS
 from app.schemas.transfers import (
-    TransferDecisionRequest, TransferDecisionResponse, TransferItem
+    TransferDecisionRequest, TransferDecisionResponse, TransferItem, TransfersResponse
 )
 from app.services.transfers import TransferService
 
 router = APIRouter(prefix="/transfers", tags=["Transfers"])
 
 
-@router.get("", response_model=List[TransferItem], summary="Get Redistribution Transfers")
+@router.get("", response_model=TransfersResponse, summary="Get Redistribution Transfers")
 def get_transfers(
     district_id: Optional[str] = Query(None, description="Filter by district ID"),
     state: Optional[str] = Query(None, description="Filter by transfer state (OPEN, APPROVED, REJECTED, etc.)"),
@@ -29,8 +29,8 @@ def get_transfers(
     service = TransferService(db)
     items = service.get_scoped_transfers(ctx, skip=skip, limit=limit, state_filter=state)
     if not items and settings.MOCK_MODE and not state:
-        return [TransferItem(**t) for t in MOCK_TRANSFERS]
-    return items
+        items = [TransferItem(**t) for t in MOCK_TRANSFERS]
+    return TransfersResponse(items=items, transfers=items)
 
 
 @router.post("/{transfer_id}/decision", response_model=TransferDecisionResponse, summary="Approve/Modify/Reject/Escalate/Close Transfer Decision")

@@ -9,19 +9,20 @@ from app.core.security import check_read_access
 from app.db.database import get_db
 from app.db.repositories import FacilityRepository, StockSnapshotRepository, DrugMasterRepository
 from app.fixtures.mock_data import MOCK_FACILITIES, MOCK_FACILITY_STATUS
-from app.schemas.facilities import FacilitySummary, FacilityStatusResponse, StockItemStatus
+from datetime import datetime, timezone
+from app.schemas.facilities import FacilitySummary, FacilityListResponse, FacilityStatusResponse, StockItemStatus
 
 router = APIRouter(prefix="/facilities", tags=["Facilities"])
 
 
-@router.get("", response_model=List[FacilitySummary], summary="List Facilities")
+@router.get("", response_model=FacilityListResponse, summary="List Facilities")
 def get_facilities(
     state_id: Optional[str] = Query(None, description="Filter by state ID"),
     district_id: Optional[str] = Query(None, description="Filter by district ID"),
     block_id: Optional[str] = Query(None, description="Filter by block ID"),
     facility_type: Optional[str] = Query(None, description="Filter by facility type"),
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=500),
+    limit: int = Query(500, ge=1, le=1000),
     ctx: UserContext = Depends(get_current_user_context),
     db: Session = Depends(get_db)
 ):
@@ -37,28 +38,38 @@ def get_facilities(
         limit=limit
     )
     if not facilities:
-        # Fallback to mock data if database is unseeded
-        return [FacilitySummary(**f) for f in MOCK_FACILITIES]
+        items = [FacilitySummary(**f) for f in MOCK_FACILITIES]
+    else:
+        items = [
+            FacilitySummary(
+                facility_id=f.facility_id,
+                name=f.name,
+                type=f.facility_type,
+                facility_type=f.facility_type,
+                state_code=f.state_id,
+                state_id=f.state_id,
+                district_id=f.district_id,
+                block=f.block_id,
+                block_id=f.block_id,
+                status=f.stock_status,
+                stock_status=f.stock_status,
+                lat=f.latitude,
+                latitude=f.latitude,
+                lng=f.longitude,
+                longitude=f.longitude,
+                population_served=f.population_served,
+                bed_capacity=f.bed_capacity,
+                is_active=f.is_active,
+                road_access_status=f.road_access_status,
+                dataset_type=f.dataset_type
+            )
+            for f in facilities
+        ]
 
-    return [
-        FacilitySummary(
-            facility_id=f.facility_id,
-            name=f.name,
-            state_id=f.state_id,
-            district_id=f.district_id,
-            block_id=f.block_id,
-            facility_type=f.facility_type,
-            stock_status=f.stock_status,
-            latitude=f.latitude,
-            longitude=f.longitude,
-            population_served=f.population_served,
-            bed_capacity=f.bed_capacity,
-            is_active=f.is_active,
-            road_access_status=f.road_access_status,
-            dataset_type=f.dataset_type
-        )
-        for f in facilities
-    ]
+    return FacilityListResponse(
+        as_of=datetime.now(timezone.utc).isoformat(),
+        items=items
+    )
 
 
 @router.get("/{facility_id}/status", response_model=FacilityStatusResponse, summary="Get Facility Stock Status")

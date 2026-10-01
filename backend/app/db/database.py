@@ -7,7 +7,7 @@ from sqlalchemy.pool import StaticPool
 connect_args = {}
 poolclass = None
 if settings.DATABASE_URL.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
+    connect_args = {"check_same_thread": False, "timeout": 30}
     if ":memory:" in settings.DATABASE_URL:
         poolclass = StaticPool
 

@@ -24,20 +24,46 @@ def get_audit_logs(
     repo = AuditRepository(db)
     logs = repo.get_scoped_logs(ctx, skip=skip, limit=limit)
     if not logs:
-        return AuditLogsResponse(logs=[AuditLogItem(**log) for log in MOCK_AUDIT])
+        mock_items = [
+            AuditLogItem(
+                audit_id=log.get("audit_id") or f"AUD-{log.get('id', 1):06d}",
+                id=log.get("id"),
+                ts=log.get("timestamp"),
+                timestamp=log.get("timestamp"),
+                actor=log.get("user_id"),
+                user_id=log.get("user_id"),
+                role=log.get("role", "DISTRICT"),
+                action=log.get("action", "OPTIMIZE_RUN"),
+                entity_type=log.get("resource", "TRANSFER"),
+                resource=log.get("resource", "TRANSFER"),
+                entity_id=log.get("resource_id"),
+                resource_id=log.get("resource_id"),
+                comment=log.get("result"),
+                result=log.get("result", "SUCCESS"),
+                details=log.get("details") or {}
+            )
+            for log in MOCK_AUDIT
+        ]
+        return AuditLogsResponse(items=mock_items, logs=mock_items)
 
     items = [
         AuditLogItem(
+            audit_id=f"AUD-{log.id:06d}",
             id=log.id,
+            ts=log.timestamp.isoformat() + "Z" if log.timestamp else "2026-09-29T10:15:00Z",
+            timestamp=log.timestamp.isoformat() + "Z" if log.timestamp else "2026-09-29T10:15:00Z",
+            actor=log.user_id,
             user_id=log.user_id,
             role=log.role,
             action=log.action,
+            entity_type=log.resource,
             resource=log.resource,
+            entity_id=log.resource_id,
             resource_id=log.resource_id,
-            timestamp=log.timestamp.isoformat() + "Z" if log.timestamp else "2026-09-29T10:15:00Z",
+            comment=log.result,
             result=log.result,
             details=log.details or {}
         )
         for log in logs
     ]
-    return AuditLogsResponse(logs=items)
+    return AuditLogsResponse(items=items, logs=items)

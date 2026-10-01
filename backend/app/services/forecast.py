@@ -61,7 +61,7 @@ class ForecastService:
                     drop = max(0, cur_qty - next_qty)
                     daily_actuals.append(drop)
         else:
-            daily_actuals = [random_val for random_val in range(15, 43)]  # deterministic fallback fill
+            daily_actuals = [25 + (i % 7) * 2 for i in range(28)]  # deterministic 28-day baseline
 
         if not daily_actuals:
             daily_actuals = [25] * 28

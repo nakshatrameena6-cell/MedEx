@@ -87,9 +87,9 @@ class TransferService:
                 if not (d_in_scope or r_in_scope):
                     raise ForbiddenError(message=f"Transfer {transfer_id} is outside authorized district scope {ctx.district}")
 
-        action = body.action.upper()
+        action = (body.decision or body.action or "").upper()
         current_status = transfer.status.upper()
-        notes = body.notes or body.decision_comment
+        notes = body.comment or body.notes or body.decision_comment
 
         # State transition validation
         if action == "APPROVE":
