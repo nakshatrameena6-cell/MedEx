@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthRole } from '../../context/AuthRoleContext';
 import { Language, CaptureResponse, CaptureConfirmResponse } from '../../types/api';
 import { PageHeader } from '../../components/common/PageHeader';
-import { SectionCard } from '../../components/common/SectionCard';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { OfflineBadge } from '../../components/common/OfflineBadge';
+import { Button } from '../../components/common/Button';
+import { Card3D } from '../../components/3d/Card3D';
 import { VoiceCapture } from './VoiceCapture';
 import { PhotoCapture } from './PhotoCapture';
 import { CaptureReview } from './CaptureReview';
 import { CaptureStatus } from './CaptureStatus';
-import { Mic, Camera, ShieldAlert, Store } from 'lucide-react';
+import { COPY } from '../../constants/copy';
+import { Mic, Camera, ShieldAlert, Store, ArrowLeft, Radio } from 'lucide-react';
 
 export const CapturePage: React.FC = () => {
   const navigate = useNavigate();
@@ -63,44 +66,50 @@ export const CapturePage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 text-left">
+    <motion.div 
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="space-y-6 text-left font-sans"
+    >
       <PageHeader
-        title="PHC Stock Capture Workflow"
-        subtitle="Frontline inventory recording via multilingual voice notes or register photos. Directly feeds the command center map."
+        title={COPY.headers.phcCaptureTitle}
+        subtitle={COPY.headers.phcCaptureSubtitle}
         badge={
           <div className="flex items-center gap-2">
             <OfflineBadge />
             <StatusBadge status="CYAN" label="POST /capture" />
           </div>
         }
-        breadcrumbs={[
-          { label: 'MEDEx' },
-          { label: 'Capture Workflows' },
-        ]}
+        breadcrumbs={[{ label: 'MEDEx' }, { label: 'Capture Workflows' }]}
       />
 
       {/* Role & Scope Warning for AUDITOR */}
       {isAuditor && (
-        <div className="p-4 bg-medex-amber/15 border border-medex-amber/40 rounded-xl text-xs text-medex-amber-light flex items-center gap-3">
-          <ShieldAlert className="w-5 h-5 shrink-0" />
+        <div className="p-4 bg-theme-warning-bg/40 border border-theme-warning-text/40 rounded-2xl text-xs text-theme-warning-text flex items-center gap-3 font-mono backdrop-blur-md">
+          <ShieldAlert className="w-5 h-5 shrink-0 text-theme-warning" />
           <div>
-            <span className="font-bold font-mono block">AUDITOR ROLE READ-ONLY NOTICE:</span>
-            The AUDITOR role is restricted to read-only access per contract specifications. Stock entry capture submissions (POST /capture) are disabled.
+            <span className="font-bold block">AUDITOR ROLE READ-ONLY NOTICE:</span>
+            The AUDITOR role is restricted to read-only access. Stock entry capture submissions (POST /capture) are disabled.
           </div>
         </div>
       )}
 
-      {/* Facility & Context Selector Header */}
-      <div className="medex-panel p-4 bg-medex-surface/60 border border-medex-border rounded-xl flex flex-wrap items-center justify-between gap-4">
+      {/* Facility Context & Tab Switcher Bar */}
+      <Card3D 
+        maxTilt={2}
+        specularColor="rgba(56, 189, 248, 0.12)"
+        className="p-5 bg-theme-surface/85 backdrop-blur-xl border border-theme-border rounded-2xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-xl"
+      >
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-medex-cyan/15 text-medex-cyan border border-medex-cyan/30">
+          <div className="p-3 rounded-xl bg-theme-primary/10 text-theme-primary border border-theme-primary/25 shrink-0">
             <Store className="w-5 h-5" />
           </div>
-          <div>
-            <label className="text-2xs font-mono text-medex-muted uppercase block">
-              Active Facility Context
+          <div className="w-full">
+            <label className="text-[10px] font-mono text-theme-muted uppercase tracking-wider block">
+              ACTIVE FRONTLINE NODE
             </label>
-            <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex flex-wrap items-center gap-2 mt-1">
               <select
                 value={facilityId}
                 onChange={(e) => {
@@ -108,7 +117,7 @@ export const CapturePage: React.FC = () => {
                   handleReset();
                 }}
                 disabled={isAuditor}
-                className="bg-medex-bg border border-medex-border rounded px-3 py-1 text-xs font-mono font-bold text-medex-primary focus:outline-none focus:border-medex-cyan"
+                className="min-h-[44px] bg-theme-bg/90 border border-theme-border-control rounded-xl px-3.5 py-2 text-xs font-mono font-bold text-theme-text focus:outline-none focus:border-theme-primary transition-all"
               >
                 <option value="TN-PHC-014">TN-PHC-014 (PHC Sample-014 · Block-A)</option>
                 <option value="TN-PHC-021">TN-PHC-021 (PHC Sample-021 · Block-B)</option>
@@ -116,108 +125,171 @@ export const CapturePage: React.FC = () => {
                 <option value="TN-CHC-003">TN-CHC-003 (CHC Sample-003 · Block-A)</option>
               </select>
 
-              <span className="text-2xs font-mono text-medex-muted bg-medex-sidebar px-2 py-1 rounded border border-medex-border">
-                District: {district}
+              <span className="text-[11px] font-mono text-theme-muted bg-white/5 px-3 py-2 rounded-xl border border-theme-border">
+                DISTRICT: {district}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Tab Toggle: Voice vs Photo */}
+        {/* Tab Toggle: Voice vs Photo with Framer Motion layoutId */}
         {!captureResponse && !confirmResponse && (
-          <div className="inline-flex rounded-lg bg-medex-sidebar border border-medex-border p-1 gap-1">
+          <div
+            role="tablist"
+            aria-label="Capture Mode"
+            className="flex items-center justify-center rounded-xl bg-black/30 border border-theme-border p-1.5 gap-1.5 w-full md:w-auto backdrop-blur-md"
+          >
             <button
               type="button"
+              role="tab"
+              aria-selected={activeTab === 'voice'}
               onClick={() => setActiveTab('voice')}
-              className={`px-4 py-2 rounded-md text-xs font-semibold inline-flex items-center gap-2 transition-all ${
+              className={`relative min-h-[44px] px-5 py-2 rounded-lg text-xs font-semibold flex-1 md:flex-initial inline-flex items-center justify-center gap-2 transition-all z-10 ${
                 activeTab === 'voice'
-                  ? 'bg-medex-cyan text-medex-bg shadow-sm'
-                  : 'text-medex-secondary hover:text-medex-primary'
+                  ? 'text-white font-bold'
+                  : 'text-theme-muted hover:text-theme-text'
               }`}
             >
+              {activeTab === 'voice' && (
+                <motion.div
+                  layoutId="activeCaptureTab"
+                  className="absolute inset-0 bg-theme-primary rounded-lg shadow-lg shadow-theme-primary/30 z-[-1]"
+                  transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                />
+              )}
               <Mic className="w-4 h-4" />
               <span>Voice Entry</span>
             </button>
 
             <button
               type="button"
+              role="tab"
+              aria-selected={activeTab === 'photo'}
               onClick={() => setActiveTab('photo')}
-              className={`px-4 py-2 rounded-md text-xs font-semibold inline-flex items-center gap-2 transition-all ${
+              className={`relative min-h-[44px] px-5 py-2 rounded-lg text-xs font-semibold flex-1 md:flex-initial inline-flex items-center justify-center gap-2 transition-all z-10 ${
                 activeTab === 'photo'
-                  ? 'bg-medex-cyan text-medex-bg shadow-sm'
-                  : 'text-medex-secondary hover:text-medex-primary'
+                  ? 'text-white font-bold'
+                  : 'text-theme-muted hover:text-theme-text'
               }`}
             >
+              {activeTab === 'photo' && (
+                <motion.div
+                  layoutId="activeCaptureTab"
+                  className="absolute inset-0 bg-theme-primary rounded-lg shadow-lg shadow-theme-primary/30 z-[-1]"
+                  transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                />
+              )}
               <Camera className="w-4 h-4" />
               <span>Photo Register</span>
             </button>
           </div>
         )}
-      </div>
+      </Card3D>
 
-      {/* Main Interactive Stage */}
-      <SectionCard
-        title={
-          confirmResponse
-            ? 'Stock Update Confirmed'
-            : captureResponse
-            ? 'Review & Confirm Extracted Stock Rows'
-            : activeTab === 'voice'
-            ? 'Voice Stock Capture'
-            : 'Photo Register Capture'
-        }
-        subtitle={
-          confirmResponse
-            ? 'Recomputed status available for map refetch'
-            : captureResponse
-            ? 'Edit low-confidence rows before saving snapshot'
-            : activeTab === 'voice'
-            ? 'Multilingual Speech-to-Text & Gemini JSON extraction (POST /capture/voice)'
-            : 'Multimodal register parsing & drug matching (POST /capture/photo)'
-        }
-        actionSlot={
-          (captureResponse || confirmResponse) && (
-            <button
-              type="button"
-              onClick={handleReset}
-              className="text-2xs font-mono text-medex-cyan hover:underline font-semibold"
-            >
-              ← Cancel & New Capture
-            </button>
-          )
-        }
+      {/* Main Interactive Stage Container */}
+      <Card3D 
+        maxTilt={1.5}
+        specularColor="rgba(56, 189, 248, 0.08)"
+        className="bg-theme-surface/85 backdrop-blur-xl border border-theme-border rounded-2xl p-6 space-y-5 shadow-2xl"
       >
-        {confirmResponse ? (
-          <CaptureStatus
-            confirmResponse={confirmResponse}
-            onReset={handleReset}
-            onGoToMap={() => navigate(`/map?facility_id=${facilityId}`)}
-          />
-        ) : captureResponse ? (
-          <CaptureReview
-            captureData={captureResponse}
-            onConfirmSuccess={(res) => setConfirmResponse(res)}
-            headers={getAuthHeaders()}
-            disabled={isAuditor || !isOnline}
-          />
-        ) : activeTab === 'voice' ? (
-          <VoiceCapture
-            facilityId={facilityId}
-            selectedLanguage={selectedLanguage}
-            onLanguageChange={setSelectedLanguage}
-            onCaptureSuccess={(res) => setCaptureResponse(res)}
-            headers={getAuthHeaders()}
-            disabled={isAuditor || !isOnline}
-          />
-        ) : (
-          <PhotoCapture
-            facilityId={facilityId}
-            onCaptureSuccess={(res) => setCaptureResponse(res)}
-            headers={getAuthHeaders()}
-            disabled={isAuditor || !isOnline}
-          />
-        )}
-      </SectionCard>
-    </div>
+        <div className="flex items-center justify-between border-b border-theme-border pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-theme-primary/10 border border-theme-primary/25 flex items-center justify-center text-theme-primary">
+              <Radio className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-[16px] font-semibold text-theme-text">
+                {confirmResponse
+                  ? 'Stock Update Confirmed'
+                  : captureResponse
+                  ? 'Review & Confirm Extracted Stock Rows'
+                  : activeTab === 'voice'
+                  ? 'Voice Stock Capture'
+                  : 'Photo Register Capture'}
+              </h2>
+              <p className="text-[11px] font-mono text-theme-muted">
+                {confirmResponse
+                  ? 'RECOMPUTED FACILITY RESILIENCE SCORE // BROADCAST TO COMMAND MAP'
+                  : captureResponse
+                  ? 'EDIT LOW-CONFIDENCE ROWS BEFORE SAVING SNAPSHOT'
+                  : activeTab === 'voice'
+                  ? 'MULTILINGUAL AUDIO PIPELINE // THREE.JS 3D FREQUENCY SPECTRUM'
+                  : 'MULTIMODAL REGISTER OCR & DRUG MATCHING'}
+              </p>
+            </div>
+          </div>
+
+          {(captureResponse || confirmResponse) && (
+            <Button variant="secondary" size="sm" onClick={handleReset} className="min-h-[44px]">
+              <ArrowLeft className="w-4 h-4 mr-1.5" />
+              <span>New Capture</span>
+            </Button>
+          )}
+        </div>
+
+        <AnimatePresence mode="wait">
+          {confirmResponse ? (
+            <motion.div
+              key="status"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+            >
+              <CaptureStatus
+                confirmResponse={confirmResponse}
+                onReset={handleReset}
+                onGoToMap={() => navigate(`/map?facility_id=${facilityId}`)}
+              />
+            </motion.div>
+          ) : captureResponse ? (
+            <motion.div
+              key="review"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+            >
+              <CaptureReview
+                captureData={captureResponse}
+                onConfirmSuccess={(res) => setConfirmResponse(res)}
+                headers={getAuthHeaders()}
+                disabled={isAuditor || !isOnline}
+              />
+            </motion.div>
+          ) : activeTab === 'voice' ? (
+            <motion.div
+              key="voice"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+            >
+              <VoiceCapture
+                facilityId={facilityId}
+                selectedLanguage={selectedLanguage}
+                onLanguageChange={setSelectedLanguage}
+                onCaptureSuccess={(res) => setCaptureResponse(res)}
+                headers={getAuthHeaders()}
+                disabled={isAuditor || !isOnline}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="photo"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+            >
+              <PhotoCapture
+                facilityId={facilityId}
+                onCaptureSuccess={(res) => setCaptureResponse(res)}
+                headers={getAuthHeaders()}
+                disabled={isAuditor || !isOnline}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Card3D>
+    </motion.div>
   );
 };
+
+

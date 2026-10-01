@@ -8,3 +8,5 @@ __pycache__/
 *.db
 .env
 .venv/
+test-results/
+playwright-report/

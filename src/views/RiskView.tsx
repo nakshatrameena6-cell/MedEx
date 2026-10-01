@@ -1,369 +1,205 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { AlertTriangle, ArrowUpRight, Building2, ChevronRight, RefreshCw, Globe2, ShieldCheck, Clock3 } from 'lucide-react';
 import { PageHeader } from '../components/common/PageHeader';
-import { SectionCard } from '../components/common/SectionCard';
-import { MetricCard } from '../components/common/MetricCard';
 import { StatusBadge } from '../components/common/StatusBadge';
-import { PriorityBadge } from '../components/common/PriorityBadge';
-import { FilterBar } from '../components/common/FilterBar';
-import { Select } from '../components/common/Select';
-import { DataTable, Column } from '../components/common/DataTable';
+import { DeltaChip } from '../components/common/DeltaChip';
+import { Button } from '../components/common/Button';
+import { EmptyState } from '../components/common/EmptyState';
+import { ErrorState } from '../components/common/ErrorState';
+import { TableSkeleton } from '../components/common/Skeleton';
+import { RiskDrawer } from '../features/risk/RiskDrawer';
+import { RiskFiltersPopover } from '../features/risk/RiskFiltersPopover';
+import { RiskSparkline } from '../features/risk/RiskSparkline';
+import { EarthPinGlobe3D, PinLocation } from '../components/3d/EarthPinGlobe3D';
 import { useAuthRole } from '../context/AuthRoleContext';
 import { RiskItem, RiskResponse, RiskStatus } from '../types/api';
 import { getRisk } from '../services/riskService';
-import {
-  Activity,
-  AlertTriangle,
-  ShieldAlert,
-  MapPin,
-  TrendingUp,
-  RefreshCw,
-  Info,
-} from 'lucide-react';
+
+const FILTERS = [
+  { value: 'ALL', label: 'All priorities' }, { value: 'RED', label: 'Critical' },
+  { value: 'AMBER', label: 'Watch' }, { value: 'GREEN', label: 'Healthy' },
+];
 
 export const RiskView: React.FC = () => {
-  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { role, district, user, isMockMode } = useAuthRole();
-
-  // Filters supported by GET /risk contract
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [drugFilter, setDrugFilter] = useState<string>('ALL');
-  const [limitFilter, setLimitFilter] = useState<string>('50');
-
-  // API Data State
+  const statusFilter = searchParams.get('status') || 'ALL';
+  const drugFilter = searchParams.get('drug_code') || 'ALL';
+  const limitFilter = searchParams.get('limit') || '50';
+  const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
+  const [showGlobe, setShowGlobe] = useState(true);
+  const [selectedItem, setSelectedItem] = useState<RiskItem | null>(null);
+  const selectedRowRef = useRef<HTMLElement | null>(null);
   const [riskResponse, setRiskResponse] = useState<RiskResponse | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isError, setIsError] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string>('');
-
-  const loadRiskData = async () => {
-    setIsLoading(true);
-    setIsError(false);
-    setErrorMessage('');
-
-    const headers: Record<string, string> = {
-      'X-Role': role,
-      'X-District': district,
-      'X-User': user,
-    };
-    if (isMockMode) {
-      headers['X-Mock'] = 'true';
-    }
-
-    try {
-      const data = await getRisk(
-        {
-          district_id: district,
-          drug_code: drugFilter !== 'ALL' ? drugFilter : undefined,
-          status: statusFilter !== 'ALL' ? (statusFilter as RiskStatus) : undefined,
-          limit: parseInt(limitFilter, 10),
-        },
-        headers
-      );
-      setRiskResponse(data);
-    } catch (err: any) {
-      setIsError(true);
-      setErrorMessage(err.message || 'Failed to load risk intelligence from GET /risk');
-    } fontally: {
-      setIsLoading(false);
-    }
-  };
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    loadRiskData();
-  }, [role, district, user, isMockMode, statusFilter, drugFilter, limitFilter]);
+    let cancelled = false;
+    setIsLoading(true);
+    setErrorMessage('');
+    setSelectedItem(null);
+    const headers: Record<string, string> = { 'X-Role': role, 'X-District': district, 'X-User': user };
+    if (isMockMode) headers['X-Mock'] = 'true';
+    getRisk({
+      district_id: district,
+      drug_code: drugFilter !== 'ALL' ? drugFilter : undefined,
+      status: statusFilter !== 'ALL' ? statusFilter as RiskStatus : undefined,
+      limit: Math.max(1, Math.min(500, parseInt(limitFilter, 10) || 50)),
+    }, headers).then((data) => {
+      if (!cancelled) setRiskResponse(data);
+    }).catch((error: unknown) => {
+      if (!cancelled) {
+        setRiskResponse(null);
+        setErrorMessage(error instanceof Error ? error.message : 'Unable to load risk data.');
+      }
+    }).finally(() => { if (!cancelled) setIsLoading(false); });
+    return () => { cancelled = true; };
+  }, [role, district, user, isMockMode, statusFilter, drugFilter, limitFilter, refreshKey]);
 
   const items = riskResponse?.items || [];
   const resilience = riskResponse?.resilience;
-
-  // Table Columns displaying exact contract fields
-  const columns: Column<RiskItem>[] = [
-    {
-      key: 'priority',
-      header: 'Priority Rank',
-      render: (r) => <PriorityBadge score={r.priority} />,
-      width: '120px',
-    },
-    {
-      key: 'facility',
-      header: 'Facility',
-      render: (r) => (
-        <div>
-          <span className="font-semibold text-medex-primary block">{r.facility_name}</span>
-          <span className="text-2xs font-mono text-medex-muted">
-            {r.facility_id} · {r.block || 'District'}
-          </span>
-        </div>
-      ),
-    },
-    {
-      key: 'drug',
-      header: 'Medicine',
-      render: (r) => (
-        <div>
-          <span className="font-semibold text-medex-primary block">{r.drug_name}</span>
-          <span className="text-2xs font-mono text-medex-cyan">{r.drug_code}</span>
-        </div>
-      ),
-    },
-    {
-      key: 'stock',
-      header: 'Usable Stock',
-      render: (r) => (
-        <span className="font-mono text-xs text-medex-primary">
-          {r.stock_qty.toLocaleString()} <span className="text-2xs text-medex-muted">{r.unit}</span>
-        </span>
-      ),
-      align: 'right',
-    },
-    {
-      key: 'cover_days',
-      header: 'Days Cover (P50/P90)',
-      render: (r) => (
-        <div className="font-mono text-xs text-center">
-          <span className="font-bold text-medex-primary">{r.cover_days}d</span>
-          {typeof r.cover_days_p90 === 'number' && (
-            <span className="text-2xs text-medex-muted block">({r.cover_days_p90}d P90)</span>
-          )}
-        </div>
-      ),
-      align: 'center',
-    },
-    {
-      key: 'p_stockout',
-      header: 'P(Stockout)',
-      render: (r) => (
-        <span className="font-mono text-2xs font-bold px-2 py-0.5 rounded bg-medex-red/15 border border-medex-red/30 text-medex-red-light">
-          {Math.round(r.p_stockout * 100)}%
-        </span>
-      ),
-      align: 'center',
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (r) => <StatusBadge status={r.status} size="sm" />,
-      align: 'center',
-    },
-    {
-      key: 'reason',
-      header: 'Gemini AI Reason & Flags',
-      render: (r) => (
-        <div className="space-y-1 max-w-sm">
-          <p className="text-2xs text-medex-secondary leading-normal">{r.reason}</p>
-          {r.flags && r.flags.length > 0 && (
-            <div className="flex flex-wrap gap-1 pt-0.5">
-              {r.flags.map((flag, idx) => (
-                <span
-                  key={idx}
-                  title={flag.reason}
-                  className="text-[10px] font-mono font-semibold px-1.5 py-0.2 rounded bg-medex-elevated border border-medex-border text-medex-cyan"
-                >
-                  {flag.code}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: 'actions',
-      header: 'Actions',
-      render: (r) => (
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              // MANDATORY MAP INTEGRATION: Navigate to District Map & highlight facility
-              navigate(`/map?facility_id=${r.facility_id}`);
-            }}
-            title="Locate facility on District Map"
-            className="p-1.5 rounded bg-medex-surface border border-medex-border text-medex-cyan hover:bg-medex-cyan/15 hover:border-medex-cyan/40 transition-colors text-2xs font-mono font-semibold inline-flex items-center gap-1"
-          >
-            <MapPin className="w-3.5 h-3.5" />
-            <span className="hidden xl:inline">Map</span>
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/forecast?facility_id=${r.facility_id}&drug_code=${r.drug_code}`);
-            }}
-            title="View demand forecast"
-            className="p-1.5 rounded bg-medex-surface border border-medex-border text-medex-secondary hover:text-medex-primary hover:border-medex-border-active transition-colors text-2xs font-mono font-semibold inline-flex items-center gap-1"
-          >
-            <TrendingUp className="w-3.5 h-3.5 text-medex-cyan" />
-            <span className="hidden xl:inline">Forecast</span>
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/transfers?district_id=${r.district_id}&drug_code=${r.drug_code}`);
-            }}
-            title="Open Transfer Optimizer"
-            className="p-1.5 rounded bg-medex-surface border border-medex-border text-medex-amber-light hover:bg-medex-amber/15 hover:border-medex-amber/40 transition-colors text-2xs font-mono font-semibold inline-flex items-center gap-1"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span className="hidden xl:inline">Transfer</span>
-          </button>
-        </div>
-      ),
-
-      align: 'center',
-    },
-  ];
+  const redCount = items.filter((item) => item.status === 'RED' || item.cover_days <= 7).length;
+  const avgLeadTime = items.length ? (items.reduce((sum, item) => sum + item.lead_time_days, 0) / items.length).toFixed(1) : '--';
+  const activeFilterCount = Number(statusFilter !== 'ALL') + Number(drugFilter !== 'ALL') + Number(limitFilter !== '50');
+  // Multiple medicines can belong to one facility; display its most urgent status.
+  const facilityMap = new Map<string, RiskItem>();
+  const severity = { RED: 3, AMBER: 2, GREEN: 1 };
+  items.forEach((item) => {
+    const previous = facilityMap.get(item.facility_id);
+    if (!previous || severity[item.status] > severity[previous.status]) facilityMap.set(item.facility_id, item);
+  });
+  const pins: PinLocation[] = [...facilityMap.values()]
+    .filter((item) => Number.isFinite(item.lat) && Number.isFinite(item.lng))
+    .map((item) => ({ name: item.facility_name, lat: item.lat!, lon: item.lng!, status: item.status === 'RED' ? 'critical' : item.status === 'AMBER' ? 'warning' : 'healthy' }));
+  const updateFilters = (status: string, drug: string, limit: string) => {
+    const params: Record<string, string> = {};
+    if (status !== 'ALL') params.status = status;
+    if (drug !== 'ALL') params.drug_code = drug;
+    if (limit !== '50') params.limit = limit;
+    setSearchParams(params);
+  };
+  const openItem = (item: RiskItem, element: HTMLElement) => { selectedRowRef.current = element; setSelectedItem(item); };
+  const unavailable = isLoading || !!errorMessage;
 
   return (
-    <div className="space-y-6 font-sans">
-      <PageHeader
-        title="Stock-Out Risk Queue"
-        subtitle="Ranked priority list of facilities approaching stock-out, evaluated against lead time, vulnerability, and population exposure."
-        badge={<StatusBadge status="RED" label="GET /risk" />}
-        breadcrumbs={[{ label: 'MEDEx' }, { label: 'Risk Intelligence' }]}
-        actionSlot={
-          <button
-            type="button"
-            onClick={loadRiskData}
-            className="px-3 py-1.5 rounded bg-medex-surface border border-medex-border text-xs font-semibold text-medex-secondary hover:text-medex-primary hover:border-medex-border-active transition-colors inline-flex items-center gap-1.5"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
-          </button>
-        }
-      />
-
-      {/* Resilience Summary Cards (Contract Supported: score, previous_week_score, delta, drift_alert) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard
-          title="District Resilience Score"
-          value={resilience?.score ?? 71}
-          unit="/ 100"
-          delta={{
-            value: resilience?.delta ?? -7,
-            label: 'pts',
-            isPositiveGood: true,
-          }}
-          status={resilience?.drift_alert ? 'AMBER' : 'GREEN'}
-          subtext={
-            resilience?.drift_alert
-              ? 'Drift alert: Score dropped >5 pts week-over-week'
-              : 'Resilience score stable'
-          }
-          icon={Activity}
+    <div className="space-y-6 pb-4">
+      <div className="relative">
+        <PageHeader title="Risk intelligence" subtitle="A clearer view of supply risk. Prioritize today to protect tomorrow."
+          activeFilterCount={activeFilterCount} onToggleFilters={() => setIsFilterPopoverOpen((open) => !open)}
+          actionSlot={<>
+            <Button variant="secondary" size="sm" icon={Globe2} aria-pressed={showGlobe} onClick={() => setShowGlobe((show) => !show)}>{showGlobe ? 'Hide globe' : 'Show globe'}</Button>
+            <Button variant="primary" size="sm" icon={RefreshCw} onClick={() => setRefreshKey((key) => key + 1)} isLoading={isLoading}>Refresh data</Button>
+          </>}
         />
-        <MetricCard
-          title="At-Risk Queue Items"
-          value={items.length}
-          unit="facilities"
-          status="RED"
-          subtext={`Sorted strictly by backend priority score`}
-          icon={AlertTriangle}
-        />
-        <MetricCard
-          title="Lead Time Cover Threshold"
-          value="9.0"
-          unit="days avg"
-          status="AMBER"
-          subtext="Lead time + 3 days safety buffer"
-          icon={ShieldAlert}
-        />
-        <MetricCard
-          title="Active District"
-          value={district}
-          unit={role}
-          status="CYAN"
-          subtext={`As of: ${riskResponse?.as_of ? new Date(riskResponse.as_of).toLocaleTimeString() : 'Live'}`}
-          icon={Info}
-        />
+        <RiskFiltersPopover isOpen={isFilterPopoverOpen} onClose={() => setIsFilterPopoverOpen(false)}
+          statusFilter={statusFilter} onStatusChange={(value) => updateFilters(value, drugFilter, limitFilter)}
+          drugFilter={drugFilter} onDrugChange={(value) => updateFilters(statusFilter, value, limitFilter)}
+          limitFilter={limitFilter} onLimitChange={(value) => updateFilters(statusFilter, drugFilter, value)}
+          onReset={() => setSearchParams({})} />
       </div>
 
-      {/* Drift Alert Warning Banner if active */}
-      {resilience?.drift_alert && (
-        <div className="medex-panel p-3.5 bg-medex-amber/15 border-medex-amber/40 text-xs text-medex-amber-light flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-medex-amber shrink-0" />
-            <span>
-              <strong>Resilience Drift Alert Active:</strong> District resilience score decreased by{' '}
-              <strong className="underline">{resilience.delta} points</strong> week-over-week (Previous:{' '}
-              {resilience.previous_week_score}).
-            </span>
+      <div className={showGlobe ? 'risk-overview' : ''}>
+        <AnimatePresence>
+          {showGlobe && <motion.div key="earth" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-w-0">
+            <EarthPinGlobe3D height="100%" pins={unavailable ? [] : pins} isDemo={isMockMode}
+              activeNodeName={selectedItem?.facility_name}
+              onPinSelect={(name) => {
+                const item = [...facilityMap.values()].find((facility) => facility.facility_name === name);
+                if (item) {
+                  selectedRowRef.current = document.activeElement as HTMLElement;
+                  setSelectedItem(item);
+                }
+              }}
+            />
+          </motion.div>}
+        </AnimatePresence>
+        <div className={`risk-metrics ${!showGlobe ? '!grid-cols-1 sm:!grid-cols-3' : ''}`}>
+          <div className="surface-card risk-metric animate-page-enter stagger-1">
+            <div className="flex items-center justify-between gap-2 text-xs text-theme-muted"><span>Needs attention</span><AlertTriangle size={16} className="text-theme-critical" /></div>
+            <div className="flex items-end justify-between">
+              <div><span className="metric-value text-theme-critical">{unavailable ? '--' : redCount.toString().padStart(2, '0')}</span><span className="ml-2 text-xs text-theme-muted">items</span></div>
+              <span className="text-[10px] rounded-full px-2 py-1 bg-theme-critical-bg text-theme-critical-text">Critical</span>
+            </div>
+            <div className="risk-metric-footer">Critical risk or under 7 days of stock</div>
           </div>
-          <span className="text-2xs font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-medex-amber/20 border border-medex-amber/40">
-            DRIFT ALERT
-          </span>
+          <div className="surface-card risk-metric animate-page-enter stagger-2">
+            <div className="flex items-center justify-between text-xs text-theme-muted"><span>Network resilience</span><ShieldCheck size={16} className="text-theme-primary" /></div>
+            <div className="flex items-end justify-between gap-2">
+              <div><span className="metric-value">{unavailable ? '--' : resilience?.score ?? '--'}</span><span className="ml-2 text-xs text-theme-muted">/ 100</span></div>
+              {!unavailable && resilience && <RiskSparkline data={[resilience.previous_week_score, resilience.score]} />}
+            </div>
+            <div className="risk-metric-footer flex items-center justify-between"><span>Against previous week</span>{!unavailable && resilience && <DeltaChip value={resilience.delta} unit="pts" />}</div>
+          </div>
+          <div className="surface-card risk-metric animate-page-enter stagger-3">
+            <div className="flex items-center justify-between text-xs text-theme-muted"><span>Average lead time</span><Clock3 size={16} className="text-theme-healthy-text" /></div>
+            <div><span className="metric-value">{unavailable ? '--' : avgLeadTime}</span><span className="ml-2 text-xs text-theme-muted">days</span></div>
+            <div className="risk-metric-footer">Delivery time across the current queue</div>
+          </div>
+        </div>
+      </div>
+
+      {!unavailable && resilience?.drift_alert && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-theme-border bg-theme-warning-bg px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="p-2 rounded-lg text-theme-warning-text bg-theme-surface"><AlertTriangle size={17} /></span>
+            <div><p className="text-[12px] font-medium text-theme-text">A shift in network resilience</p>
+              <p className="text-[11px] text-theme-muted mt-1">Down {Math.abs(resilience.delta)} points this week. Review critical supplies before the next delivery cycle.</p></div>
+          </div>
+          <a href="#risk-queue" className="inline-flex items-center gap-2 text-xs text-theme-warning-text">Review queue <ArrowUpRight size={15} /></a>
         </div>
       )}
 
-      {/* Contract Filters */}
-      <FilterBar
-        title="Contract Filters (GET /risk)"
-        onReset={() => {
-          setStatusFilter('ALL');
-          setDrugFilter('ALL');
-          setLimitFilter('50');
-        }}
-      >
-        <Select
-          label="Risk Status"
-          value={statusFilter}
-          onChange={setStatusFilter}
-          options={[
-            { value: 'ALL', label: 'AMBER & RED (Default)' },
-            { value: 'RED', label: 'RED Only' },
-            { value: 'AMBER', label: 'AMBER Only' },
-            { value: 'GREEN', label: 'GREEN Only' },
-          ]}
-        />
-        <Select
-          label="Drug Code"
-          value={drugFilter}
-          onChange={setDrugFilter}
-          options={[
-            { value: 'ALL', label: 'All Essential Drugs' },
-            { value: 'ORS', label: 'ORS' },
-            { value: 'PARA500', label: 'PARA500' },
-            { value: 'AMOX500', label: 'AMOX500' },
-          ]}
-        />
-        <Select
-          label="Limit"
-          value={limitFilter}
-          onChange={setLimitFilter}
-          options={[
-            { value: '10', label: 'Top 10 Priority' },
-            { value: '25', label: 'Top 25 Priority' },
-            { value: '50', label: 'Top 50 Priority' },
-            { value: '100', label: 'Top 100 Priority' },
-          ]}
-        />
-      </FilterBar>
-
-      {/* Risk Queue Operational Table */}
-      <SectionCard
-        title="Priority Risk Queue"
-        subtitle="Backend Priority Score (0.0 - 1.0) dictates row order. Click Map button to highlight facility on geospatial engine."
-        actionSlot={
-          <span className="text-2xs font-mono text-medex-cyan font-semibold">
-            {items.length} Items Loaded
-          </span>
-        }
-      >
-        <DataTable
-          columns={columns}
-          data={items}
-          isLoading={isLoading}
-          isError={isError}
-          errorMessage={errorMessage}
-          onRetry={loadRiskData}
-          getRowId={(r) => `${r.facility_id}:${r.drug_code}`}
-          onRowClick={(r) => navigate(`/map?facility_id=${r.facility_id}`)}
-          emptyTitle="No Risk Items Found"
-          emptyDescription="No facilities in the district match the selected risk status or drug filter."
-        />
-      </SectionCard>
+      <section id="risk-queue" className="surface-card risk-queue scroll-mt-4">
+        <div className="p-5 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3"><h2 className="text-[18px] font-medium tracking-tight">Priority queue</h2>
+            {!unavailable && <span className="text-[10px] font-mono text-theme-muted bg-theme-bg px-2 py-1 rounded-md">{items.length} ITEMS</span>}
+          </div>
+          <div className="flex flex-wrap items-center gap-1" aria-label="Filter priorities">
+            {FILTERS.map((filter) => <button key={filter.value} type="button" className="filter-pill" aria-pressed={statusFilter === filter.value} onClick={() => updateFilters(filter.value, drugFilter, limitFilter)}>{filter.label}</button>)}
+          </div>
+        </div>
+        {isLoading ? <div className="p-5" role="status" aria-label="Loading risk queue"><TableSkeleton rows={4} columns={5} /></div>
+          : errorMessage ? <ErrorState message={errorMessage} onRetry={() => setRefreshKey((key) => key + 1)} />
+          : !items.length ? <EmptyState title="No matching risks" description="No supply risks match the current filters." action={activeFilterCount > 0 ? <Button variant="secondary" size="sm" onClick={() => setSearchParams({})}>Clear filters</Button> : undefined} />
+          : <>
+            <div className="hidden md:block overflow-x-auto">
+              <table className="risk-table">
+                <thead><tr><th scope="col">Medicine / facility</th><th scope="col">Stock coverage</th><th scope="col">Priority</th><th scope="col">Recommended focus</th><th scope="col"><span className="sr-only">Details</span></th></tr></thead>
+                <tbody>{items.map((item, index) => {
+                  const color = item.status === 'RED' ? 'var(--color-critical)' : item.status === 'AMBER' ? 'var(--color-warning-text)' : 'var(--color-healthy-text)';
+                  return <tr key={`${item.facility_id}:${item.drug_code}`} className="animate-page-enter" style={{ animationDelay: `${Math.min(index, 8) * 35}ms` }}
+                    tabIndex={0} aria-label={`View ${item.drug_name} at ${item.facility_name}`}
+                    onClick={(event) => openItem(item, event.currentTarget)}
+                    onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openItem(item, event.currentTarget); } }}>
+                    <td><div className="font-medium text-theme-text">{item.drug_name}</div><div className="flex items-center gap-1.5 mt-2 text-[11px] text-theme-muted"><Building2 size={12} />{item.facility_name}<span className="font-mono text-[9px] ml-1">{item.drug_code}</span></div></td>
+                    <td><span className="font-display text-[16px] font-medium" style={{ color }}>{item.cover_days} <span className="text-[11px] font-sans">days</span></span><div className="cover-track"><span style={{ width: `${Math.max(0, Math.min(100, item.cover_days / 30 * 100))}%`, background: color }} /></div><div className="text-[10px] text-theme-muted mt-2">{item.stock_qty.toLocaleString()} {item.unit}</div></td>
+                    <td><StatusBadge status={item.status} size="sm" /></td>
+                    <td><p className="text-theme-muted text-[11px] leading-relaxed max-w-[270px] line-clamp-2" title={item.reason}>{item.reason || 'Continue monitoring supply levels.'}</p></td>
+                    <td><ChevronRight size={16} className="text-theme-muted" /></td>
+                  </tr>;
+                })}</tbody>
+              </table>
+            </div>
+            <div className="md:hidden divide-y divide-theme-border">
+              {items.map((item) => <button key={`${item.facility_id}:${item.drug_code}`} type="button" onClick={(event) => openItem(item, event.currentTarget)} className="w-full p-5 text-left hover:bg-theme-primary-tint">
+                <div className="flex justify-between gap-3"><span className="text-sm font-medium">{item.drug_name}</span><StatusBadge status={item.status} size="sm" /></div>
+                <div className="text-xs text-theme-muted mt-2">{item.facility_name}</div>
+                <div className="mt-4 flex justify-between items-center text-xs"><span>{item.cover_days} days of stock</span><span className="text-theme-primary flex items-center gap-1">View details <ChevronRight size={14} /></span></div>
+              </button>)}
+            </div>
+          </>}
+        <div className="px-5 py-3 border-t border-theme-border flex flex-wrap justify-between gap-2 text-[10px] text-theme-muted">
+          <span>{isMockMode ? 'Demonstration data' : 'District supply intelligence'} / {district}</span>
+          {riskResponse?.as_of && <span>Updated {new Date(riskResponse.as_of).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</span>}
+        </div>
+      </section>
+      <RiskDrawer item={selectedItem} onClose={() => { setSelectedItem(null); selectedRowRef.current?.focus(); }} triggerRef={selectedRowRef} />
     </div>
   );
 };
+
+export default RiskView;

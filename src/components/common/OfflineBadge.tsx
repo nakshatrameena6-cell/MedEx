@@ -12,12 +12,12 @@ export const MockBadge: React.FC = () => {
       title="Toggle Mock Fixture Mode (X-Mock: true)"
       className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-2xs font-mono font-semibold transition-all border ${
         isMockMode
-          ? 'bg-medex-amber/15 border-medex-amber/40 text-medex-amber-light hover:bg-medex-amber/25'
-          : 'bg-medex-elevated border-medex-border text-medex-muted hover:text-medex-primary'
+          ? 'bg-theme-warning-bg border-theme-warning/40 text-theme-warning-text hover:bg-theme-warning-bg/80'
+          : 'bg-theme-healthy-bg border-theme-healthy/40 text-theme-healthy-text hover:bg-theme-healthy-bg/80 animate-pulse-subtle'
       }`}
     >
       <Database className="w-3 h-3" />
-      <span>{isMockMode ? 'MOCK MODE (FIXTURES)' : 'LIVE BACKEND'}</span>
+      <span>{isMockMode ? 'MOCK MODE' : 'LIVE BACKEND'}</span>
     </button>
   );
 };

@@ -8,8 +8,10 @@ export interface Column<T> {
   header: string;
   render?: (row: T, index: number) => React.ReactNode;
   width?: string;
+  minWidth?: string;
   align?: 'left' | 'center' | 'right';
   sortable?: boolean;
+  className?: string;
 }
 
 interface DataTableProps<T> {
@@ -71,63 +73,83 @@ export function DataTable<T>({
 
   return (
     <div className={`medex-panel overflow-hidden ${className}`}>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse font-sans text-xs">
-          <thead>
-            <tr className="bg-medex-topbar border-b border-medex-border text-medex-secondary text-2xs uppercase tracking-wider font-mono">
-              {columns.map((col) => (
-                <th
-                  key={col.key}
-                  style={{ width: col.width }}
-                  className={`px-3.5 py-2.5 font-semibold ${
-                    col.align === 'center'
-                      ? 'text-center'
-                      : col.align === 'right'
-                      ? 'text-right'
-                      : 'text-left'
-                  }`}
-                >
-                  {col.header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-medex-border-subtle">
-            {data.map((row, idx) => {
-              const rowId = getRowId ? getRowId(row, idx) : idx;
-              const isSelected = selectedRowId !== undefined && selectedRowId === rowId;
+      <div className="relative overflow-hidden">
+        <div
+          onScroll={(e) => {
+            const el = e.currentTarget;
+            const isAtEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 8;
+            const fade = el.parentElement?.querySelector('.scroll-fade-gradient') as HTMLElement;
+            if (fade) fade.style.opacity = isAtEnd ? '0' : '1';
+          }}
+          className="overflow-x-auto scrollbar-thin"
+        >
+          <table className="w-full text-left border-collapse font-sans text-xs">
+            <thead>
+              <tr className="bg-medex-topbar border-b border-medex-border text-medex-secondary text-2xs uppercase tracking-wider font-mono">
+                {columns.map((col) => (
+                  <th
+                    key={col.key}
+                    scope="col"
+                    style={{ width: col.width, minWidth: col.minWidth }}
+                    className={`px-3.5 py-2.5 font-semibold ${col.className || ''} ${
+                      col.align === 'center'
+                        ? 'text-center'
+                        : col.align === 'right'
+                        ? 'text-right'
+                        : 'text-left'
+                    }`}
+                  >
+                    {col.header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-medex-border-subtle">
+              {data.map((row, idx) => {
+                const rowId = getRowId ? getRowId(row, idx) : idx;
+                const isSelected = selectedRowId !== undefined && selectedRowId === rowId;
 
-              return (
-                <tr
-                  key={rowId}
-                  onClick={() => onRowClick && onRowClick(row)}
-                  className={`transition-colors ${
-                    isSelected
-                      ? 'bg-medex-cyan/10 border-l-2 border-l-medex-cyan'
-                      : 'hover:bg-medex-hover'
-                  } ${onRowClick ? 'cursor-pointer' : ''}`}
-                >
-                  {columns.map((col) => (
-                    <td
-                      key={col.key}
-                      className={`px-3.5 py-2.5 text-medex-primary align-middle ${
-                        col.align === 'center'
-                          ? 'text-center'
-                          : col.align === 'right'
-                          ? 'text-right'
-                          : 'text-left'
-                      }`}
-                    >
-                      {col.render
-                        ? col.render(row, idx)
-                        : ((row as any)[col.key] ?? '—')}
-                    </td>
-                  ))}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                return (
+                  <tr
+                    key={rowId}
+                    tabIndex={onRowClick ? 0 : undefined}
+                    onClick={() => onRowClick && onRowClick(row)}
+                    onKeyDown={(e) => {
+                      if (onRowClick && (e.key === 'Enter' || e.key === ' ')) {
+                        e.preventDefault();
+                        onRowClick(row);
+                      }
+                    }}
+                    className={`transition-colors focus-visible:outline-2 focus-visible:outline-theme-primary ${
+                      isSelected
+                        ? 'bg-medex-cyan/10 border-l-2 border-l-medex-cyan'
+                        : 'hover:bg-medex-hover'
+                    } ${onRowClick ? 'cursor-pointer' : ''}`}
+                  >
+                    {columns.map((col) => (
+                      <td
+                        key={col.key}
+                        style={{ minWidth: col.minWidth }}
+                        className={`px-3.5 py-2.5 text-medex-primary align-middle ${col.className || ''} ${
+                          col.align === 'center'
+                            ? 'text-center'
+                            : col.align === 'right'
+                            ? 'text-right'
+                            : 'text-left'
+                        }`}
+                      >
+                        {col.render
+                          ? col.render(row, idx)
+                          : ((row as any)[col.key] ?? '—')}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="scroll-fade-gradient pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#141E30] to-transparent transition-opacity duration-200" />
       </div>
 
       <div className="px-3.5 py-2 bg-medex-surface/60 border-t border-medex-border flex items-center justify-between text-2xs font-mono text-medex-muted">
